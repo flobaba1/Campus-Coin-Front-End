@@ -1,0 +1,18 @@
+
+import { useState } from 'react'
+import { DashboardShell } from './DashboardPage'
+import Icon from '../components/Icon'
+import '../styles/dashboard.css'
+const defaults=[['Food','food','amber','$214.60 this month · 18 entries'],['Transport','bus','blue','$68.40 this month · 12 entries'],['Hostel/Rent','home','purple','$300.00 this month · 1 entry'],['Academics','grad','teal','$84.20 this month · 4 entries'],['Subscriptions','tv','pink','$25.98 this month · 2 entries'],['Entertainment','ticket','peach','$38.40 this month · 3 entries'],['Miscellaneous','more','slate','$11.22 this month · 2 entries']]
+function toneIcon(tone,icon){return <span className={`d-icon ${tone}`}><Icon name={icon} size={17}/></span>}
+function CategoriesPage(){
+ const [dark,setDark]=useState(false),[notificationOpen,setNotificationOpen]=useState(false),[search,setSearch]=useState(''),[name,setName]=useState('Laundry'),[created,setCreated]=useState(false)
+ return <DashboardShell dark={dark} setDark={setDark} notificationOpen={notificationOpen} setNotificationOpen={setNotificationOpen} page="Categories" search={search} setSearch={setSearch}>
+  <section className="dash-content categories-page">
+   <div className="dash-heading"><div><label>ORGANISE</label><h1>Categories</h1><p>Default categories come from your campus admin. Add your own for anything else.</p></div><button className="primary-btn" onClick={()=>setCreated(true)}><Icon name="plus" size={16}/> New category</button></div>
+   <div className="category-tabs"><button className="active">Expense · 9</button><button>Income · 6</button></div>
+   <div className="categories-layout"><div><h3>Default <small>7 · managed by admin</small></h3><div className="category-grid">{defaults.map((c,i)=><div className="category-card" key={c[0]}>{toneIcon(c[2],c[1])}<span className="default-tag"><Icon name="lock" size={12}/> Default</span><strong>{c[0]}</strong><small>{c[3]}</small></div>)}</div><h3 className="my-cat">My categories <small>2 · only visible to you</small></h3><div className="category-grid my-grid"><div className="category-card editable">{toneIcon('blue','zap')}<button>✎</button><button>♧</button><strong>Phone data</strong><small>$0.00 this month · last used Aug 28</small></div><div className="category-card editable">{toneIcon('teal','activity')}<button>✎</button><button>♧</button><strong>Gym membership</strong><small>$0.00 this month · paused</small></div><div className="add-category-card"><span>＋</span><strong>Add a category</strong></div></div></div><aside className="new-category-card"><h3>New category</h3><p>Shows up in quick add right away</p><label>Name<input value={name} onChange={e=>setName(e.target.value)}/></label><label>Type<div className="expense-tabs"><button className="active">Expense</button><button>Income</button></div></label><label>Icon<div className="icon-picker">{['refresh','grad','coins','zap','gift','bus','food','tv','ticket','home'].map(x=><button key={x}><Icon name={x} size={17}/></button>)}</div></label><label>Colour<div className="color-picker">{['#0b7d78','#008b62','#1769e0','#7d38f4','#9a32ef','#d04a00','#f5a916','#df1832'].map(c=><i style={{background:c}} key={c}/>)}</div></label><label>Monthly budget (optional)<div className="field-input"><span>$</span><input value="$15.00" readOnly/></div><small>ⓘ You will be alerted at 85% and 100%</small></label><div className="new-cat-footer"><button>Cancel</button><button className="primary-btn" onClick={()=>setCreated(true)}>Create category</button></div>{created&&<div className="category-created">✓ {name} created</div>}</aside></div>
+  </section>
+ </DashboardShell>
+}
+export default CategoriesPage
