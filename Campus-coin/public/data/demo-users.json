@@ -1,0 +1,21 @@
+{
+  "students": [
+    {
+      "email": "oluwatobi@gmail.com",
+      "password": "techwiz",
+      "name": "Oluwatobi",
+      "role": "student",
+      "redirect": "/dashboard"
+    }
+  ],
+  "admins": [
+    {
+      "email": "isreal@gmail.com",
+      "password": "techtitan",
+      "authenticatorCode": "123456",
+      "name": "Isreal",
+      "role": "admin",
+      "redirect": "/admin/overview"
+    }
+  ]
+}
