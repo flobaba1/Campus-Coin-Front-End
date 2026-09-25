@@ -1,1 +1,41 @@
-.brand{display:flex;align-items:center;gap:10px;text-decoration:none}.brand-mark{width:36px;height:36px;border-radius:10px;background:#0b1933;color:#fff;display:grid;place-items:center;font-family:Manrope,Arial,sans-serif;font-size:20px;font-weight:800;position:relative}.brand-coin{position:absolute;width:8px;height:8px;border-radius:50%;background:#e4ad45;right:6px;top:6px;border:1.5px solid #fff}.brand-name{display:flex;font:800 20px/1 Manrope,Arial,sans-serif;letter-spacing:-.4px;color:#172033}.brand-name strong{color:#107f55}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+.brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #0b1933;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-family: Manrope, Arial, sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  position: relative;
+}
+.brand-coin {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e4ad45;
+  right: 6px;
+  top: 6px;
+  border: 1.5px solid #fff;
+}
+.brand-name {
+  display: flex;
+  font:
+    800 20px/1 Manrope,
+    Arial,
+    sans-serif;
+  letter-spacing: -0.4px;
+  color: #172033;
+}
+.brand-name strong {
+  color: #107f55;
+}
