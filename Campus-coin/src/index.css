@@ -1,6 +1,0 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&display=swap');
-
-:root{font-family:Inter,Arial,sans-serif;color:#172033;background:#fff;font-synthesis:none;text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;--green:#107f55;--green-bg:#e8f6ef;--navy:#0b1933;--navy-2:#12294f;--text:#172033;--muted:#636d80;--line:#e5e9ef;--bg:#f5f7fa}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-width:320px;background:#fff}button,input{font:inherit}button{cursor:pointer}#root{min-height:100vh}
-.cc-button{height:44px;border:0;border-radius:12px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 14px/1 Inter,Arial,sans-serif;transition:.2s ease}.cc-button-primary{background:var(--green);color:#fff}.cc-button-primary:hover{background:#0c704a;transform:translateY(-1px)}.cc-button-secondary{height:52px;background:#fff;color:var(--text);border:1px solid var(--line);padding:0 24px;border-radius:14px}.cc-button-secondary:hover{background:#fafbfd}
-@media(max-width:900px){.cc-button{padding:0 15px}.cc-button-secondary{padding:0 18px}}
