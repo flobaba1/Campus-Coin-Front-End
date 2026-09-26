@@ -1,1 +1,387 @@
-.sitemap-page{min-height:100vh;background:#f5f7fa;color:#172033}.sitemap-page header{height:80px;background:#fff;border-bottom:1px solid #e5e9ef;display:flex;align-items:center;justify-content:space-between;padding:0 80px}.sitemap-page header>button:first-child{border:0;background:none;padding:0;cursor:pointer}.sitemap-home{display:flex;align-items:center;gap:7px;border:0;background:none;color:#107f55;font:600 13px Inter;cursor:pointer}.sitemap-page main{max-width:1280px;margin:0 auto;padding:88px 40px 100px}.sitemap-intro{max-width:760px;margin-bottom:56px}.sitemap-intro>span{color:#107f55;font:600 13px Inter}.sitemap-intro h1{font:800 60px/1 Manrope;letter-spacing:-1.8px;margin:12px 0 18px}.sitemap-intro p{font:17px/1.65 Inter;color:#636d80;margin:0}.sitemap-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}.sitemap-grid section{background:#fff;border:1px solid #e5e9ef;border-radius:16px;padding:24px;min-height:240px}.sitemap-grid h2{font:800 18px Manrope;margin:0 0 18px}.sitemap-grid section button{width:100%;display:flex;justify-content:space-between;align-items:center;border:0;border-bottom:1px solid #edf0f4;background:none;padding:13px 0;color:#636d80;font:14px Inter;text-align:left;cursor:pointer}.sitemap-grid section button:hover{color:#107f55}.sitemap-grid section button svg{color:#9aa3b2}.sitemap-page footer{background:#fff;border-top:1px solid #e5e9ef;padding:40px 80px}.sitemap-page footer p{color:#636d80;font:13px Inter;margin:14px 0 0}@media(max-width:900px){.sitemap-page header{padding:0 20px}.sitemap-page main{padding:60px 20px}.sitemap-grid{grid-template-columns:1fr 1fr}.sitemap-page footer{padding:36px 20px}}@media(max-width:560px){.sitemap-grid{grid-template-columns:1fr}.sitemap-intro h1{font-size:44px}}
+.sitemap-page {
+  min-height: 100vh;
+  background: #f5f7fa;
+  color: #172033;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.sitemap-header {
+  height: 80px;
+  padding: 0 80px;
+  box-sizing: border-box;
+  background: #fff;
+  border-bottom: 1px solid #e5e9ef;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+}
+
+.sitemap-brand,
+.sitemap-nav button,
+.sitemap-signin,
+.sitemap-cta,
+.sitemap-breadcrumb button,
+.sitemap-link {
+  font: inherit;
+}
+
+.sitemap-brand {
+  justify-self: start;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sitemap-nav {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+}
+
+.sitemap-nav button,
+.sitemap-signin {
+  border: 0;
+  background: transparent;
+  color: #52617a;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.sitemap-nav button:hover,
+.sitemap-nav button.active,
+.sitemap-signin:hover {
+  color: #172033;
+}
+
+.sitemap-actions {
+  justify-self: end;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.sitemap-signin {
+  color: #172033;
+}
+
+.sitemap-cta {
+  min-width: 144px;
+  height: 44px;
+  border: 0;
+  border-radius: 12px;
+  background: #008c5a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 18px;
+}
+
+.sitemap-cta:hover {
+  background: #00794e;
+}
+
+.sitemap-main {
+  width: min(1280px, calc(100% - 48px));
+  margin: 0 auto;
+  padding: 72px 0 90px;
+  box-sizing: border-box;
+}
+
+.sitemap-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 18px;
+  color: #65748d;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sitemap-breadcrumb button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #6f7d94;
+  padding: 0;
+  cursor: pointer;
+}
+
+.sitemap-breadcrumb > svg {
+  color: #a4afbd;
+}
+
+.sitemap-intro {
+  margin-bottom: 38px;
+}
+
+.sitemap-intro h1 {
+  margin: 0 0 12px;
+  font-family: Manrope, Inter, sans-serif;
+  font-size: 46px;
+  line-height: 1.08;
+  letter-spacing: -1.6px;
+  font-weight: 800;
+  color: #172033;
+}
+
+.sitemap-intro p {
+  margin: 0;
+  color: #63728a;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.sitemap-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: start;
+  gap: 24px;
+}
+
+.sitemap-card {
+  background: #fff;
+  border: 1px solid #dfe5ec;
+  border-radius: 16px;
+  padding: 28px;
+  box-sizing: border-box;
+  box-shadow: 0 1px 1px rgba(18, 34, 54, 0.01);
+}
+
+.sitemap-card-public { min-height: 468px; }
+.sitemap-card-student { min-height: 574px; }
+.sitemap-card-admin { min-height: 329px; }
+
+.sitemap-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.sitemap-card-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+}
+
+.sitemap-card-icon.public {
+  color: #009b66;
+  background: #e3f7ef;
+}
+
+.sitemap-card-icon.student {
+  color: #1976ee;
+  background: #e8f1ff;
+}
+
+.sitemap-card-icon.admin {
+  color: #fff;
+  background: #071d3b;
+}
+
+.sitemap-card-heading h2 {
+  margin: 0 0 3px;
+  font-family: Manrope, Inter, sans-serif;
+  color: #172033;
+  font-size: 21px;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.sitemap-card-heading p {
+  margin: 0;
+  color: #718097;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.sitemap-divider {
+  height: 1px;
+  background: #e1e6ed;
+  margin: 20px 0 7px;
+}
+
+.sitemap-links {
+  display: flex;
+  flex-direction: column;
+}
+
+.sitemap-link {
+  width: 100%;
+  min-height: 35px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: #172033;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sitemap-link-label {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.25;
+  font-weight: 650;
+}
+
+.sitemap-link.nested .sitemap-link-label {
+  padding-left: 25px;
+  font-weight: 500;
+}
+
+.sitemap-link.nested .sitemap-link-label svg {
+  margin-left: -25px;
+  color: #98a4b5;
+}
+
+.sitemap-path {
+  flex: 0 0 auto;
+  max-width: 145px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: #eef2f6;
+  color: #68778e;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 500;
+}
+
+.sitemap-link:hover .sitemap-link-label {
+  color: #008c5a;
+}
+
+.sitemap-link:hover .sitemap-path {
+  background: #e7f5ef;
+  color: #087b50;
+}
+
+@media (max-width: 1050px) {
+  .sitemap-header { padding: 0 32px; }
+  .sitemap-nav { gap: 20px; }
+  .sitemap-actions { gap: 18px; }
+  .sitemap-grid { grid-template-columns: 1fr 1fr; }
+  .sitemap-card-admin { grid-column: 1 / -1; }
+}
+
+@media (max-width: 760px) {
+  .sitemap-header {
+    height: auto;
+    min-height: 72px;
+    padding: 14px 20px;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+  }
+  .sitemap-nav { display: none; }
+  .sitemap-actions { gap: 12px; }
+  .sitemap-signin { display: none; }
+  .sitemap-cta { min-width: 126px; height: 40px; }
+  .sitemap-main { width: min(100% - 32px, 600px); padding: 44px 0 64px; }
+  .sitemap-intro h1 { font-size: 40px; }
+  .sitemap-intro p { font-size: 15px; }
+  .sitemap-grid { grid-template-columns: 1fr; }
+  .sitemap-card-admin { grid-column: auto; }
+}
+
+@media (max-width: 480px) {
+  .sitemap-card { padding: 22px; }
+  .sitemap-card-public,
+  .sitemap-card-student,
+  .sitemap-card-admin { min-height: auto; }
+  .sitemap-link { min-height: 38px; }
+  .sitemap-path { max-width: 120px; }
+}
+
+
+   /* STUDENT SITEMAP */
+
+   .sitemap-card-student {
+    width: 100%;
+  }
+  
+  .sitemap-card-student .sitemap-card-icon.student {
+    background: #e4f5ef;
+    color: #008b62;
+  }
+  
+  .sitemap-card-student .sitemap-link:hover {
+    background: #f3faf7;
+  }
+  
+  html[data-theme="dark"] .sitemap-card-student .sitemap-card-icon.student {
+    background: #123c31;
+    color: #69d8b1;
+  }
+  
+  html[data-theme="dark"] .sitemap-card-student .sitemap-link:hover {
+    background: #10253f;
+  }
+  
+  /* Keep the public sitemap card clean when it is the only card. */
+  .sitemap-grid:has(.sitemap-card-public:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  
+  .sitemap-grid:has(.sitemap-card-student:only-child) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  
+  /* Student sitemap navigation */
+  .sitemap-page .sitemap-nav button {
+    white-space: nowrap;
+  }
+  
+  @media (max-width: 900px) {
+    .sitemap-page .sitemap-nav {
+      display: none;
+    }
+  
+    .sitemap-page .sitemap-header {
+      grid-template-columns: 1fr auto;
+    }
+  }
+  
+  @media (max-width: 600px) {
+    .sitemap-page .sitemap-header {
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+  
+    .sitemap-page .sitemap-actions {
+      gap: 6px;
+    }
+  
+    .sitemap-page .sitemap-signin {
+      display: none;
+    }
+  
+    .sitemap-page .sitemap-main {
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+  
+    .sitemap-page .sitemap-link {
+      min-height: 48px;
+    }
+  
+    .sitemap-page .sitemap-path {
+      font-size: 11px;
+    }
+  }
