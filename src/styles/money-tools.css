@@ -1,34 +1,2266 @@
 /* CampusCoin student app — budgets, reports & AI. Fully scoped to money-tools-app. */
-.money-tools-app .money-page{max-width:1180px;padding:25px 30px 48px}
-.money-tools-app .money-heading{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:18px}
-.money-tools-app .money-heading label{font-size:9px;letter-spacing:1.1px;color:#008b62;font-weight:800}
-.money-tools-app .money-heading h1{font:800 24px/1.1 Manrope,Inter,sans-serif;margin:5px 0;color:var(--db-text);letter-spacing:-.5px}
-.money-tools-app .money-heading p{font-size:10px;color:var(--db-muted);margin:0}
-.money-tools-app .money-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.money-tools-app .tool-btn,.money-tools-app .tool-primary,.money-tools-app .ghost-btn{height:34px;border-radius:9px;padding:0 13px;font:700 10px Inter,sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
-.money-tools-app .tool-btn{border:1px solid var(--db-border);background:var(--db-surface);color:var(--db-text)}
-.money-tools-app .tool-primary{border:1px solid #008b62;background:#008b62;color:#fff}
-.money-tools-app .tool-primary:hover{background:#007953}
-.money-tools-app .ghost-btn{border:0;background:transparent;color:var(--db-muted);padding:0 7px}
-.money-tools-app .metric-grid{display:grid;gap:12px;margin-bottom:14px}.money-tools-app .metric-grid.four{grid-template-columns:repeat(4,minmax(0,1fr))}
-.money-tools-app .metric-card{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;padding:13px 15px;min-height:58px}.money-tools-app .metric-card span{display:block;color:var(--db-muted);font-size:8px}.money-tools-app .metric-card strong{display:block;color:var(--db-text);font-size:17px;margin-top:5px}.money-tools-app .green-text{color:#008b62!important}.money-tools-app .danger-text{color:#e24b60!important}
-.money-tools-app .alert-list{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;overflow:hidden;margin-bottom:14px}.money-tools-app .alert-row{min-height:44px;display:flex;align-items:center;gap:9px;padding:7px 13px;border-bottom:1px solid var(--db-border)}.money-tools-app .alert-row:last-child{border-bottom:0}.money-tools-app .alert-row>div{display:flex;flex-direction:column;flex:1;min-width:0}.money-tools-app .alert-row strong{font-size:9px}.money-tools-app .alert-row small{font-size:8px;color:var(--db-muted);margin-top:2px}.money-tools-app .alert-row>b{font-size:8px;color:var(--db-muted);white-space:nowrap}
-.money-tools-app .budget-layout{display:grid;grid-template-columns:minmax(0,1fr) 235px;gap:14px;align-items:start}.money-tools-app .budget-category-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.money-tools-app .budget-category{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;padding:12px}.money-tools-app .budget-cat-head{display:flex;align-items:center;gap:8px}.money-tools-app .budget-cat-head>div{display:flex;flex-direction:column;min-width:0;flex:1}.money-tools-app .budget-cat-head strong{font-size:10px}.money-tools-app .budget-cat-head small{font-size:8px;color:var(--db-muted);margin-top:2px}.money-tools-app .budget-cat-head button{border:0;background:transparent;color:var(--db-muted);display:grid;place-items:center}.money-tools-app .budget-cat-foot{display:flex;justify-content:space-between;gap:8px;margin-top:9px;font-size:8px;color:var(--db-muted)}.money-tools-app .budget-cat-foot b{color:var(--db-text)}.money-tools-app .mini-progress{height:4px;background:#e9eef2;border-radius:6px;margin-top:9px;overflow:hidden}.money-tools-app .mini-progress i{display:block;height:100%;background:#0a966b;border-radius:6px}.money-tools-app .mini-progress.danger i,.money-tools-app .mini-progress i[style*="100%"]{background:#e44b5f}
-.money-tools-app .automation-card{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;padding:14px}.money-tools-app .automation-card h3{font-size:11px;margin:0}.money-tools-app .automation-card>p{font-size:8px;color:var(--db-muted);line-height:1.45;margin:5px 0 12px}.money-tools-app .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;font-size:8px;color:var(--db-text)}.money-tools-app .toggle-row button,.money-tools-app .notification-settings-row>button{width:28px;height:16px;border:0;border-radius:12px;background:#cbd4de;padding:2px;cursor:pointer;flex:none}.money-tools-app .toggle-row button i,.money-tools-app .notification-settings-row>button i{display:block;width:12px;height:12px;background:#fff;border-radius:50%;transition:.15s}.money-tools-app .toggle-row button.on,.money-tools-app .notification-settings-row>button.on{background:#008b62}.money-tools-app .toggle-row button.on i,.money-tools-app .notification-settings-row>button.on i{transform:translateX(12px)}.money-tools-app .automation-note{background:#e4f8f0;border-radius:9px;padding:9px;display:flex;gap:7px;color:#008b62;margin-top:10px;font-size:8px;line-height:1.35}
-.money-tools-app .report-filters{display:grid;grid-template-columns:auto auto auto 1fr auto auto auto;gap:7px;background:var(--db-surface);border:1px solid var(--db-border);border-radius:11px;padding:7px;margin-bottom:12px}.money-tools-app .report-filters button{height:27px;border:1px solid var(--db-border);background:var(--db-surface);color:var(--db-text);border-radius:7px;padding:0 9px;font-size:8px}.money-tools-app .report-filters button.active{background:#e1f7ef;color:#008b62;border-color:#bcebd9;font-weight:700}.money-tools-app .report-grid{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.25fr);gap:12px}.money-tools-app .report-card{background:var(--db-surface);border:1px solid var(--db-border);border-radius:13px;padding:14px;min-width:0}.money-tools-app .report-card-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.money-tools-app .report-card-title strong{font-size:10px}.money-tools-app .report-card-title small{display:block;font-size:8px;color:var(--db-muted);margin-top:2px}.money-tools-app .legend-dot{width:7px;height:7px;border-radius:50%;background:#008b62;margin-top:4px}.money-tools-app .donut-report{width:126px;height:126px;border-radius:50%;margin:14px auto 9px;background:conic-gradient(#7c3aed var(--p),#eef2f5 0);display:grid;place-items:center;position:relative;text-align:center}.money-tools-app .donut-report:after{content:"";position:absolute;width:83px;height:83px;border-radius:50%;background:var(--db-surface)}.money-tools-app .donut-report b,.money-tools-app .donut-report small{position:relative;z-index:1}.money-tools-app .donut-report b{font-size:13px}.money-tools-app .donut-report small{font-size:7px;color:var(--db-muted);grid-row:2;margin-top:-46px}.money-tools-app .legend-list{display:grid;grid-template-columns:1fr 1fr;gap:5px 10px}.money-tools-app .legend-list span{display:grid;grid-template-columns:7px 1fr auto;align-items:center;gap:5px;font-size:7px;color:var(--db-muted)}.money-tools-app .legend-list b{color:var(--db-text);font-size:7px}.money-tools-app .legend-color{width:7px;height:7px;border-radius:2px}.money-tools-app .l0{background:#7c3aed}.money-tools-app .l1{background:#f1ad35}.money-tools-app .l2{background:#1475d1}.money-tools-app .l3{background:#0c9870}.money-tools-app .l4{background:#ec4f91}.money-tools-app .l5{background:#e16f38}.money-tools-app .chart-legend{font-size:7px;color:var(--db-muted);display:flex;align-items:center;gap:4px}.money-tools-app .chart-legend i{width:7px;height:7px;background:#0c9870;border-radius:2px}.money-tools-app .chart-legend i:nth-of-type(2){background:#e8a832}.money-tools-app .bars{height:155px;display:flex;align-items:stretch;justify-content:space-around;gap:10px;margin-top:12px;padding:10px 4px 0;border-bottom:1px solid var(--db-border)}.money-tools-app .bar-group{flex:1;display:flex;flex-direction:column;align-items:center;min-width:0}.money-tools-app .bars-area{height:125px;display:flex;align-items:flex-end;justify-content:center;gap:4px;width:100%}.money-tools-app .bars-area i,.money-tools-app .bars-area b{width:10px;max-width:35%;border-radius:4px 4px 0 0;background:#0b966b}.money-tools-app .bars-area b{background:#e5aa38}.money-tools-app .bar-group>span{font-size:7px;color:var(--db-muted);padding-top:6px}.money-tools-app .chart-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}.money-tools-app .chart-summary span{background:var(--db-bg);border-radius:7px;padding:6px;font-size:7px;color:var(--db-muted)}.money-tools-app .chart-summary b{display:block;color:var(--db-text);font-size:9px;margin-top:2px}.money-tools-app .daily-card{grid-column:1}.money-tools-app .daily-bars{height:126px;display:flex;align-items:flex-end;gap:5px;margin-top:15px;padding:0 6px;border-bottom:1px solid var(--db-border)}.money-tools-app .daily-bars i{flex:1;background:#e7edf1;border-radius:4px 4px 0 0;min-width:4px}.money-tools-app .daily-bars.filled i{background:#0a966b}.money-tools-app .chart-foot{display:block;color:var(--db-muted);font-size:7px;margin-top:7px}.money-tools-app .top-spenders{grid-column:2}.money-tools-app .spender-row{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--db-border);font-size:8px}.money-tools-app .spender-row span{display:flex;flex-direction:column}.money-tools-app .spender-row small{font-size:7px;color:var(--db-muted);margin-top:2px}.money-tools-app .spender-row b{font-size:9px}.money-tools-app .text-link{border:0;background:none;color:#008b62;font-weight:700;font-size:8px;padding:8px 0;cursor:pointer}.money-tools-app .report-banner{display:flex;align-items:center;gap:9px;margin-top:12px;background:#071d3e;color:#fff;border-radius:10px;padding:10px 13px}.money-tools-app .report-banner>svg{color:#42d9a9}.money-tools-app .report-banner div{display:flex;flex-direction:column;flex:1}.money-tools-app .report-banner strong{font-size:9px}.money-tools-app .report-banner span{font-size:7px;color:#aabbd1;margin-top:2px}.money-tools-app .report-banner button{border:0;background:#f6c25b;color:#15223a;border-radius:6px;font-size:7px;font-weight:800;padding:6px 9px}
-.money-tools-app .tool-overlay{position:fixed;inset:0;background:#071b354f;backdrop-filter:blur(3px);z-index:30;display:grid;place-items:center}.money-tools-app .export-modal{width:365px;background:var(--db-surface);border:1px solid var(--db-border);box-shadow:0 25px 70px #071b3550;border-radius:14px;padding:18px;position:relative}.money-tools-app .close-tool{position:absolute;right:12px;top:12px;border:0;background:var(--db-bg);color:var(--db-muted);width:26px;height:26px;border-radius:8px}.money-tools-app .export-modal h2{font:800 15px Manrope;margin:0;color:var(--db-text)}.money-tools-app .export-modal>p{font-size:8px;color:var(--db-muted);margin:4px 0 12px}.money-tools-app .export-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px}.money-tools-app .export-tabs button{height:48px;border:1px solid var(--db-border);background:var(--db-surface);border-radius:9px;display:flex;align-items:center;gap:6px;padding:0 10px;color:var(--db-muted);font-size:8px;text-align:left}.money-tools-app .export-tabs button.active{background:#e4f8f0;border-color:#a8e6d0;color:#008b62}.money-tools-app .export-tabs b{margin-left:auto}.money-tools-app .check-list{padding:10px 0;border-bottom:1px solid var(--db-border)}.money-tools-app .check-list label{display:flex;align-items:center;gap:7px;font-size:8px;margin:7px 0;color:var(--db-text)}.money-tools-app .check-list label span{width:13px;height:13px;border-radius:3px;background:#008b62;color:#fff;display:grid;place-items:center;font-size:8px}.money-tools-app .export-toggle{border-bottom:1px solid var(--db-border);padding:10px 0}.money-tools-app .export-footer{display:flex;justify-content:flex-end;gap:8px;padding-top:12px}.money-tools-app .export-footer>button:first-child{border:0;background:none;color:var(--db-muted);font-size:9px}
-.money-tools-app .ai-layout{display:grid;grid-template-columns:minmax(0,1fr) 205px;gap:13px}.money-tools-app .insight-hero{background:var(--db-surface);border:1px solid var(--db-border);border-radius:13px;padding:15px;display:flex;gap:10px}.money-tools-app .insight-icon{width:30px;height:30px;border-radius:8px;background:#008b62;color:#fff;display:grid;place-items:center;flex:none}.money-tools-app .insight-hero>div:last-child{flex:1}.money-tools-app .insight-hero strong{font-size:11px}.money-tools-app .insight-hero small{display:block;color:var(--db-muted);font-size:7px;margin-top:2px}.money-tools-app .insight-hero p{font-size:8px;line-height:1.55;color:var(--db-text);margin:10px 0}.money-tools-app .insight-actions{display:flex;gap:12px}.money-tools-app .insight-actions button{border:0;background:none;color:var(--db-muted);font-size:8px}.money-tools-app .insight-actions button:first-child{color:#008b62;font-weight:700}.money-tools-app .section-mini-title{font-size:10px;margin:14px 0 7px}.money-tools-app .opportunity-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.money-tools-app .opportunity{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;padding:12px}.money-tools-app .opp-head{display:flex;align-items:center;gap:7px}.money-tools-app .opp-head>div{flex:1;display:flex;flex-direction:column}.money-tools-app .opp-head strong{font-size:9px}.money-tools-app .opp-head small{font-size:7px;color:var(--db-muted);margin-top:2px}.money-tools-app .opp-head>b{font-size:9px;color:#e04c5f}.money-tools-app .opportunity p{font-size:7px;color:var(--db-muted);line-height:1.45;min-height:32px}.money-tools-app .opportunity .tool-primary{height:26px;font-size:7px}.money-tools-app .opportunity .ghost-btn{font-size:7px}.money-tools-app .ai-follow{display:flex;align-items:center;gap:8px;background:var(--db-surface);border:1px solid var(--db-border);border-radius:10px;padding:10px;margin-top:10px;font-size:7px;color:var(--db-muted)}.money-tools-app .ai-follow svg{color:#5c83d9}.money-tools-app .ai-follow span{flex:1}.money-tools-app .ai-follow button{border:0;background:var(--db-bg);color:var(--db-text);font-size:7px;padding:5px 8px;border-radius:6px}.money-tools-app .insight-side{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;padding:13px;height:max-content}.money-tools-app .insight-side h3{font-size:10px;margin:0 0 8px}.money-tools-app .insight-side>div:not(.side-tip){display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--db-border);font-size:7px}.money-tools-app .insight-side span{color:var(--db-muted)}.money-tools-app .side-tip{background:#071d3e;color:#fff;border-radius:9px;padding:9px;margin-top:10px}.money-tools-app .side-tip strong{font-size:8px}.money-tools-app .side-tip p{font-size:7px;line-height:1.4;color:#b4c3d7;margin:4px 0 0}
-.money-tools-app .saving-metrics{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:10px;margin-bottom:12px}.money-tools-app .saving-score{background:#071d3e;color:#fff;border-radius:11px;padding:12px;display:grid;grid-template-columns:20px 1fr;grid-template-rows:auto auto;column-gap:7px}.money-tools-app .saving-score>svg{grid-row:1/3;color:#f6bd45}.money-tools-app .saving-score span{font-size:8px;color:#b4c3d7}.money-tools-app .saving-score strong{font-size:19px;margin-top:4px}.money-tools-app .tip-tabs,.money-tools-app .bookmark-tabs,.money-tools-app .review-tabs{display:flex;gap:5px;margin-bottom:9px}.money-tools-app .tip-tabs button,.money-tools-app .bookmark-tabs button,.money-tools-app .review-tabs button{border:1px solid var(--db-border);background:var(--db-surface);color:var(--db-muted);height:26px;padding:0 10px;border-radius:7px;font-size:8px}.money-tools-app .tip-tabs button.active,.money-tools-app .bookmark-tabs button.active,.money-tools-app .review-tabs button.active{background:#e1f7ef;color:#008b62;border-color:#bcebd9;font-weight:700}.money-tools-app .tip-list{display:flex;flex-direction:column;gap:7px}.money-tools-app .tip-row{min-height:50px;background:var(--db-surface);border:1px solid var(--db-border);border-radius:11px;display:grid;grid-template-columns:17px 31px minmax(0,1fr) 95px auto auto 15px;gap:8px;align-items:center;padding:7px 9px}.money-tools-app .tip-row.featured{border-color:#9bdcc8;box-shadow:0 0 0 1px #d9f4eb}.money-tools-app .tip-check{font-size:10px;color:#008b62;text-align:center}.money-tools-app .tip-copy{display:flex;flex-direction:column;min-width:0}.money-tools-app .tip-copy strong{font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.money-tools-app .tip-copy small{font-size:7px;color:var(--db-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}.money-tools-app .tip-save{display:flex;flex-direction:column;text-align:right}.money-tools-app .tip-save b{font-size:8px;color:#008b62}.money-tools-app .tip-save span{font-size:6px;color:var(--db-muted)}.money-tools-app .tip-row .tool-primary,.money-tools-app .tip-row .ghost-btn{height:25px;font-size:7px;padding:0 8px}.money-tools-app .saving-note{font-size:7px;color:var(--db-muted);display:flex;gap:6px;margin-top:10px}
-.money-tools-app .bookmark-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.money-tools-app .bookmark-card{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;padding:13px}.money-tools-app .bookmark-head{display:flex;align-items:center;gap:8px;margin-top:-31px;margin-left:40px}.money-tools-app .bookmark-head strong{font-size:9px;flex:1}.money-tools-app .bookmark-head span{font-size:10px;color:var(--db-muted)}.money-tools-app .bookmark-card p{background:var(--db-bg);border-radius:7px;padding:8px;margin:10px 0;font-size:7px;color:var(--db-muted);line-height:1.45}.money-tools-app .bookmark-actions{display:flex;gap:10px}.money-tools-app .bookmark-actions button{border:0;background:none;color:var(--db-text);font-size:7px;display:flex;gap:4px;align-items:center}
-.money-tools-app .import-steps,.money-tools-app .review-steps{display:flex;align-items:center;gap:8px;margin-bottom:14px;font-size:8px;color:var(--db-muted)}.money-tools-app .import-steps span,.money-tools-app .review-steps span{display:flex;align-items:center;gap:4px;white-space:nowrap}.money-tools-app .import-steps span:first-child,.money-tools-app .review-steps .active,.money-tools-app .review-steps .done{color:#008b62;font-weight:700}.money-tools-app .import-steps span:first-child{background:#e2f7ef;padding:5px 8px;border-radius:7px}.money-tools-app .import-steps i,.money-tools-app .review-steps span:after{height:1px;background:var(--db-border);width:25px;display:block;content:""}.money-tools-app .import-layout{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:12px}.money-tools-app .upload-zone{min-height:170px;border:1.5px dashed #73cdb0;border-radius:12px;background:#e9f8f2;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}.money-tools-app .upload-zone input{display:none}.money-tools-app .upload-icon{width:34px;height:34px;border-radius:50%;background:#fff;color:#008b62;display:grid;place-items:center}.money-tools-app .upload-zone strong{font-size:11px;margin-top:8px}.money-tools-app .upload-zone small{font-size:8px;color:var(--db-muted);margin-top:3px}.money-tools-app .upload-zone>b{margin-top:9px;border:1px solid var(--db-border);background:#fff;color:var(--db-text);padding:6px 10px;border-radius:7px;font-size:7px}.money-tools-app .file-row{height:48px;border:1px solid var(--db-border);border-radius:10px;background:var(--db-surface);display:flex;align-items:center;gap:8px;padding:7px 10px;margin-top:8px}.money-tools-app .file-row>div{display:flex;flex-direction:column;flex:1}.money-tools-app .file-row strong{font-size:8px}.money-tools-app .file-row small{font-size:7px;color:var(--db-muted);margin-top:2px}.money-tools-app .file-row button{border:0;background:none;color:var(--db-muted)}.money-tools-app .import-button{margin-top:8px}.money-tools-app .import-button:disabled{opacity:.45;cursor:not-allowed}.money-tools-app .import-help{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;padding:13px;height:max-content}.money-tools-app .import-help h3{font-size:10px;margin:0}.money-tools-app .import-help p{font-size:7px;color:var(--db-muted);line-height:1.45}.money-tools-app .import-help strong{display:block;background:var(--db-bg);padding:8px;border-radius:7px;font-size:7px;line-height:1.5}.money-tools-app .import-help button{border:0;background:none;color:#008b62;font-size:7px;font-weight:700;margin-top:9px;padding:0}.money-tools-app .import-note{margin-top:12px;background:#071d3e;color:#fff;border-radius:10px;padding:10px;display:flex;gap:8px;font-size:7px;line-height:1.4}.money-tools-app .import-note svg{color:#4ee0b2;flex:none}
-.money-tools-app .review-table{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;overflow:hidden}.money-tools-app .review-head,.money-tools-app .review-row{display:grid;grid-template-columns:1.7fr .55fr 1.15fr .8fr;align-items:center;gap:8px}.money-tools-app .review-head{padding:9px 12px;background:var(--db-bg);color:var(--db-muted);font-size:7px}.money-tools-app .review-row{min-height:35px;padding:4px 12px;border-top:1px solid var(--db-border);font-size:7px}.money-tools-app .review-row.needs-review{background:#fff5df}.money-tools-app .review-row>input{position:absolute;opacity:0}.money-tools-app .review-row>span:first-of-type{display:flex;flex-direction:column;position:relative;padding-left:20px}.money-tools-app .review-row>span:first-of-type:before{content:"✓";position:absolute;left:0;top:1px;width:11px;height:11px;border-radius:3px;background:#0b966b;color:#fff;display:grid;place-items:center;font-size:7px}.money-tools-app .review-row>input:not(:checked)+span:first-of-type:before{background:#fff;border:1px solid var(--db-border);color:transparent}.money-tools-app .review-row small{font-size:6px;color:var(--db-muted)}.money-tools-app .review-row strong{font-size:7px;margin-top:2px}.money-tools-app .category-suggest{justify-self:start;border:1px solid var(--db-border);background:var(--db-surface);border-radius:6px;padding:4px 6px;font-size:7px;color:var(--db-text)}.money-tools-app .confidence{display:flex!important;align-items:center;gap:5px!important;flex-direction:row!important;padding:0!important}.money-tools-app .confidence:before{display:none!important}.money-tools-app .confidence i{height:4px;width:35px;background:#dfe8e5;border-radius:4px;position:relative;overflow:hidden}.money-tools-app .confidence i:after{content:"";position:absolute;inset:0 auto 0 0;width:var(--confidence);background:#0a966b}.money-tools-app .review-footer{display:flex;justify-content:space-between;align-items:center;background:var(--db-surface);border:1px solid var(--db-border);border-top:0;border-radius:0 0 10px 10px;padding:8px 12px;font-size:7px;color:var(--db-muted)}
-.money-tools-app .settings-layout{display:grid;grid-template-columns:155px minmax(0,1fr);gap:13px;align-items:start}.money-tools-app .settings-nav{background:var(--db-surface);border:1px solid var(--db-border);border-radius:11px;padding:7px}.money-tools-app .settings-nav button{width:100%;height:29px;border:0;background:transparent;text-align:left;border-radius:7px;color:var(--db-muted);font-size:8px;padding:0 8px}.money-tools-app .settings-nav button.active{background:#e1f7ef;color:#008b62;font-weight:700}.money-tools-app .settings-main{display:flex;flex-direction:column;gap:10px}.money-tools-app .settings-card{background:var(--db-surface);border:1px solid var(--db-border);border-radius:12px;padding:14px}.money-tools-app .settings-card h3{font-size:10px;margin:0}.money-tools-app .settings-card>p{font-size:7px;color:var(--db-muted);margin:3px 0 11px}.money-tools-app .profile-line{display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--db-border);padding-bottom:11px}.money-tools-app .large-avatar{width:31px;height:31px;border-radius:50%;background:#def7ed;color:#008b62;display:grid;place-items:center;font-size:9px;font-weight:800}.money-tools-app .profile-line>div{display:flex;flex-direction:column;flex:1}.money-tools-app .profile-line strong{font-size:9px}.money-tools-app .profile-line small{font-size:7px;color:var(--db-muted);margin-top:2px}.money-tools-app .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.money-tools-app .form-grid label{display:flex;flex-direction:column;font-size:7px;color:var(--db-muted);gap:4px}.money-tools-app .form-grid input,.money-tools-app .form-grid select{height:30px;border:1px solid var(--db-border);border-radius:7px;background:var(--db-surface);color:var(--db-text);padding:0 8px;font-size:8px}.money-tools-app .pref-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.money-tools-app .pref-grid>div{background:var(--db-bg);border-radius:8px;padding:8px}.money-tools-app .pref-grid strong,.money-tools-app .pref-grid span{display:block}.money-tools-app .pref-grid strong{font-size:7px}.money-tools-app .pref-grid span{font-size:7px;color:var(--db-muted);margin-top:3px}.money-tools-app .notification-settings-row,.money-tools-app .security-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--db-border)}.money-tools-app .notification-settings-row span,.money-tools-app .security-row span{display:flex;flex-direction:column}.money-tools-app .notification-settings-row strong,.money-tools-app .security-row strong{font-size:8px}.money-tools-app .notification-settings-row small,.money-tools-app .security-row small{font-size:7px;color:var(--db-muted);margin-top:2px}.money-tools-app .security-status{font-size:7px;color:#e2a23b;background:#fff2d8;padding:5px 7px;border-radius:6px}.money-tools-app .settings-footer{display:flex;align-items:center;gap:9px}.money-tools-app .settings-footer>span{font-size:7px;color:#008b62}.money-tools-app .money-notifications{position:fixed;right:24px;top:62px;width:285px;background:var(--db-surface);border:1px solid var(--db-border);box-shadow:0 20px 50px #071b3530;border-radius:12px;z-index:20;padding:10px}.money-tools-app .money-notifications>div{display:flex;align-items:center;gap:6px;padding-bottom:8px;border-bottom:1px solid var(--db-border)}.money-tools-app .money-notifications strong{font-size:10px}.money-tools-app .money-notifications b{font-size:7px;color:#e54d62;background:#ffe6eb;padding:3px 5px;border-radius:7px}.money-tools-app .money-notifications button{margin-left:auto;border:0;background:none;color:#008b62;font-size:7px}.money-tools-app .money-notifications p{font-size:7px;margin:0;padding:8px 2px;border-bottom:1px solid var(--db-border);color:var(--db-muted)}
-.money-tools-app.dark .metric-card,.money-tools-app.dark .alert-list,.money-tools-app.dark .budget-category,.money-tools-app.dark .automation-card,.money-tools-app.dark .report-card,.money-tools-app.dark .insight-hero,.money-tools-app.dark .opportunity,.money-tools-app.dark .ai-follow,.money-tools-app.dark .insight-side,.money-tools-app.dark .tip-row,.money-tools-app.dark .bookmark-card,.money-tools-app.dark .import-help,.money-tools-app.dark .file-row,.money-tools-app.dark .review-table,.money-tools-app.dark .settings-nav,.money-tools-app.dark .settings-card{background:var(--db-surface)}
-.money-tools-app.dark .automation-note,.money-tools-app.dark .tip-tabs button.active,.money-tools-app.dark .bookmark-tabs button.active,.money-tools-app.dark .review-tabs button.active,.money-tools-app.dark .report-filters button.active{background:#063f34;color:#48d7af}.money-tools-app.dark .upload-zone{background:#08382f}.money-tools-app.dark .report-banner,.money-tools-app.dark .saving-score,.money-tools-app.dark .side-tip,.money-tools-app.dark .import-note{background:#04152e}
-@media(max-width:1100px){.money-tools-app .money-page{padding-left:24px;padding-right:24px}.money-tools-app .budget-layout,.money-tools-app .ai-layout,.money-tools-app .import-layout{grid-template-columns:1fr}.money-tools-app .automation-card,.money-tools-app .insight-side,.money-tools-app .import-help{width:auto}.money-tools-app .report-grid{grid-template-columns:1fr}.money-tools-app .top-spenders,.money-tools-app .daily-card{grid-column:auto}.money-tools-app .saving-metrics{grid-template-columns:1.6fr repeat(3,1fr)}.money-tools-app .settings-layout{grid-template-columns:1fr}}
-@media(max-width:760px){.money-tools-app .money-page{padding:20px 12px 32px}.money-tools-app .money-heading{align-items:flex-start;flex-direction:column}.money-tools-app .money-actions{width:100%}.money-tools-app .metric-grid.four,.money-tools-app .saving-metrics{grid-template-columns:1fr 1fr}.money-tools-app .budget-category-grid,.money-tools-app .opportunity-grid,.money-tools-app .bookmark-grid{grid-template-columns:1fr}.money-tools-app .report-filters{grid-template-columns:1fr 1fr}.money-tools-app .report-filters div{display:none}.money-tools-app .tip-row{grid-template-columns:17px 31px minmax(0,1fr) auto 15px}.money-tools-app .tip-save,.money-tools-app .tip-row .ghost-btn{display:none}.money-tools-app .review-head,.money-tools-app .review-row{grid-template-columns:1.7fr .6fr 1.1fr}.money-tools-app .review-head span:last-child,.money-tools-app .review-row .confidence{display:none}.money-tools-app .form-grid,.money-tools-app .pref-grid{grid-template-columns:1fr}.money-tools-app .money-notifications{right:10px;left:10px;width:auto}}
-.settings-footer .settings-signout{margin-left:auto;border:1px solid #f0c8cb;background:#fff5f5;color:#c8444d;border-radius:8px;height:34px;padding:0 11px;display:inline-flex;align-items:center;gap:6px;font:700 10px Inter;cursor:pointer}
-.settings-footer .settings-signout:hover{background:#fcebec}
-.auth-error{border:1px solid #f2c5c8;background:#fff5f5;color:#b63842;border-radius:8px;padding:9px 11px;font:600 11px/16px Inter}
-.admin-demo-code{display:flex;align-items:center;justify-content:space-between;padding:9px 11px;border:1px dashed #b9ddcc;background:#f5fbf8;border-radius:8px;color:#587065;font:600 10px Inter}
-.admin-demo-code strong{letter-spacing:2px;color:#107f55}
+.money-tools-app .money-page {
+  max-width: 1180px;
+  padding: 25px 30px 48px;
+}
+.money-tools-app .money-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 24px;
+  margin-bottom: 18px;
+}
+.money-tools-app .money-heading label {
+  font-size: 9px;
+  letter-spacing: 1.1px;
+  color: #008b62;
+  font-weight: 800;
+}
+.money-tools-app .money-heading h1 {
+  font:
+    800 24px/1.1 Manrope,
+    Inter,
+    sans-serif;
+  margin: 5px 0;
+  color: var(--db-text);
+  letter-spacing: -0.5px;
+}
+.money-tools-app .money-heading p {
+  font-size: 10px;
+  color: var(--db-muted);
+  margin: 0;
+}
+.money-tools-app .money-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.money-tools-app .tool-btn,
+.money-tools-app .tool-primary,
+.money-tools-app .ghost-btn {
+  height: 34px;
+  border-radius: 9px;
+  padding: 0 13px;
+  font:
+    700 10px Inter,
+    sans-serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.money-tools-app .tool-btn {
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  color: var(--db-text);
+}
+.money-tools-app .tool-primary {
+  border: 1px solid #008b62;
+  background: #008b62;
+  color: #fff;
+}
+.money-tools-app .tool-primary:hover {
+  background: #007953;
+}
+.money-tools-app .ghost-btn {
+  border: 0;
+  background: transparent;
+  color: var(--db-muted);
+  padding: 0 7px;
+}
+.money-tools-app .metric-grid {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.money-tools-app .metric-grid.four {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.money-tools-app .metric-card {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 13px 15px;
+  min-height: 58px;
+}
+.money-tools-app .metric-card span {
+  display: block;
+  color: var(--db-muted);
+  font-size: 8px;
+}
+.money-tools-app .metric-card strong {
+  display: block;
+  color: var(--db-text);
+  font-size: 17px;
+  margin-top: 5px;
+}
+.money-tools-app .green-text {
+  color: #008b62 !important;
+}
+.money-tools-app .danger-text {
+  color: #e24b60 !important;
+}
+.money-tools-app .alert-list {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.money-tools-app .alert-row {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 13px;
+  border-bottom: 1px solid var(--db-border);
+}
+.money-tools-app .alert-row:last-child {
+  border-bottom: 0;
+}
+.money-tools-app .alert-row > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+.money-tools-app .alert-row strong {
+  font-size: 9px;
+}
+.money-tools-app .alert-row small {
+  font-size: 8px;
+  color: var(--db-muted);
+  margin-top: 2px;
+}
+.money-tools-app .alert-row > b {
+  font-size: 8px;
+  color: var(--db-muted);
+  white-space: nowrap;
+}
+.money-tools-app .budget-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 235px;
+  gap: 14px;
+  align-items: start;
+}
+.money-tools-app .budget-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.money-tools-app .budget-category {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 12px;
+}
+.money-tools-app .budget-cat-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.money-tools-app .budget-cat-head > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.money-tools-app .budget-cat-head strong {
+  font-size: 10px;
+}
+.money-tools-app .budget-cat-head small {
+  font-size: 8px;
+  color: var(--db-muted);
+  margin-top: 2px;
+}
+.money-tools-app .budget-cat-head button {
+  border: 0;
+  background: transparent;
+  color: var(--db-muted);
+  display: grid;
+  place-items: center;
+}
+.money-tools-app .budget-cat-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  font-size: 8px;
+  color: var(--db-muted);
+}
+.money-tools-app .budget-cat-foot b {
+  color: var(--db-text);
+}
+.money-tools-app .mini-progress {
+  height: 4px;
+  background: #e9eef2;
+  border-radius: 6px;
+  margin-top: 9px;
+  overflow: hidden;
+}
+.money-tools-app .mini-progress i {
+  display: block;
+  height: 100%;
+  background: #0a966b;
+  border-radius: 6px;
+}
+.money-tools-app .mini-progress.danger i,
+.money-tools-app .mini-progress i[style*="100%"] {
+  background: #e44b5f;
+}
+.money-tools-app .automation-card {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.money-tools-app .automation-card h3 {
+  font-size: 11px;
+  margin: 0;
+}
+.money-tools-app .automation-card > p {
+  font-size: 8px;
+  color: var(--db-muted);
+  line-height: 1.45;
+  margin: 5px 0 12px;
+}
+.money-tools-app .toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 8px;
+  color: var(--db-text);
+}
+.money-tools-app .toggle-row button,
+.money-tools-app .notification-settings-row > button {
+  width: 28px;
+  height: 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #cbd4de;
+  padding: 2px;
+  cursor: pointer;
+  flex: none;
+}
+.money-tools-app .toggle-row button i,
+.money-tools-app .notification-settings-row > button i {
+  display: block;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.15s;
+}
+.money-tools-app .toggle-row button.on,
+.money-tools-app .notification-settings-row > button.on {
+  background: #008b62;
+}
+.money-tools-app .toggle-row button.on i,
+.money-tools-app .notification-settings-row > button.on i {
+  transform: translateX(12px);
+}
+.money-tools-app .automation-note {
+  background: #e4f8f0;
+  border-radius: 9px;
+  padding: 9px;
+  display: flex;
+  gap: 7px;
+  color: #008b62;
+  margin-top: 10px;
+  font-size: 8px;
+  line-height: 1.35;
+}
+.money-tools-app .report-filters {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr auto auto auto;
+  gap: 7px;
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 11px;
+  padding: 7px;
+  margin-bottom: 12px;
+}
+.money-tools-app .report-filters button {
+  height: 27px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  color: var(--db-text);
+  border-radius: 7px;
+  padding: 0 9px;
+  font-size: 8px;
+}
+.money-tools-app .report-filters button.active {
+  background: #e1f7ef;
+  color: #008b62;
+  border-color: #bcebd9;
+  font-weight: 700;
+}
+.money-tools-app .report-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.25fr);
+  gap: 12px;
+}
+.money-tools-app .report-card {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 13px;
+  padding: 14px;
+  min-width: 0;
+}
+.money-tools-app .report-card-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+.money-tools-app .report-card-title strong {
+  font-size: 10px;
+}
+.money-tools-app .report-card-title small {
+  display: block;
+  font-size: 8px;
+  color: var(--db-muted);
+  margin-top: 2px;
+}
+.money-tools-app .legend-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #008b62;
+  margin-top: 4px;
+}
+.money-tools-app .donut-report {
+  width: 126px;
+  height: 126px;
+  border-radius: 50%;
+  margin: 14px auto 9px;
+  background: conic-gradient(#7c3aed var(--p), #eef2f5 0);
+  display: grid;
+  place-items: center;
+  position: relative;
+  text-align: center;
+}
+.money-tools-app .donut-report:after {
+  content: "";
+  position: absolute;
+  width: 83px;
+  height: 83px;
+  border-radius: 50%;
+  background: var(--db-surface);
+}
+.money-tools-app .donut-report b,
+.money-tools-app .donut-report small {
+  position: relative;
+  z-index: 1;
+}
+.money-tools-app .donut-report b {
+  font-size: 13px;
+}
+.money-tools-app .donut-report small {
+  font-size: 7px;
+  color: var(--db-muted);
+  grid-row: 2;
+  margin-top: -46px;
+}
+.money-tools-app .legend-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 10px;
+}
+.money-tools-app .legend-list span {
+  display: grid;
+  grid-template-columns: 7px 1fr auto;
+  align-items: center;
+  gap: 5px;
+  font-size: 7px;
+  color: var(--db-muted);
+}
+.money-tools-app .legend-list b {
+  color: var(--db-text);
+  font-size: 7px;
+}
+.money-tools-app .legend-color {
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+}
+.money-tools-app .l0 {
+  background: #7c3aed;
+}
+.money-tools-app .l1 {
+  background: #f1ad35;
+}
+.money-tools-app .l2 {
+  background: #1475d1;
+}
+.money-tools-app .l3 {
+  background: #0c9870;
+}
+.money-tools-app .l4 {
+  background: #ec4f91;
+}
+.money-tools-app .l5 {
+  background: #e16f38;
+}
+.money-tools-app .chart-legend {
+  font-size: 7px;
+  color: var(--db-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.money-tools-app .chart-legend i {
+  width: 7px;
+  height: 7px;
+  background: #0c9870;
+  border-radius: 2px;
+}
+.money-tools-app .chart-legend i:nth-of-type(2) {
+  background: #e8a832;
+}
+.money-tools-app .bars {
+  height: 155px;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 10px 4px 0;
+  border-bottom: 1px solid var(--db-border);
+}
+.money-tools-app .bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+.money-tools-app .bars-area {
+  height: 125px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+}
+.money-tools-app .bars-area i,
+.money-tools-app .bars-area b {
+  width: 10px;
+  max-width: 35%;
+  border-radius: 4px 4px 0 0;
+  background: #0b966b;
+}
+.money-tools-app .bars-area b {
+  background: #e5aa38;
+}
+.money-tools-app .bar-group > span {
+  font-size: 7px;
+  color: var(--db-muted);
+  padding-top: 6px;
+}
+.money-tools-app .chart-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+.money-tools-app .chart-summary span {
+  background: var(--db-bg);
+  border-radius: 7px;
+  padding: 6px;
+  font-size: 7px;
+  color: var(--db-muted);
+}
+.money-tools-app .chart-summary b {
+  display: block;
+  color: var(--db-text);
+  font-size: 9px;
+  margin-top: 2px;
+}
+.money-tools-app .daily-card {
+  grid-column: 1;
+}
+.money-tools-app .daily-bars {
+  height: 126px;
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  margin-top: 15px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--db-border);
+}
+.money-tools-app .daily-bars i {
+  flex: 1;
+  background: #e7edf1;
+  border-radius: 4px 4px 0 0;
+  min-width: 4px;
+}
+.money-tools-app .daily-bars.filled i {
+  background: #0a966b;
+}
+.money-tools-app .chart-foot {
+  display: block;
+  color: var(--db-muted);
+  font-size: 7px;
+  margin-top: 7px;
+}
+.money-tools-app .top-spenders {
+  grid-column: 2;
+}
+.money-tools-app .spender-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--db-border);
+  font-size: 8px;
+}
+.money-tools-app .spender-row span {
+  display: flex;
+  flex-direction: column;
+}
+.money-tools-app .spender-row small {
+  font-size: 7px;
+  color: var(--db-muted);
+  margin-top: 2px;
+}
+.money-tools-app .spender-row b {
+  font-size: 9px;
+}
+.money-tools-app .text-link {
+  border: 0;
+  background: none;
+  color: #008b62;
+  font-weight: 700;
+  font-size: 8px;
+  padding: 8px 0;
+  cursor: pointer;
+}
+.money-tools-app .report-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 12px;
+  background: #071d3e;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px 13px;
+}
+.money-tools-app .report-banner > svg {
+  color: #42d9a9;
+}
+.money-tools-app .report-banner div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.money-tools-app .report-banner strong {
+  font-size: 9px;
+}
+.money-tools-app .report-banner span {
+  font-size: 7px;
+  color: #aabbd1;
+  margin-top: 2px;
+}
+.money-tools-app .report-banner button {
+  border: 0;
+  background: #f6c25b;
+  color: #15223a;
+  border-radius: 6px;
+  font-size: 7px;
+  font-weight: 800;
+  padding: 6px 9px;
+}
+.money-tools-app .tool-overlay {
+  position: fixed;
+  inset: 0;
+  background: #071b354f;
+  backdrop-filter: blur(3px);
+  z-index: 30;
+  display: grid;
+  place-items: center;
+}
+.money-tools-app .export-modal {
+  width: 365px;
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  box-shadow: 0 25px 70px #071b3550;
+  border-radius: 14px;
+  padding: 18px;
+  position: relative;
+}
+.money-tools-app .close-tool {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  border: 0;
+  background: var(--db-bg);
+  color: var(--db-muted);
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+}
+.money-tools-app .export-modal h2 {
+  font: 800 15px Manrope;
+  margin: 0;
+  color: var(--db-text);
+}
+.money-tools-app .export-modal > p {
+  font-size: 8px;
+  color: var(--db-muted);
+  margin: 4px 0 12px;
+}
+.money-tools-app .export-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.money-tools-app .export-tabs button {
+  height: 48px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  color: var(--db-muted);
+  font-size: 8px;
+  text-align: left;
+}
+.money-tools-app .export-tabs button.active {
+  background: #e4f8f0;
+  border-color: #a8e6d0;
+  color: #008b62;
+}
+.money-tools-app .export-tabs b {
+  margin-left: auto;
+}
+.money-tools-app .check-list {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--db-border);
+}
+.money-tools-app .check-list label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 8px;
+  margin: 7px 0;
+  color: var(--db-text);
+}
+.money-tools-app .check-list label span {
+  width: 13px;
+  height: 13px;
+  border-radius: 3px;
+  background: #008b62;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+}
+.money-tools-app .export-toggle {
+  border-bottom: 1px solid var(--db-border);
+  padding: 10px 0;
+}
+.money-tools-app .export-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+}
+.money-tools-app .export-footer > button:first-child {
+  border: 0;
+  background: none;
+  color: var(--db-muted);
+  font-size: 9px;
+}
+.money-tools-app .ai-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 205px;
+  gap: 13px;
+}
+.money-tools-app .insight-hero {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 13px;
+  padding: 15px;
+  display: flex;
+  gap: 10px;
+}
+.money-tools-app .insight-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #008b62;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.money-tools-app .insight-hero > div:last-child {
+  flex: 1;
+}
+.money-tools-app .insight-hero strong {
+  font-size: 11px;
+}
+.money-tools-app .insight-hero small {
+  display: block;
+  color: var(--db-muted);
+  font-size: 7px;
+  margin-top: 2px;
+}
+.money-tools-app .insight-hero p {
+  font-size: 8px;
+  line-height: 1.55;
+  color: var(--db-text);
+  margin: 10px 0;
+}
+.money-tools-app .insight-actions {
+  display: flex;
+  gap: 12px;
+}
+.money-tools-app .insight-actions button {
+  border: 0;
+  background: none;
+  color: var(--db-muted);
+  font-size: 8px;
+}
+.money-tools-app .insight-actions button:first-child {
+  color: #008b62;
+  font-weight: 700;
+}
+.money-tools-app .section-mini-title {
+  font-size: 10px;
+  margin: 14px 0 7px;
+}
+.money-tools-app .opportunity-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.money-tools-app .opportunity {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 12px;
+}
+.money-tools-app .opp-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.money-tools-app .opp-head > div {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.money-tools-app .opp-head strong {
+  font-size: 9px;
+}
+.money-tools-app .opp-head small {
+  font-size: 7px;
+  color: var(--db-muted);
+  margin-top: 2px;
+}
+.money-tools-app .opp-head > b {
+  font-size: 9px;
+  color: #e04c5f;
+}
+.money-tools-app .opportunity p {
+  font-size: 7px;
+  color: var(--db-muted);
+  line-height: 1.45;
+  min-height: 32px;
+}
+.money-tools-app .opportunity .tool-primary {
+  height: 26px;
+  font-size: 7px;
+}
+.money-tools-app .opportunity .ghost-btn {
+  font-size: 7px;
+}
+.money-tools-app .ai-follow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 10px;
+  font-size: 7px;
+  color: var(--db-muted);
+}
+.money-tools-app .ai-follow svg {
+  color: #5c83d9;
+}
+.money-tools-app .ai-follow span {
+  flex: 1;
+}
+.money-tools-app .ai-follow button {
+  border: 0;
+  background: var(--db-bg);
+  color: var(--db-text);
+  font-size: 7px;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+.money-tools-app .insight-side {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 13px;
+  height: max-content;
+}
+.money-tools-app .insight-side h3 {
+  font-size: 10px;
+  margin: 0 0 8px;
+}
+.money-tools-app .insight-side > div:not(.side-tip) {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--db-border);
+  font-size: 7px;
+}
+.money-tools-app .insight-side span {
+  color: var(--db-muted);
+}
+.money-tools-app .side-tip {
+  background: #071d3e;
+  color: #fff;
+  border-radius: 9px;
+  padding: 9px;
+  margin-top: 10px;
+}
+.money-tools-app .side-tip strong {
+  font-size: 8px;
+}
+.money-tools-app .side-tip p {
+  font-size: 7px;
+  line-height: 1.4;
+  color: #b4c3d7;
+  margin: 4px 0 0;
+}
+.money-tools-app .saving-metrics {
+  display: grid;
+  grid-template-columns: 2fr repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.money-tools-app .saving-score {
+  background: #071d3e;
+  color: #fff;
+  border-radius: 11px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 7px;
+}
+.money-tools-app .saving-score > svg {
+  grid-row: 1/3;
+  color: #f6bd45;
+}
+.money-tools-app .saving-score span {
+  font-size: 8px;
+  color: #b4c3d7;
+}
+.money-tools-app .saving-score strong {
+  font-size: 19px;
+  margin-top: 4px;
+}
+.money-tools-app .tip-tabs,
+.money-tools-app .bookmark-tabs,
+.money-tools-app .review-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 9px;
+}
+.money-tools-app .tip-tabs button,
+.money-tools-app .bookmark-tabs button,
+.money-tools-app .review-tabs button {
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  color: var(--db-muted);
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 7px;
+  font-size: 8px;
+}
+.money-tools-app .tip-tabs button.active,
+.money-tools-app .bookmark-tabs button.active,
+.money-tools-app .review-tabs button.active {
+  background: #e1f7ef;
+  color: #008b62;
+  border-color: #bcebd9;
+  font-weight: 700;
+}
+.money-tools-app .tip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.money-tools-app .tip-row {
+  min-height: 50px;
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 11px;
+  display: grid;
+  grid-template-columns: 17px 31px minmax(0, 1fr) 95px auto auto 15px;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 9px;
+}
+.money-tools-app .tip-row.featured {
+  border-color: #9bdcc8;
+  box-shadow: 0 0 0 1px #d9f4eb;
+}
+.money-tools-app .tip-check {
+  font-size: 10px;
+  color: #008b62;
+  text-align: center;
+}
+.money-tools-app .tip-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.money-tools-app .tip-copy strong {
+  font-size: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.money-tools-app .tip-copy small {
+  font-size: 7px;
+  color: var(--db-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+.money-tools-app .tip-save {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+}
+.money-tools-app .tip-save b {
+  font-size: 8px;
+  color: #008b62;
+}
+.money-tools-app .tip-save span {
+  font-size: 6px;
+  color: var(--db-muted);
+}
+.money-tools-app .tip-row .tool-primary,
+.money-tools-app .tip-row .ghost-btn {
+  height: 25px;
+  font-size: 7px;
+  padding: 0 8px;
+}
+.money-tools-app .saving-note {
+  font-size: 7px;
+  color: var(--db-muted);
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+.money-tools-app .bookmark-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.money-tools-app .bookmark-card {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 13px;
+}
+.money-tools-app .bookmark-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: -31px;
+  margin-left: 40px;
+}
+.money-tools-app .bookmark-head strong {
+  font-size: 9px;
+  flex: 1;
+}
+.money-tools-app .bookmark-head span {
+  font-size: 10px;
+  color: var(--db-muted);
+}
+.money-tools-app .bookmark-card p {
+  background: var(--db-bg);
+  border-radius: 7px;
+  padding: 8px;
+  margin: 10px 0;
+  font-size: 7px;
+  color: var(--db-muted);
+  line-height: 1.45;
+}
+.money-tools-app .bookmark-actions {
+  display: flex;
+  gap: 10px;
+}
+.money-tools-app .bookmark-actions button {
+  border: 0;
+  background: none;
+  color: var(--db-text);
+  font-size: 7px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+.money-tools-app .import-steps,
+.money-tools-app .review-steps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 8px;
+  color: var(--db-muted);
+}
+.money-tools-app .import-steps span,
+.money-tools-app .review-steps span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.money-tools-app .import-steps span:first-child,
+.money-tools-app .review-steps .active,
+.money-tools-app .review-steps .done {
+  color: #008b62;
+  font-weight: 700;
+}
+.money-tools-app .import-steps span:first-child {
+  background: #e2f7ef;
+  padding: 5px 8px;
+  border-radius: 7px;
+}
+.money-tools-app .import-steps i,
+.money-tools-app .review-steps span:after {
+  height: 1px;
+  background: var(--db-border);
+  width: 25px;
+  display: block;
+  content: "";
+}
+.money-tools-app .import-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 12px;
+}
+.money-tools-app .upload-zone {
+  min-height: 170px;
+  border: 1.5px dashed #73cdb0;
+  border-radius: 12px;
+  background: #e9f8f2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.money-tools-app .upload-zone input {
+  display: none;
+}
+.money-tools-app .upload-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  color: #008b62;
+  display: grid;
+  place-items: center;
+}
+.money-tools-app .upload-zone strong {
+  font-size: 11px;
+  margin-top: 8px;
+}
+.money-tools-app .upload-zone small {
+  font-size: 8px;
+  color: var(--db-muted);
+  margin-top: 3px;
+}
+.money-tools-app .upload-zone > b {
+  margin-top: 9px;
+  border: 1px solid var(--db-border);
+  background: #fff;
+  color: var(--db-text);
+  padding: 6px 10px;
+  border-radius: 7px;
+  font-size: 7px;
+}
+.money-tools-app .file-row {
+  height: 48px;
+  border: 1px solid var(--db-border);
+  border-radius: 10px;
+  background: var(--db-surface);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  margin-top: 8px;
+}
+.money-tools-app .file-row > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.money-tools-app .file-row strong {
+  font-size: 8px;
+}
+.money-tools-app .file-row small {
+  font-size: 7px;
+  color: var(--db-muted);
+  margin-top: 2px;
+}
+.money-tools-app .file-row button {
+  border: 0;
+  background: none;
+  color: var(--db-muted);
+}
+.money-tools-app .import-button {
+  margin-top: 8px;
+}
+.money-tools-app .import-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.money-tools-app .import-help {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 13px;
+  height: max-content;
+}
+.money-tools-app .import-help h3 {
+  font-size: 10px;
+  margin: 0;
+}
+.money-tools-app .import-help p {
+  font-size: 7px;
+  color: var(--db-muted);
+  line-height: 1.45;
+}
+.money-tools-app .import-help strong {
+  display: block;
+  background: var(--db-bg);
+  padding: 8px;
+  border-radius: 7px;
+  font-size: 7px;
+  line-height: 1.5;
+}
+.money-tools-app .import-help button {
+  border: 0;
+  background: none;
+  color: #008b62;
+  font-size: 7px;
+  font-weight: 700;
+  margin-top: 9px;
+  padding: 0;
+}
+.money-tools-app .import-note {
+  margin-top: 12px;
+  background: #071d3e;
+  color: #fff;
+  border-radius: 10px;
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+  font-size: 7px;
+  line-height: 1.4;
+}
+.money-tools-app .import-note svg {
+  color: #4ee0b2;
+  flex: none;
+}
+.money-tools-app .review-table {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.money-tools-app .review-head,
+.money-tools-app .review-row {
+  display: grid;
+  grid-template-columns: 1.7fr 0.55fr 1.15fr 0.8fr;
+  align-items: center;
+  gap: 8px;
+}
+.money-tools-app .review-head {
+  padding: 9px 12px;
+  background: var(--db-bg);
+  color: var(--db-muted);
+  font-size: 7px;
+}
+.money-tools-app .review-row {
+  min-height: 35px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--db-border);
+  font-size: 7px;
+}
+.money-tools-app .review-row.needs-review {
+  background: #fff5df;
+}
+.money-tools-app .review-row > input {
+  position: absolute;
+  opacity: 0;
+}
+.money-tools-app .review-row > span:first-of-type {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding-left: 20px;
+}
+.money-tools-app .review-row > span:first-of-type:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: #0b966b;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 7px;
+}
+.money-tools-app .review-row > input:not(:checked) + span:first-of-type:before {
+  background: #fff;
+  border: 1px solid var(--db-border);
+  color: transparent;
+}
+.money-tools-app .review-row small {
+  font-size: 6px;
+  color: var(--db-muted);
+}
+.money-tools-app .review-row strong {
+  font-size: 7px;
+  margin-top: 2px;
+}
+.money-tools-app .category-suggest {
+  justify-self: start;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 7px;
+  color: var(--db-text);
+}
+.money-tools-app .confidence {
+  display: flex !important;
+  align-items: center;
+  gap: 5px !important;
+  flex-direction: row !important;
+  padding: 0 !important;
+}
+.money-tools-app .confidence:before {
+  display: none !important;
+}
+.money-tools-app .confidence i {
+  height: 4px;
+  width: 35px;
+  background: #dfe8e5;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+.money-tools-app .confidence i:after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--confidence);
+  background: #0a966b;
+}
+.money-tools-app .review-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  padding: 8px 12px;
+  font-size: 7px;
+  color: var(--db-muted);
+}
+.money-tools-app .settings-layout {
+  display: grid;
+  grid-template-columns: 155px minmax(0, 1fr);
+  gap: 13px;
+  align-items: start;
+}
+.money-tools-app .settings-nav {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 11px;
+  padding: 7px;
+}
+.money-tools-app .settings-nav button {
+  width: 100%;
+  height: 29px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  border-radius: 7px;
+  color: var(--db-muted);
+  font-size: 8px;
+  padding: 0 8px;
+}
+.money-tools-app .settings-nav button.active {
+  background: #e1f7ef;
+  color: #008b62;
+  font-weight: 700;
+}
+.money-tools-app .settings-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.money-tools-app .settings-card {
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 12px;
+  padding: 14px;
+}
+.money-tools-app .settings-card h3 {
+  font-size: 10px;
+  margin: 0;
+}
+.money-tools-app .settings-card > p {
+  font-size: 7px;
+  color: var(--db-muted);
+  margin: 3px 0 11px;
+}
+.money-tools-app .profile-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-bottom: 1px solid var(--db-border);
+  padding-bottom: 11px;
+}
+.money-tools-app .large-avatar {
+  width: 31px;
+  height: 31px;
+  border-radius: 50%;
+  background: #def7ed;
+  color: #008b62;
+  display: grid;
+  place-items: center;
+  font-size: 9px;
+  font-weight: 800;
+}
+.money-tools-app .profile-line > div {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+.money-tools-app .profile-line strong {
+  font-size: 9px;
+}
+.money-tools-app .profile-line small {
+  font-size: 7px;
+  color: var(--db-muted);
+  margin-top: 2px;
+}
+.money-tools-app .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 10px;
+}
+.money-tools-app .form-grid label {
+  display: flex;
+  flex-direction: column;
+  font-size: 7px;
+  color: var(--db-muted);
+  gap: 4px;
+}
+.money-tools-app .form-grid input,
+.money-tools-app .form-grid select {
+  height: 30px;
+  border: 1px solid var(--db-border);
+  border-radius: 7px;
+  background: var(--db-surface);
+  color: var(--db-text);
+  padding: 0 8px;
+  font-size: 8px;
+}
+.money-tools-app .pref-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.money-tools-app .pref-grid > div {
+  background: var(--db-bg);
+  border-radius: 8px;
+  padding: 8px;
+}
+.money-tools-app .pref-grid strong,
+.money-tools-app .pref-grid span {
+  display: block;
+}
+.money-tools-app .pref-grid strong {
+  font-size: 7px;
+}
+.money-tools-app .pref-grid span {
+  font-size: 7px;
+  color: var(--db-muted);
+  margin-top: 3px;
+}
+.money-tools-app .notification-settings-row,
+.money-tools-app .security-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--db-border);
+}
+.money-tools-app .notification-settings-row span,
+.money-tools-app .security-row span {
+  display: flex;
+  flex-direction: column;
+}
+.money-tools-app .notification-settings-row strong,
+.money-tools-app .security-row strong {
+  font-size: 8px;
+}
+.money-tools-app .notification-settings-row small,
+.money-tools-app .security-row small {
+  font-size: 7px;
+  color: var(--db-muted);
+  margin-top: 2px;
+}
+.money-tools-app .security-status {
+  font-size: 7px;
+  color: #e2a23b;
+  background: #fff2d8;
+  padding: 5px 7px;
+  border-radius: 6px;
+}
+.money-tools-app .settings-footer {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.money-tools-app .settings-footer > span {
+  font-size: 7px;
+  color: #008b62;
+}
+.money-tools-app .money-notifications {
+  position: fixed;
+  right: 24px;
+  top: 62px;
+  width: 285px;
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  box-shadow: 0 20px 50px #071b3530;
+  border-radius: 12px;
+  z-index: 20;
+  padding: 10px;
+}
+.money-tools-app .money-notifications > div {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--db-border);
+}
+.money-tools-app .money-notifications strong {
+  font-size: 10px;
+}
+.money-tools-app .money-notifications b {
+  font-size: 7px;
+  color: #e54d62;
+  background: #ffe6eb;
+  padding: 3px 5px;
+  border-radius: 7px;
+}
+.money-tools-app .money-notifications button {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  color: #008b62;
+  font-size: 7px;
+}
+.money-tools-app .money-notifications p {
+  font-size: 7px;
+  margin: 0;
+  padding: 8px 2px;
+  border-bottom: 1px solid var(--db-border);
+  color: var(--db-muted);
+}
+.money-tools-app.dark .metric-card,
+.money-tools-app.dark .alert-list,
+.money-tools-app.dark .budget-category,
+.money-tools-app.dark .automation-card,
+.money-tools-app.dark .report-card,
+.money-tools-app.dark .insight-hero,
+.money-tools-app.dark .opportunity,
+.money-tools-app.dark .ai-follow,
+.money-tools-app.dark .insight-side,
+.money-tools-app.dark .tip-row,
+.money-tools-app.dark .bookmark-card,
+.money-tools-app.dark .import-help,
+.money-tools-app.dark .file-row,
+.money-tools-app.dark .review-table,
+.money-tools-app.dark .settings-nav,
+.money-tools-app.dark .settings-card {
+  background: var(--db-surface);
+}
+.money-tools-app.dark .automation-note,
+.money-tools-app.dark .tip-tabs button.active,
+.money-tools-app.dark .bookmark-tabs button.active,
+.money-tools-app.dark .review-tabs button.active,
+.money-tools-app.dark .report-filters button.active {
+  background: #063f34;
+  color: #48d7af;
+}
+.money-tools-app.dark .upload-zone {
+  background: #08382f;
+}
+.money-tools-app.dark .report-banner,
+.money-tools-app.dark .saving-score,
+.money-tools-app.dark .side-tip,
+.money-tools-app.dark .import-note {
+  background: #04152e;
+}
+@media (max-width: 1100px) {
+  .money-tools-app .money-page {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+  .money-tools-app .budget-layout,
+  .money-tools-app .ai-layout,
+  .money-tools-app .import-layout {
+    grid-template-columns: 1fr;
+  }
+  .money-tools-app .automation-card,
+  .money-tools-app .insight-side,
+  .money-tools-app .import-help {
+    width: auto;
+  }
+  .money-tools-app .report-grid {
+    grid-template-columns: 1fr;
+  }
+  .money-tools-app .top-spenders,
+  .money-tools-app .daily-card {
+    grid-column: auto;
+  }
+  .money-tools-app .saving-metrics {
+    grid-template-columns: 1.6fr repeat(3, 1fr);
+  }
+  .money-tools-app .settings-layout {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 760px) {
+  .money-tools-app .money-page {
+    padding: 20px 12px 32px;
+  }
+  .money-tools-app .money-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .money-tools-app .money-actions {
+    width: 100%;
+  }
+  .money-tools-app .metric-grid.four,
+  .money-tools-app .saving-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+  .money-tools-app .budget-category-grid,
+  .money-tools-app .opportunity-grid,
+  .money-tools-app .bookmark-grid {
+    grid-template-columns: 1fr;
+  }
+  .money-tools-app .report-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .money-tools-app .report-filters div {
+    display: none;
+  }
+  .money-tools-app .tip-row {
+    grid-template-columns: 17px 31px minmax(0, 1fr) auto 15px;
+  }
+  .money-tools-app .tip-save,
+  .money-tools-app .tip-row .ghost-btn {
+    display: none;
+  }
+  .money-tools-app .review-head,
+  .money-tools-app .review-row {
+    grid-template-columns: 1.7fr 0.6fr 1.1fr;
+  }
+  .money-tools-app .review-head span:last-child,
+  .money-tools-app .review-row .confidence {
+    display: none;
+  }
+  .money-tools-app .form-grid,
+  .money-tools-app .pref-grid {
+    grid-template-columns: 1fr;
+  }
+  .money-tools-app .money-notifications {
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+}
+.settings-footer .settings-signout {
+  margin-left: auto;
+  border: 1px solid #f0c8cb;
+  background: #fff5f5;
+  color: #c8444d;
+  border-radius: 8px;
+  height: 34px;
+  padding: 0 11px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font: 700 10px Inter;
+  cursor: pointer;
+}
+.settings-footer .settings-signout:hover {
+  background: #fcebec;
+}
+.auth-error {
+  border: 1px solid #f2c5c8;
+  background: #fff5f5;
+  color: #b63842;
+  border-radius: 8px;
+  padding: 9px 11px;
+  font: 600 11px/16px Inter;
+}
+.admin-demo-code {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 11px;
+  border: 1px dashed #b9ddcc;
+  background: #f5fbf8;
+  border-radius: 8px;
+  color: #587065;
+  font: 600 10px Inter;
+}
+.admin-demo-code strong {
+  letter-spacing: 2px;
+  color: #107f55;
+}
+/* Interactive / responsive enhancements for MoneyToolsPage */
+.money-tools-app {
+  --cc-accent: #008b62;
+  --cc-accent-soft: #e1f7ef;
+}
+.money-tools-app button,
+.money-tools-app input,
+.money-tools-app select,
+.money-tools-app textarea {
+  font: inherit;
+}
+.money-tools-app button:focus-visible,
+.money-tools-app input:focus-visible,
+.money-tools-app select:focus-visible,
+.money-tools-app textarea:focus-visible {
+  outline: 2px solid #35b98e;
+  outline-offset: 2px;
+}
+.money-tools-app button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.money-tools-app .tool-dropdown-wrap {
+  position: relative;
+}
+.money-tools-app .tool-dropdown {
+  position: absolute;
+  z-index: 35;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 165px;
+  padding: 5px;
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 9px;
+  box-shadow: 0 16px 40px rgba(7, 27, 53, 0.16);
+}
+.money-tools-app .tool-dropdown button {
+  display: block;
+  width: 100%;
+  height: 32px;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: var(--db-text);
+  border-radius: 6px;
+  padding: 0 9px;
+  font-size: 9px;
+  cursor: pointer;
+}
+.money-tools-app .tool-dropdown button:hover {
+  background: var(--db-bg);
+}
+.money-tools-app .budget-category {
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease;
+}
+.money-tools-app .budget-category:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(7, 27, 53, 0.06);
+}
+.money-tools-app .budget-percent {
+  display: block;
+  color: var(--db-muted);
+  font-size: 7px;
+  margin-top: 6px;
+}
+.money-tools-app .budget-view-toggle {
+  display: flex;
+  gap: 5px;
+  margin-top: 12px;
+}
+.money-tools-app .budget-view-toggle button {
+  height: 28px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  color: var(--db-muted);
+  border-radius: 7px;
+  padding: 0 10px;
+  font-size: 8px;
+  cursor: pointer;
+}
+.money-tools-app .budget-view-toggle button.active {
+  background: var(--cc-accent-soft);
+  color: var(--cc-accent);
+  border-color: #bcebd9;
+  font-weight: 700;
+}
+.money-tools-app .report-filters select,
+.money-tools-app .tool-btn-select {
+  height: 27px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  color: var(--db-text);
+  border-radius: 7px;
+  padding: 0 9px;
+  font-size: 8px;
+  min-width: 0;
+}
+.money-tools-app .report-filter-summary {
+  font-size: 8px;
+  color: var(--db-muted);
+  margin: -4px 0 11px;
+}
+.money-tools-app .report-filter-summary strong {
+  color: var(--db-text);
+}
+.money-tools-app .cc-modal {
+  position: relative;
+  width: min(470px, calc(100vw - 28px));
+  max-height: calc(100vh - 28px);
+  overflow: auto;
+  background: var(--db-surface);
+  color: var(--db-text);
+  border: 1px solid var(--db-border);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 24px 70px rgba(7, 27, 53, 0.24);
+}
+.money-tools-app .cc-modal.wide {
+  width: min(560px, calc(100vw - 28px));
+}
+.money-tools-app .cc-modal h2 {
+  font:
+    800 18px/1.2 Manrope,
+    Inter,
+    sans-serif;
+  margin: 0 28px 6px 0;
+}
+.money-tools-app .cc-modal > p {
+  font-size: 9px;
+  line-height: 1.5;
+  color: var(--db-muted);
+  margin: 0 0 16px;
+}
+.money-tools-app .cc-form {
+  display: grid;
+  gap: 12px;
+}
+.money-tools-app .cc-form label {
+  display: grid;
+  gap: 5px;
+  font-size: 9px;
+  color: var(--db-muted);
+  font-weight: 700;
+}
+.money-tools-app .cc-form input,
+.money-tools-app .cc-form select,
+.money-tools-app .cc-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--db-border);
+  border-radius: 8px;
+  background: var(--db-surface);
+  color: var(--db-text);
+  padding: 9px 10px;
+  font-size: 11px;
+  min-height: 38px;
+}
+.money-tools-app .cc-form textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+.money-tools-app .cc-form small {
+  font-size: 8px;
+  color: var(--db-muted);
+  font-weight: 400;
+}
+.money-tools-app .modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 3px;
+}
+.money-tools-app .form-error {
+  color: #c8444d;
+  background: #fff5f5;
+  border: 1px solid #f0c8cb;
+  border-radius: 7px;
+  padding: 7px 9px;
+  font-size: 8px;
+  margin: 7px 0;
+}
+.money-tools-app .export-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.money-tools-app .export-tabs button {
+  min-height: 42px;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  color: var(--db-text);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  font-size: 9px;
+  cursor: pointer;
+}
+.money-tools-app .export-tabs button.active {
+  border-color: #bcebd9;
+  background: var(--cc-accent-soft);
+  color: var(--cc-accent);
+  font-weight: 700;
+}
+.money-tools-app .export-tabs b {
+  margin-left: auto;
+}
+.money-tools-app .check-list {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+.money-tools-app .check-list label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 9px;
+  color: var(--db-text);
+  cursor: pointer;
+}
+.money-tools-app .check-list input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.money-tools-app .check-list label span {
+  width: 16px;
+  height: 16px;
+  border: 1px solid var(--db-border);
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  color: transparent;
+  font-size: 10px;
+}
+.money-tools-app .check-list input:checked + span {
+  background: var(--cc-accent);
+  border-color: var(--cc-accent);
+  color: #fff;
+}
+.money-tools-app .export-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--db-border);
+  padding-top: 13px;
+  margin-top: 10px;
+}
+.money-tools-app .export-footer > button:first-child {
+  border: 0;
+  background: transparent;
+  color: var(--db-muted);
+  font-size: 9px;
+  padding: 0 9px;
+  cursor: pointer;
+}
+.money-tools-app .cc-toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 70;
+  background: #071d3e;
+  color: #fff;
+  border-radius: 9px;
+  padding: 10px 13px;
+  font-size: 9px;
+  box-shadow: 0 12px 30px rgba(7, 27, 53, 0.22);
+  max-width: min(320px, calc(100vw - 32px));
+}
+.money-tools-app .mobile-search-trigger,
+.money-tools-app .mobile-search-panel,
+.money-tools-app .mobile-tools-nav,
+.money-tools-app .mobile-sheet-backdrop {
+  display: none;
+}
+.money-tools-app .notification-head {
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+.money-tools-app .notification-head button:last-child {
+  margin-left: 0 !important;
+  width: 25px;
+  height: 25px;
+  border: 1px solid var(--db-border);
+  border-radius: 6px;
+  background: var(--db-surface);
+  display: grid;
+  place-items: center;
+  color: var(--db-muted);
+}
+.money-tools-app .notification-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid var(--db-border);
+  background: transparent;
+  color: var(--db-muted);
+  padding: 9px 2px;
+  font-size: 8px;
+  cursor: pointer;
+}
+.money-tools-app .notification-item:last-child {
+  border-bottom: 0;
+}
+.money-tools-app .notification-item:hover {
+  color: var(--db-text);
+}
+.money-tools-app .notification-item.read {
+  opacity: 0.65;
+}
+.money-tools-app .security-row > button:not(.tool-btn) {
+  width: 28px;
+  height: 16px;
+  border: 0;
+  border-radius: 12px;
+  background: #cbd4de;
+  padding: 2px;
+  cursor: pointer;
+  flex: none;
+}
+.money-tools-app .security-row > button:not(.tool-btn) i {
+  display: block;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  transition: 0.15s;
+}
+.money-tools-app .security-row > button.on {
+  background: var(--cc-accent);
+}
+.money-tools-app .security-row > button.on i {
+  transform: translateX(12px);
+}
+.money-tools-app .settings-main > div[id] {
+  scroll-margin-top: 75px;
+}
+.money-tools-app .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 130px;
+  padding: 20px;
+  background: var(--db-surface);
+  border: 1px dashed var(--db-border);
+  border-radius: 12px;
+  color: var(--db-muted);
+  text-align: center;
+  gap: 4px;
+  font-size: 9px;
+}
+.money-tools-app .empty-state strong {
+  color: var(--db-text);
+  font-size: 10px;
+}
+
+@media (max-width: 760px) {
+  .money-tools-app .money-page {
+    padding-bottom: 94px;
+  }
+  .money-tools-app .money-heading h1 {
+    font-size: 21px;
+  }
+  .money-tools-app .money-heading p {
+    font-size: 10px;
+    line-height: 1.45;
+  }
+  .money-tools-app .money-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+  .money-tools-app .money-actions > * {
+    min-width: 0;
+  }
+  .money-tools-app .money-actions .tool-primary {
+    grid-column: 1/-1;
+  }
+  .money-tools-app .global-search,
+  .money-tools-app .top-language-btn {
+    display: none !important;
+  }
+  .money-tools-app .mobile-search-trigger {
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--db-border);
+    background: var(--db-surface);
+    color: var(--db-text);
+    border-radius: 9px;
+  }
+  .money-tools-app .mobile-search-panel {
+    display: flex;
+    position: sticky;
+    top: 52px;
+    z-index: 12;
+    margin: 0 12px 5px;
+    height: 42px;
+    background: var(--db-surface);
+    border: 1px solid var(--db-border);
+    border-radius: 10px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 9px;
+    box-shadow: 0 8px 22px rgba(7, 27, 53, 0.08);
+  }
+  .money-tools-app .mobile-search-panel input {
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--db-text);
+    min-width: 0;
+    flex: 1;
+    font-size: 12px;
+  }
+  .money-tools-app .mobile-search-panel button {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    background: transparent;
+    color: var(--db-muted);
+    display: grid;
+    place-items: center;
+  }
+  .money-tools-app .mobile-tools-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 55;
+    height: 66px;
+    padding: 6px 8px max(6px, env(safe-area-inset-bottom));
+    background: var(--db-surface);
+    border-top: 1px solid var(--db-border);
+    box-shadow: 0 -10px 28px rgba(7, 27, 53, 0.08);
+  }
+  .money-tools-app .mobile-tools-nav button {
+    border: 0;
+    background: transparent;
+    color: var(--db-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border-radius: 9px;
+    min-width: 44px;
+    cursor: pointer;
+    font-size: 8px;
+  }
+  .money-tools-app .mobile-tools-nav button.active {
+    color: var(--cc-accent);
+    font-weight: 700;
+  }
+  .money-tools-app .mobile-tools-nav .mobile-tools-add {
+    width: 44px;
+    height: 44px;
+    align-self: center;
+    justify-self: center;
+    border-radius: 50%;
+    background: var(--cc-accent);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(0, 139, 98, 0.25);
+    font-size: 0;
+  }
+  .money-tools-app .mobile-tools-nav .mobile-tools-add svg {
+    width: 21px;
+    height: 21px;
+  }
+  .money-tools-app .mobile-sheet-backdrop {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(4, 18, 40, 0.38);
+    align-items: flex-end;
+  }
+  .money-tools-app .mobile-sheet {
+    width: 100%;
+    max-height: min(72vh, 560px);
+    overflow: auto;
+    background: var(--db-surface);
+    border-radius: 18px 18px 0 0;
+    padding: 8px 14px calc(18px + env(safe-area-inset-bottom));
+    box-shadow: 0 -20px 60px rgba(4, 18, 40, 0.2);
+    animation: cc-sheet-in 0.18s ease-out;
+  }
+  .money-tools-app .sheet-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 4px;
+    background: #cbd4de;
+    margin: 2px auto 8px;
+  }
+  .money-tools-app .sheet-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 4px 2px 12px;
+    font-size: 14px;
+    color: var(--db-text);
+  }
+  .money-tools-app .sheet-title button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid var(--db-border);
+    border-radius: 8px;
+    background: var(--db-surface);
+    color: var(--db-muted);
+    display: grid;
+    place-items: center;
+  }
+  .money-tools-app .mobile-more-grid,
+  .money-tools-app .quick-add-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .money-tools-app .mobile-more-grid button,
+  .money-tools-app .quick-add-grid button {
+    min-height: 52px;
+    border: 1px solid var(--db-border);
+    background: var(--db-bg);
+    color: var(--db-text);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 11px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .money-tools-app .mobile-more-grid button:active,
+  .money-tools-app .quick-add-grid button:active {
+    transform: scale(0.98);
+  }
+  .money-tools-app .money-notifications {
+    top: 58px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+    max-height: 70vh;
+    overflow: auto;
+  }
+  .money-tools-app .cc-modal {
+    width: calc(100vw - 24px);
+    max-height: calc(100vh - 24px);
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .money-tools-app .cc-toast {
+    right: 12px;
+    bottom: 78px;
+  }
+  .money-tools-app .report-filter-summary {
+    line-height: 1.45;
+  }
+}
+@media (max-width: 390px) {
+  .money-tools-app .metric-grid.four,
+  .money-tools-app .saving-metrics {
+    grid-template-columns: 1fr;
+  }
+  .money-tools-app .money-actions {
+    grid-template-columns: 1fr;
+  }
+  .money-tools-app .money-actions .tool-primary {
+    grid-column: auto;
+  }
+  .money-tools-app .report-filters {
+    grid-template-columns: 1fr;
+  }
+  .money-tools-app .mobile-more-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .money-tools-app .budget-category,
+  .money-tools-app .mobile-sheet {
+    transition: none;
+    animation: none;
+  }
+}
+@keyframes cc-sheet-in {
+  from {
+    transform: translateY(18px);
+    opacity: 0.7;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

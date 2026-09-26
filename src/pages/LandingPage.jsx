@@ -9,8 +9,8 @@ import '../styles/landing.css'
 const features = [
   { icon: 'plus', title: 'Quick add', text: 'Log income or an expense in under 10 seconds, with recurring entries for allowance and subscriptions.', tone: 'green' },
   { icon: 'sparkles', title: 'Smart categories', text: 'Type "Campus Cafe" and AI suggests Food. It learns from your corrections, and you can always override.', tone: 'green' },
-  { icon: 'target', title: 'Budgets and alerts', text: 'Set a cap per category and get an in-app alert at 85% and when you go over.', tone: 'gold' },
-  { icon: 'chart', title: 'Reports and export', text: 'Category breakdowns, six-month trends, daily and weekly summaries. Export to PDF or image.', tone: 'blue' },
+  { icon: 'target', title: 'Budgets & alerts', text: 'Set a cap per category and get an in-app alert at 85% and when you go over.', tone: 'gold' },
+  { icon: 'chart', title: 'Reports & exports', text: 'Category breakdowns, six-month trends, and daily or weekly summaries. Export to PDF or image.', tone: 'blue' },
   { icon: 'bulb', title: 'Tips from your data', text: 'Ranked by how much they could save you. Pin the useful ones, dismiss the rest.', tone: 'orange' },
   { icon: 'upload', title: 'CSV import', text: 'Bring past months in one go. AI suggests categories for every row before you import.', tone: 'purple' },
 ]

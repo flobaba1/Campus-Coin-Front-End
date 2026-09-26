@@ -4,3 +4,51 @@
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-width:320px;background:#fff}button,input{font:inherit}button{cursor:pointer}#root{min-height:100vh}
 .cc-button{height:44px;border:0;border-radius:12px;padding:0 18px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font:600 14px/1 Inter,Arial,sans-serif;transition:.2s ease}.cc-button-primary{background:var(--green);color:#fff}.cc-button-primary:hover{background:#0c704a;transform:translateY(-1px)}.cc-button-secondary{height:52px;background:#fff;color:var(--text);border:1px solid var(--line);padding:0 24px;border-radius:14px}.cc-button-secondary:hover{background:#fafbfd}
 @media(max-width:900px){.cc-button{padding:0 15px}.cc-button-secondary{padding:0 18px}}
+
+/* Global appearance + currency/theme controls */
+html[data-theme="dark"]{--text:#eef4ff;--muted:#9aabc2;--line:#223754;--bg:#07162c;--green-bg:#0b3c32}
+html[data-theme="dark"] body{background:#07162c;color:#eef4ff}
+html[data-theme="dark"] #root{background:#07162c;color:#eef4ff}
+.theme-toggle-wrap{position:relative;z-index:40}
+.theme-toggle{height:36px;border:1px solid var(--line);background:transparent;color:var(--text);border-radius:10px;padding:0 9px;display:flex;align-items:center;gap:6px;font:600 11px Inter,Arial,sans-serif;white-space:nowrap}
+.theme-toggle:hover{background:rgba(16,127,85,.08)}
+.theme-toggle svg:last-child{opacity:.65;transform:rotate(90deg)}
+.theme-menu{position:absolute;right:0;top:42px;width:174px;padding:6px;background:var(--surface,#fff);border:1px solid var(--line);border-radius:12px;box-shadow:0 16px 40px rgba(7,25,51,.16)}
+.theme-menu button{width:100%;height:34px;border:0;background:transparent;color:var(--text);border-radius:8px;padding:0 9px;display:flex;align-items:center;gap:8px;font:500 12px Inter,Arial,sans-serif;text-align:left}
+.theme-menu button:hover,.theme-menu button.selected{background:var(--green-bg);color:var(--green)}
+.theme-menu button svg:last-child{margin-left:auto;color:var(--green)}
+html[data-theme="dark"] .theme-menu{--surface:#0d223f}
+
+/* Make the selected global theme the source of truth for every student/admin shell. */
+html[data-theme="dark"] .dashboard-app:not(.dark){--db-bg:#030e20;--db-surface:#0b203f;--db-border:#173458;--db-text:#eef6ff;--db-muted:#7e92b0;--db-sidebar:#0a1c39}
+html[data-theme="dark"] .money-tools-app:not(.dark){--db-bg:#030e20;--db-surface:#0b203f;--db-border:#173458;--db-text:#eef6ff;--db-muted:#7e92b0}
+html[data-theme="dark"] .dashboard-app .side-link.active,html[data-theme="dark"] .money-tools-app .side-link.active{background:#003f35;color:#48d7af}
+html[data-theme="dark"] .dashboard-app .profile-mini{background:#071a34}
+html[data-theme="dark"] .dashboard-app .dash-card,html[data-theme="dark"] .money-tools-app .dash-card{color:var(--db-text)}
+html[data-theme="dark"] .dashboard-app .donut:after{background:var(--db-surface)}
+html[data-theme="dark"] .dashboard-app .outline-btn,html[data-theme="dark"] .dashboard-app .top-btn,html[data-theme="dark"] .dashboard-app .global-search{background:var(--db-surface);color:var(--db-text)}
+html[data-theme="dark"] .money-tools-app .tool-btn,html[data-theme="dark"] .money-tools-app .ghost-btn{background:var(--db-surface);color:var(--db-text)}
+
+/* Auth/onboarding/admin/sitemap global dark appearance */
+html[data-theme="dark"] .auth-shell{background:#07162c}
+html[data-theme="dark"] .auth-form-panel{background:#07162c}
+html[data-theme="dark"] .auth-title-block h1,html[data-theme="dark"] .auth-field label{color:#eef4ff}
+html[data-theme="dark"] .auth-title-block p,html[data-theme="dark"] .auth-field-hint,html[data-theme="dark"] .auth-switch,html[data-theme="dark"] .auth-checkbox{color:#9aabc2}
+html[data-theme="dark"] .auth-input-wrap input,html[data-theme="dark"] .auth-select-wrap,html[data-theme="dark"] .auth-select-wrap select{background:#0d223f;color:#eef4ff;border-color:#29425f}
+html[data-theme="dark"] .auth-info-box,html[data-theme="dark"] .password-rules{background:#0d223f;border-color:#29425f;color:#9aabc2}
+html[data-theme="dark"] .auth-divider:before,html[data-theme="dark"] .auth-divider:after{background:#29425f}
+html[data-theme="dark"] .auth-admin-link{border-color:#29425f;color:#9aabc2}
+html[data-theme="dark"] .onboarding-page,html[data-theme="dark"] .sitemap-page{background:#07162c;color:#eef4ff}
+html[data-theme="dark"] .onboarding-header,html[data-theme="dark"] .onboarding-card,html[data-theme="dark"] .sitemap-page header,html[data-theme="dark"] .sitemap-grid section,html[data-theme="dark"] .sitemap-page footer{background:#0d223f;border-color:#29425f}
+html[data-theme="dark"] .onboarding-card h1,html[data-theme="dark"] .onboarding-field label,html[data-theme="dark"] .stepper-item.complete,html[data-theme="dark"] .stepper-item.active,html[data-theme="dark"] .sitemap-intro h1,html[data-theme="dark"] .sitemap-grid h2{color:#eef4ff}
+html[data-theme="dark"] .onboarding-card>p,html[data-theme="dark"] .onboarding-field small,html[data-theme="dark"] .onboarding-skip,html[data-theme="dark"] .sitemap-intro p{color:#9aabc2}
+html[data-theme="dark"] .onboarding-control,html[data-theme="dark"] .onboarding-control input,html[data-theme="dark"] .onboarding-control select,html[data-theme="dark"] .saving-options button,html[data-theme="dark"] .entry-option{background:#0d223f;color:#eef4ff;border-color:#29425f}
+html[data-theme="dark"] .onboarding-insight,html[data-theme="dark"] .entry-option-primary{background:#0a3a31;color:#dff7ee;border-color:#008f61}
+html[data-theme="dark"] .onboarding-back{background:#0d223f!important;color:#eef4ff!important;border-color:#29425f!important}
+html[data-theme="dark"] .sitemap-grid section button{color:#9aabc2;border-color:#29425f}
+html[data-theme="dark"] .admin-page{background:#07162c}
+html[data-theme="dark"] .admin-card{background:#0d223f;border-color:#29425f;color:#eef4ff}
+html[data-theme="dark"] .admin-title h1,html[data-theme="dark"] .admin-title p{color:#eef4ff}
+html[data-theme="dark"] .admin-title p,html[data-theme="dark"] .admin-student{color:#9aabc2}
+
+@media(max-width:760px){.theme-toggle span{display:none}.theme-toggle{width:36px;justify-content:center;padding:0}.theme-menu{right:-6px}.nav-actions{gap:7px}}
