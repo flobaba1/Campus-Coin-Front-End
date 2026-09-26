@@ -1,65 +1,206 @@
 import { useState } from 'react'
-import AuthLayout from '../layouts/AuthLayout'
-import AuthField from '../components/AuthField'
+
 import Button from '../components/Button'
+import Icon from '../components/Icon'
+import Logo from '../components/Logo'
+
 import { navigate } from '../routes/AppRoutes'
 import { loadDemoUsers, setAdminSession } from '../utils'
+
+import '../styles/admin-auth.css'
 
 function AdminSignInPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [code, setCode] = useState('')
+
+  const [showPassword, setShowPassword] = useState(false)
+
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
+
     setError('')
+
+    if (!email.trim()) {
+      setError('Please enter your admin email.')
+      return
+    }
+
+    if (!password) {
+      setError('Please enter your password.')
+      return
+    }
+
     setLoading(true)
+
     try {
       const data = await loadDemoUsers()
-      const admin = data.admins.find(item =>
-        item.email.toLowerCase() === email.trim().toLowerCase() &&
-        item.password === password &&
-        item.authenticatorCode === code.trim()
+
+      const admin = data.admins?.find(
+        item =>
+          item.email?.toLowerCase() ===
+            email.trim().toLowerCase() &&
+          item.password === password
       )
+
       if (!admin) {
-        setError('Invalid admin email, password, or authenticator code.')
+        setError('Incorrect admin email or password.')
         return
       }
+
       setAdminSession(admin)
+
       navigate('/admin/overview')
-    } catch {
-      setError('The demo admin account file could not be loaded. Please run the app with Vite.')
+    } catch (err) {
+      console.error('Admin sign-in failed:', err)
+
+      setError(
+        'The admin account file could not be loaded. Please run the app with Vite.'
+      )
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <AuthLayout
-      title="Campus admin sign in"
-      subtitle="Restricted access for authorised CampusCoin administrators."
-      icon="shield"
-      className="admin-auth"
-      brandEyebrow="CampusCoin administration"
-      brandTitle="Manage the campus money experience with confidence."
-      brandDescription="Review student activity, manage categories, publish guidance, and keep the CampusCoin experience running smoothly."
-    >
-      <form className="auth-form admin-auth-form" onSubmit={handleSubmit}>
-        <AuthField label="Admin email" type="email" placeholder="admin@campuscoin.com" value={email} onChange={e => setEmail(e.target.value)} />
-        <AuthField label="Password" type="password" placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} />
-        <AuthField label="Authenticator code" placeholder="6-digit code from authenticator" value={code} onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))} code />
-        {error && <div className="auth-error" role="alert">{error}</div>}
-        <div className="admin-demo-code">
-          <span>Demo authenticator code</span>
-          <strong>123456</strong>
-        </div>
-        <Button type="submit" className="auth-submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in to admin console'}</Button>
-      </form>
-      <p className="auth-switch">Student? <button onClick={() => navigate('/sign-in')}>Use student sign in</button></p>
-      <button className="auth-back-link admin-home-link" onClick={() => navigate('/')}>Back to CampusCoin</button>
-    </AuthLayout>
+    <div className="admin-auth-page">
+      <header className="admin-auth-header">
+        <button
+          type="button"
+          className="admin-auth-logo"
+          onClick={() => navigate('/')}
+          aria-label="CampusCoin home"
+        >
+          <Logo />
+        </button>
+
+        <button
+          type="button"
+          className="admin-console-badge"
+        >
+          <Icon name="shield" size={13} />
+          <span>Admin console</span>
+        </button>
+      </header>
+
+      <main className="admin-auth-main">
+        <section className="admin-auth-card">
+          <div className="admin-auth-icon">
+            <Icon name="shield" size={25} />
+          </div>
+
+          <h1>Administrator sign-in</h1>
+
+          <p className="admin-auth-description">
+            Restricted access. Every sign-in and change is
+            recorded in the audit log.
+          </p>
+
+          <form
+            className="admin-auth-form"
+            onSubmit={handleSubmit}
+          >
+            <div className="admin-auth-field">
+              <label htmlFor="admin-email">
+                Admin email
+              </label>
+
+              <div className="admin-auth-input">
+                <Icon name="mail" size={18} />
+
+                <input
+                  id="admin-email"
+                  type="email"
+                  value={email}
+                  placeholder="admin@campuscoin.app"
+                  onChange={e => setEmail(e.target.value)}
+                  disabled={loading}
+                  autoComplete="email"
+                />
+              </div>
+            </div>
+
+            <div className="admin-auth-field">
+              <label htmlFor="admin-password">
+                Password
+              </label>
+
+              <div className="admin-auth-input">
+                <Icon name="lock" size={18} />
+
+                <input
+                  id="admin-password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  placeholder="Enter your password"
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+
+                <button
+                  type="button"
+                  className="admin-password-toggle"
+                  onClick={() =>
+                    setShowPassword(previous => !previous)
+                  }
+                  aria-label={
+                    showPassword
+                      ? 'Hide password'
+                      : 'Show password'
+                  }
+                  disabled={loading}
+                >
+                  <Icon
+                    name={showPassword ? 'eyeoff' : 'eye'}
+                    size={18}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div
+                className="admin-auth-error"
+                role="alert"
+              >
+                {error}
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              className="admin-auth-submit"
+              disabled={loading}
+            >
+              <Icon name="shield" size={17} />
+
+              {loading
+                ? 'Signing in…'
+                : 'Sign in to console'}
+            </Button>
+          </form>
+
+          <div className="admin-auth-student">
+            <span>Student?</span>
+
+            <button
+              type="button"
+              onClick={() => navigate('/sign-in')}
+            >
+              Go to student sign-in
+            </button>
+          </div>
+        </section>
+
+        <p className="admin-auth-footer">
+          Unauthorised access attempts are blocked after 5
+          tries and reported.
+        </p>
+      </main>
+    </div>
   )
 }
 
