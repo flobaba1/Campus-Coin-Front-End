@@ -1953,25 +1953,36 @@ function ReviewPage() {
   );
 }
 function SettingsPage() {
-  const [dark, setDark] = useState(false),
-    [notify, setNotify] = useState(false),
-    [saved, setSaved] = useState(false),
-    [active, setActive] = useState("Profile"),
-    [toast, showToast] = useToast(),
-    [passwordOpen, setPasswordOpen] = useState(false),
-    [twoFA, setTwoFA] = useState(false);
-  const sections = {
-    Profile: "settings-profile",
-    Preferences: "settings-preferences",
-    Notifications: "settings-notifications",
-    Security: "settings-security",
-  };
+  const [dark, setDark] = useState(false);
+  const [notify, setNotify] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [active, setActive] = useState("Profile & goals");
+  const [toast, showToast] = useToast();
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [mobileSectionOpen, setMobileSectionOpen] = useState(false);
+
+  const sections = [
+    ["Profile & goals", "settings-profile", "settings"],
+    ["Budget preferences", "settings-preferences", "target"],
+    ["Notifications", "settings-notifications", "bell"],
+    ["Security", "settings-security", "settings"],
+    ["Data & privacy", "settings-data", "settings"],
+  ];
+
   const jump = (name) => {
     setActive(name);
+    setMobileSectionOpen(false);
+    const id = sections.find((x) => x[0] === name)?.[1];
     document
-      .getElementById(sections[name])
+      .getElementById(id)
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const save = () => {
+    setSaved(true);
+    showToast("Your settings have been saved");
+  };
+
   return (
     <ToolsShell
       page="Settings"
@@ -1983,85 +1994,90 @@ function SettingsPage() {
       <PageFrame
         eyebrow="ACCOUNT"
         title="Profile & settings"
-        description="Manage your profile, preferences, notifications and security."
+        description="Your details, goals, preferences and security."
       >
-        <div className="settings-layout">
+        <div className="settings-mobile-selector">
+          <button type="button" onClick={() => setMobileSectionOpen((v) => !v)}>
+            <span>{active}</span>
+            <Icon name="chevron" size={14} />
+          </button>
+          {mobileSectionOpen && (
+            <div className="settings-mobile-menu">
+              {sections.map(([label, , icon]) => (
+                <button
+                  type="button"
+                  key={label}
+                  className={active === label ? "active" : ""}
+                  onClick={() => jump(label)}
+                >
+                  <Icon name={icon} size={14} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="settings-layout settings-layout-v2">
           <aside className="settings-nav">
-            {[
-              "Profile",
-              "Preferences",
-              "Notifications",
-              "Security",
-              "Connected apps",
-            ].map((x) => (
+            {sections.map(([label, , icon]) => (
               <button
                 type="button"
-                key={x}
-                className={active === x ? "active" : ""}
-                onClick={() =>
-                  x === "Connected apps"
-                    ? showToast("Connected apps settings coming next")
-                    : jump(x)
-                }
+                key={label}
+                className={active === label ? "active" : ""}
+                onClick={() => jump(label)}
               >
-                {x}
+                <Icon name={icon} size={15} />
+                <span>{label}</span>
               </button>
             ))}
           </aside>
-          <div className="settings-main">
+
+          <div className="settings-main settings-main-v2">
             <div id="settings-profile">
-              <SettingsProfile />
+              <SettingsProfileV2 />
             </div>
-            <div id="settings-preferences">
-              <SettingsPreferences />
-            </div>
+            {/* <div id="settings-preferences">
+              <SettingsGoals />
+              <SettingsBudgetPreferences showToast={showToast} />
+            </div> */}
             <div id="settings-notifications">
-              <SettingsNotifications />
+              <SettingsNotificationsV2 />
             </div>
             <div id="settings-security">
-              <SettingsSecurity
-                twoFA={twoFA}
-                setTwoFA={setTwoFA}
+              <SettingsSecurityV2
                 onPassword={() => setPasswordOpen(true)}
+                showToast={showToast}
               />
-              <div className="settings-card">
-                <h3>Session</h3>
-                <p>Sign out of CampusCoin on this device.</p>
-                <button
-                  className="settings-signout"
-                  type="button"
-                  onClick={() => {
-                    clearStudentSession();
-                    navigate("/");
-                  }}
-                >
-                  <Icon name="logout" size={14} /> Sign out
-                </button>
-              </div>
             </div>
-            <div className="settings-footer">
-              <button
-                className="tool-primary"
-                type="button"
-                onClick={() => {
-                  setSaved(true);
-                  showToast("Changes saved");
-                }}
-              >
-                Save changes
+            <div id="settings-data">
+              <SettingsDataPrivacy showToast={showToast} />
+            </div>
+
+            <div className="settings-footer settings-footer-v2">
+              <button className="tool-primary" type="button" onClick={save}>
+                <Icon name="check" size={14} /> Save changes
               </button>
-              {saved && <span>Changes saved</span>}
+              {saved && (
+                <span className="settings-saved">
+                  <Icon name="check" size={12} /> Changes saved
+                </span>
+              )}
               <button
                 className="ghost-btn"
                 type="button"
-                onClick={() => setSaved(false)}
+                onClick={() => {
+                  setSaved(false);
+                  showToast("Unsaved status reset");
+                }}
               >
-                Reset status
+                Discard
               </button>
             </div>
           </div>
         </div>
       </PageFrame>
+
       {passwordOpen && (
         <Modal
           title="Change password"
@@ -2072,7 +2088,7 @@ function SettingsPage() {
             onClose={() => setPasswordOpen(false)}
             onSave={() => {
               setPasswordOpen(false);
-              showToast("Password updated");
+              showToast("Password updated successfully");
             }}
           />
         </Modal>
@@ -2081,70 +2097,88 @@ function SettingsPage() {
     </ToolsShell>
   );
 }
-function SettingsProfile() {
-  const [name, setName] = useState("Jordan Davis"),
-    [email, setEmail] = useState("jordan.davis@example.com");
+
+function SettingsProfileV2() {
+  const [name, setName] = useState("Jordan Davis");
+  const [email, setEmail] = useState("jordan@university.edu");
+  const [year, setYear] = useState("Year 2");
+  const [currency, setCurrency] = useState("USD · $");
+  const [photo, setPhoto] = useState(null);
+
   return (
-    <div className="settings-card">
-      <h3>Profile</h3>
-      <p>Keep your student profile and account details up to date.</p>
-      <div className="profile-line">
-        <span className="large-avatar">JD</span>
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
         <div>
-          <strong>{name}</strong>
-          <small>{email}</small>
+          <h3>Profile</h3>
+          <p>Used to personalise tips and insights</p>
         </div>
-        <button
-          className="ghost-btn"
-          type="button"
-          onClick={() => document.getElementById("profile-name")?.focus()}
-        >
-          Edit details
-        </button>
       </div>
-      <div className="form-grid">
-        <label>
-          Full name
+
+      <div className="settings-profile-header">
+        <div className="large-avatar settings-avatar">
+          {photo ? <img src={photo} alt="Profile" /> : "JD"}
+        </div>
+        <div className="profile-summary">
+          <strong>{name || "Your name"}</strong>
+          <small>{email || "your@email.com"}</small>
+        </div>
+        <label className="ghost-btn settings-photo-btn">
+          Change photo
           <input
-            id="profile-name"
+            type="file"
+            accept="image/*"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              const reader = new FileReader();
+              reader.onload = () => setPhoto(String(reader.result));
+              reader.readAsDataURL(file);
+            }}
+          />
+        </label>
+        {photo && (
+          <button
+            className="text-link settings-remove-photo"
+            type="button"
+            onClick={() => setPhoto(null)}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="settings-form-grid-v2">
+        <label>
+          <span>Full name</span>
+          <input
             value={name}
             onChange={(e) => setName(e.target.value)}
+            placeholder="Your full name"
           />
         </label>
         <label>
-          Email
+          <span>Email</span>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@university.edu"
           />
+          <small className="field-hint">
+            <Icon name="check" size={11} /> Verified
+          </small>
         </label>
         <label>
-          School
-          <input value="Aptech" readOnly />
-        </label>
-        <label>
-          Study level
-          <select defaultValue="Year 2">
+          <span>Academic year</span>
+          <select value={year} onChange={(e) => setYear(e.target.value)}>
             <option>Year 1</option>
             <option>Year 2</option>
             <option>Year 3</option>
+            <option>Year 4</option>
           </select>
         </label>
-      </div>
-    </div>
-  );
-}
-function SettingsPreferences() {
-  const [currency, setCurrency] = useState("USD · $");
-  const [week, setWeek] = useState("Monday");
-  return (
-    <div className="settings-card">
-      <h3>Money preferences</h3>
-      <p>Choose how CampusCoin displays and summarizes your finances.</p>
-      <div className="pref-grid">
         <label>
-          <strong>Currency</strong>
+          <span>Currency</span>
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
@@ -2154,158 +2188,306 @@ function SettingsPreferences() {
             <option>GBP · £</option>
           </select>
         </label>
+      </div>
+    </div>
+  );
+}
+
+function SettingsGoals() {
+  const [allowance, setAllowance] = useState("600");
+  const [savings, setSavings] = useState("300");
+
+  return (
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
         <div>
-          <strong>Monthly budget</strong>
-          <span>$870.00</span>
+          <h3>Money goals</h3>
+          <p>Baselines for budgets, tips and forecasts</p>
         </div>
+      </div>
+      <div className="settings-form-grid-v2 goals-grid">
         <label>
-          <strong>Week starts</strong>
-          <select value={week} onChange={(e) => setWeek(e.target.value)}>
-            <option>Monday</option>
-            <option>Sunday</option>
-          </select>
+          <span>Monthly allowance baseline</span>
+          <div className="money-input">
+            <span>$</span>
+            <input
+              inputMode="decimal"
+              value={allowance}
+              onChange={(e) =>
+                setAllowance(e.target.value.replace(/[^0-9.]/g, ""))
+              }
+            />
+          </div>
+          <small className="field-hint">
+            <Icon name="info" size={11} /> Your usual monthly allowance
+          </small>
         </label>
+        <label>
+          <span>Monthly savings goal</span>
+          <div className="money-input">
+            <span>$</span>
+            <input
+              inputMode="decimal"
+              value={savings}
+              onChange={(e) =>
+                setSavings(e.target.value.replace(/[^0-9.]/g, ""))
+              }
+            />
+          </div>
+          <small className="field-hint">
+            <Icon name="info" size={11} /> On track: $350 projected for
+            September
+          </small>
+        </label>
+      </div>
+    </div>
+  );
+}
+
+// function SettingsBudgetPreferences({ showToast }) {
+//   const [defaultPage, setDefaultPage] = useState("Dashboard");
+//   const [weekStarts, setWeekStarts] = useState("Monday");
+//   const [alertThreshold, setAlertThreshold] = useState("80%");
+//   const [forecast, setForecast] = useState(true);
+
+//   return (
+//     <div className="settings-card settings-card-v2">
+//       <div className="settings-card-heading">
+//         <div>
+//           <h3>Budget preferences</h3>
+//           <p>Choose how CampusCoin plans, tracks and presents your money.</p>
+//         </div>
+//       </div>
+//       <div className="settings-preferences-grid">
+//         <label className="settings-preference-field">
+//           <span>Default start page</span>
+//           <select
+//             value={defaultPage}
+//             onChange={(e) => {
+//               setDefaultPage(e.target.value);
+//               showToast(`Default page set to ${e.target.value}`);
+//             }}
+//           >
+//             <option>Dashboard</option>
+//             <option>Transactions</option>
+//             <option>Budgets</option>
+//             <option>Reports</option>
+//           </select>
+//           <small>Open CampusCoin where you need it most.</small>
+//         </label>
+//         <label className="settings-preference-field">
+//           <span>Week starts</span>
+//           <select
+//             value={weekStarts}
+//             onChange={(e) => {
+//               setWeekStarts(e.target.value);
+//               showToast(`Week starts on ${e.target.value}`);
+//             }}
+//           >
+//             <option>Sunday</option>
+//             <option>Monday</option>
+//             <option>Tuesd</option>
+//           </select>
+//           <small>Used for weekly spending summaries and reports.</small>
+//         </label>
+//         <label className="settings-preference-field">
+//           <span>Budget alert threshold</span>
+//           <select
+//             value={alertThreshold}
+//             onChange={(e) => {
+//               setAlertThreshold(e.target.value);
+//               showToast(`Budget alerts now start at ${e.target.value}`);
+//             }}
+//           >
+//             <option>70%</option>
+//             <option>80%</option>
+//             <option>90%</option>
+//             <option>100%</option>
+//           </select>
+//           <small>Get notified before a category reaches its limit.</small>
+//         </label>
+//         <div className="settings-preference-field settings-preference-toggle">
+//           <div>
+//             <span>Spending forecasts</span>
+//             <small>
+//               Use recent transactions to estimate your end-of-month balance.
+//             </small>
+//           </div>
+//           <button
+//             type="button"
+//             aria-pressed={forecast}
+//             className={`cc-switch ${forecast ? "on" : ""}`}
+//             onClick={() => {
+//               setForecast((v) => !v);
+//               showToast(
+//                 forecast
+//                   ? "Spending forecasts disabled"
+//                   : "Spending forecasts enabled",
+//               );
+//             }}
+//           >
+//             <i />
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+function SettingsNotificationsV2() {
+  const [values, setValues] = useState([true, true, true]);
+  const items = [
+    ["Budget alerts", "Notify me when a category is close to its limit."],
+    [
+      "Weekly summary",
+      "Send a weekly overview of spending and remaining budget.",
+    ],
+    ["AI insights", "Show new insights when a useful pattern is detected."],
+  ];
+  return (
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
         <div>
-          <strong>Default view</strong>
-          <span>Dashboard</span>
+          <h3>Notifications</h3>
+          <p>Choose which updates CampusCoin should send you.</p>
         </div>
       </div>
-    </div>
-  );
-}
-function SettingsNotifications() {
-  const [a, setA] = useState([false, false, true]);
-  return (
-    <div className="settings-card">
-      <h3>Notifications</h3>
-      <p>Choose when CampusCoin should send you useful reminders.</p>
-      <div className="notification-settings-row">
-        <span>
-          <strong>Budget alerts</strong>
-          <small>Notify me when a category is close to its limit.</small>
-        </span>
-        <button
-          className={a[0] ? "on" : ""}
-          onClick={() => setA((v) => v.map((x, i) => (i === 0 ? !x : x)))}
-        >
-          <i />
-        </button>
-      </div>
-      <div className="notification-settings-row">
-        <span>
-          <strong>Weekly summary</strong>
-          <small>
-            Send a weekly overview of spending and remaining budget.
-          </small>
-        </span>
-        <button
-          className={a[1] ? "on" : ""}
-          onClick={() => setA((v) => v.map((x, i) => (i === 1 ? !x : x)))}
-        >
-          <i />
-        </button>
-      </div>
-      <div className="notification-settings-row">
-        <span>
-          <strong>AI insights</strong>
-          <small>Show new insights when a useful pattern is detected.</small>
-        </span>
-        <button
-          className={a[2] ? "on" : ""}
-          onClick={() => setA((v) => v.map((x, i) => (i === 2 ? !x : x)))}
-        >
-          <i />
-        </button>
+      <div className="settings-option-list">
+        {items.map(([label, description], i) => (
+          <div className="settings-option-row" key={label}>
+            <div>
+              <strong>{label}</strong>
+              <small>{description}</small>
+            </div>
+            <button
+              type="button"
+              aria-pressed={values[i]}
+              className={`cc-switch ${values[i] ? "on" : ""}`}
+              onClick={() =>
+                setValues((v) => v.map((x, j) => (j === i ? !x : x)))
+              }
+            >
+              <i />
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-function SettingsSecurity({ twoFA, setTwoFA, onPassword }) {
+
+function SettingsSecurityV2({ onPassword, showToast }) {
+  const [sessions, setSessions] = useState(true);
   return (
-    <div className="settings-card">
-      <h3>Security</h3>
-      <p>Keep your CampusCoin account protected.</p>
-      <div className="security-row">
-        <span>
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
+        <div>
+          <h3>Security</h3>
+          <p>Password and active sessions</p>
+        </div>
+      </div>
+      <div className="security-v2-row">
+        <div>
           <strong>Password</strong>
-          <small>Last changed 28 days ago.</small>
-        </span>
+          <small>Last changed 3 months ago</small>
+        </div>
         <button className="tool-btn" type="button" onClick={onPassword}>
           Change password
         </button>
       </div>
-      <div className="security-row">
-        <span>
-          <strong>Two-factor authentication</strong>
-          <small>Protect your account with an additional sign-in step.</small>
-        </span>
+      <div className="security-v2-row">
+        <div>
+          <strong>Active sessions</strong>
+          <small>Chrome on Windows · iPhone app</small>
+        </div>
         <button
+          className="tool-btn"
           type="button"
-          className={twoFA ? "on" : ""}
-          onClick={() => setTwoFA((v) => !v)}
+          onClick={() => {
+            setSessions(false);
+            showToast("Other sessions signed out");
+          }}
+          disabled={!sessions}
         >
-          <i />
+          {sessions
+            ? "Sign out other devices"
+            : "All other sessions signed out"}
         </button>
-        <b className="security-status">{twoFA ? "Enabled" : "Not enabled"}</b>
+      </div>
+      <div className="security-tip">
+        <Icon name="shield" size={15} />
+        <span>
+          Keep your password private and sign out of devices you no longer use.
+        </span>
       </div>
     </div>
   );
 }
-function PasswordForm({ onClose, onSave }) {
-  const [current, setCurrent] = useState(""),
-    [next, setNext] = useState(""),
-    [confirm, setConfirm] = useState("");
-  const valid = next.length >= 8 && next === confirm && current.length > 0;
+
+function SettingsDataPrivacy({ showToast }) {
+  const [analytics, setAnalytics] = useState(true);
   return (
-    <form
-      className="cc-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (valid) onSave();
-      }}
-    >
-      <label>
-        Current password
-        <input
-          type="password"
-          value={current}
-          onChange={(e) => setCurrent(e.target.value)}
-          required
-        />
-      </label>
-      <label>
-        New password
-        <input
-          type="password"
-          minLength="8"
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          required
-        />
-        <small>Use at least 8 characters.</small>
-      </label>
-      <label>
-        Confirm new password
-        <input
-          type="password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          required
-        />
-      </label>
-      {next && confirm && next !== confirm && (
-        <span className="form-error">Passwords do not match.</span>
-      )}
-      <div className="modal-actions">
-        <button type="button" className="ghost-btn" onClick={onClose}>
-          Cancel
-        </button>
-        <button className="tool-primary" type="submit" disabled={!valid}>
-          Update password
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
+        <div>
+          <h3>Data & privacy</h3>
+          <p>Control how CampusCoin uses your account data.</p>
+        </div>
+      </div>
+      <div className="privacy-row">
+        <div>
+          <strong>Personalised insights</strong>
+          <small>
+            Use your transaction patterns to tailor budgeting suggestions.
+          </small>
+        </div>
+        <button
+          type="button"
+          aria-pressed={analytics}
+          className={`cc-switch ${analytics ? "on" : ""}`}
+          onClick={() => {
+            setAnalytics((v) => !v);
+            showToast(
+              analytics
+                ? "Personalised insights disabled"
+                : "Personalised insights enabled",
+            );
+          }}
+        >
+          <i />
         </button>
       </div>
-    </form>
+      <div className="privacy-actions">
+        <button
+          className="ghost-btn"
+          type="button"
+          onClick={() => showToast("Your data export request has been started")}
+        >
+          Request data export
+        </button>
+        <button
+          className="text-link danger-link"
+          type="button"
+          onClick={() => showToast("Account deletion requires confirmation")}
+        >
+          Delete account
+        </button>
+      </div>
+    </div>
   );
+}
+
+function SettingsProfile() {
+  return <SettingsProfileV2 />;
+}
+// function SettingsPreferences() {
+//   return <SettingsBudgetPreferences showToast={() => {}} />;
+// }
+function SettingsNotifications() {
+  return <SettingsNotificationsV2 />;
+}
+function SettingsSecurity({ onPassword }) {
+  return <SettingsSecurityV2 onPassword={onPassword} showToast={() => {}} />;
 }
 
 const pageMap = {

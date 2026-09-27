@@ -2264,3 +2264,1307 @@
     opacity: 1;
   }
 }
+
+/* =========================================================
+   CampusCoin Settings v2 — interactive + responsive
+   ========================================================= */
+.money-tools-app .settings-layout-v2 {
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.money-tools-app .settings-layout-v2 .settings-nav {
+  padding: 10px;
+  border-radius: 14px;
+  position: sticky;
+  top: 82px;
+}
+.money-tools-app .settings-layout-v2 .settings-nav button {
+  height: 42px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--db-text);
+}
+.money-tools-app .settings-layout-v2 .settings-nav button svg {
+  color: #7c8da3;
+  flex: none;
+}
+.money-tools-app .settings-layout-v2 .settings-nav button.active {
+  background: #e1f7ef;
+  color: #008b62;
+  font-weight: 800;
+}
+.money-tools-app .settings-layout-v2 .settings-nav button.active svg {
+  color: #008b62;
+}
+.money-tools-app .settings-main-v2 {
+  gap: 18px;
+}
+.money-tools-app .settings-card-v2 {
+  padding: 22px;
+  border-radius: 15px;
+}
+.money-tools-app .settings-card-v2 .settings-card-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+.money-tools-app .settings-card-v2 .settings-card-heading h3 {
+  font-size: 16px;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.money-tools-app .settings-card-v2 .settings-card-heading p {
+  font-size: 10px;
+  line-height: 1.5;
+  margin: 4px 0 0;
+  color: var(--db-muted);
+}
+.money-tools-app .settings-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--db-border);
+}
+.money-tools-app .settings-avatar {
+  width: 52px;
+  height: 52px;
+  font-size: 15px;
+  overflow: hidden;
+  flex: none;
+}
+.money-tools-app .settings-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.money-tools-app .profile-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+.money-tools-app .profile-summary strong {
+  font-size: 13px;
+}
+.money-tools-app .profile-summary small {
+  font-size: 10px;
+  color: var(--db-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.money-tools-app .settings-photo-btn {
+  position: relative;
+  min-height: 34px;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  flex: none;
+}
+.money-tools-app .settings-photo-btn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.money-tools-app .settings-remove-photo {
+  font-size: 10px;
+  flex: none;
+}
+.money-tools-app .settings-form-grid-v2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 17px 14px;
+  margin-top: 18px;
+}
+.money-tools-app .settings-form-grid-v2 label {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.money-tools-app .settings-form-grid-v2 label > span {
+  font-size: 10px;
+  color: var(--db-text);
+  font-weight: 700;
+}
+.money-tools-app .settings-form-grid-v2 input,
+.money-tools-app .settings-form-grid-v2 select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 40px;
+  border: 1px solid var(--db-border);
+  border-radius: 9px;
+  background: var(--db-surface);
+  color: var(--db-text);
+  padding: 0 11px;
+  font-size: 11px;
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.money-tools-app .settings-form-grid-v2 input:focus,
+.money-tools-app .settings-form-grid-v2 select:focus {
+  border-color: #8bd8bd;
+  box-shadow: 0 0 0 3px rgba(0, 139, 98, 0.09);
+}
+.money-tools-app .field-hint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--db-muted);
+  font-size: 9px;
+  font-weight: 400;
+}
+.money-tools-app .field-hint svg {
+  color: #7d8da2;
+  flex: none;
+}
+.money-tools-app .goals-grid {
+  margin-top: 0;
+}
+.money-tools-app .money-input {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  border: 1px solid var(--db-border);
+  border-radius: 9px;
+  overflow: hidden;
+  background: var(--db-surface);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.money-tools-app .money-input:focus-within {
+  border-color: #8bd8bd;
+  box-shadow: 0 0 0 3px rgba(0, 139, 98, 0.09);
+}
+.money-tools-app .money-input > span {
+  padding-left: 11px;
+  color: var(--db-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.money-tools-app .money-input input {
+  border: 0 !important;
+  box-shadow: none !important;
+  min-height: 38px !important;
+  padding-left: 5px !important;
+}
+.money-tools-app .accessibility-list {
+  display: grid;
+  gap: 0;
+}
+.money-tools-app .accessibility-row,
+.money-tools-app .settings-option-row,
+.money-tools-app .privacy-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px 0;
+  border-top: 1px solid var(--db-border);
+}
+.money-tools-app .accessibility-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.money-tools-app .accessibility-row > div:first-child,
+.money-tools-app .settings-option-row > div:first-child,
+.money-tools-app .privacy-row > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.money-tools-app .accessibility-row strong,
+.money-tools-app .settings-option-row strong,
+.money-tools-app .privacy-row strong {
+  font-size: 11px;
+}
+.money-tools-app .accessibility-row small,
+.money-tools-app .settings-option-row small,
+.money-tools-app .privacy-row small {
+  font-size: 9px;
+  color: var(--db-muted);
+  line-height: 1.45;
+}
+.money-tools-app .cc-switch {
+  width: 34px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #9aa9bd;
+  padding: 3px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex: none;
+  transition: background 0.18s;
+}
+.money-tools-app .cc-switch i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  display: block;
+  transition: transform 0.18s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+}
+.money-tools-app .cc-switch.on {
+  background: #008b62;
+}
+.money-tools-app .cc-switch.on i {
+  transform: translateX(14px);
+}
+.money-tools-app .text-size-picker {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #eef2f6;
+  border-radius: 9px;
+  padding: 3px;
+  flex: none;
+}
+.money-tools-app .text-size-picker button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #60718a;
+  padding: 0 12px;
+  font-size: 9px;
+  cursor: pointer;
+}
+.money-tools-app .text-size-picker button.active {
+  background: #fff;
+  color: #1a2a43;
+  font-weight: 800;
+  box-shadow: 0 1px 4px rgba(7, 27, 53, 0.08);
+}
+.money-tools-app .security-v2-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 15px 0;
+  border-top: 1px solid var(--db-border);
+}
+.money-tools-app .security-v2-row:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+.money-tools-app .security-v2-row > div:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.money-tools-app .security-v2-row strong {
+  font-size: 11px;
+}
+.money-tools-app .security-v2-row small {
+  font-size: 9px;
+  color: var(--db-muted);
+}
+.money-tools-app .security-v2-row .tool-btn {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+.money-tools-app .security-v2-row .tool-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.money-tools-app .security-2fa-control {
+  display: flex !important;
+  align-items: center;
+  gap: 9px !important;
+  flex-direction: row !important;
+}
+.money-tools-app .security-2fa-control b {
+  font-size: 9px;
+  color: #008b62;
+  background: #e5f7f0;
+  border-radius: 6px;
+  padding: 5px 7px;
+}
+.money-tools-app .privacy-actions {
+  display: flex;
+  gap: 9px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.money-tools-app .danger-link {
+  color: #c8444d !important;
+}
+.money-tools-app .settings-footer-v2 {
+  padding-top: 2px;
+  gap: 14px;
+}
+.money-tools-app .settings-footer-v2 .tool-primary {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 15px;
+}
+.money-tools-app .settings-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  color: #008b62;
+}
+.money-tools-app .settings-mobile-selector {
+  display: none;
+}
+
+@media (max-width: 1050px) {
+  .money-tools-app .settings-layout-v2 {
+    grid-template-columns: 170px minmax(0, 1fr);
+    gap: 14px;
+  }
+  .money-tools-app .settings-layout-v2 .settings-nav button {
+    font-size: 10px;
+  }
+  .money-tools-app .settings-card-v2 {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 760px) {
+  .money-tools-app .settings-mobile-selector {
+    display: block;
+    position: relative;
+    margin-bottom: 10px;
+    z-index: 10;
+  }
+  .money-tools-app .settings-mobile-selector > button {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid var(--db-border);
+    background: var(--db-surface);
+    color: var(--db-text);
+    border-radius: 10px;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    font-weight: 800;
+  }
+  .money-tools-app .settings-mobile-menu {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 49px;
+    background: var(--db-surface);
+    border: 1px solid var(--db-border);
+    border-radius: 10px;
+    box-shadow: 0 16px 35px rgba(7, 27, 53, 0.14);
+    padding: 5px;
+    display: grid;
+    gap: 2px;
+  }
+  .money-tools-app .settings-mobile-menu button {
+    min-height: 42px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--db-text);
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 10px;
+    font-size: 10px;
+    text-align: left;
+  }
+  .money-tools-app .settings-mobile-menu button.active {
+    background: #e1f7ef;
+    color: #008b62;
+    font-weight: 800;
+  }
+  .money-tools-app .settings-layout-v2 {
+    display: block;
+  }
+  .money-tools-app .settings-layout-v2 > .settings-nav {
+    display: none;
+  }
+  .money-tools-app .settings-main-v2 {
+    gap: 12px;
+  }
+  .money-tools-app .settings-card-v2 {
+    padding: 15px;
+    border-radius: 13px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading {
+    margin-bottom: 14px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading h3 {
+    font-size: 14px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading p {
+    font-size: 9px;
+  }
+  .money-tools-app .settings-profile-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .money-tools-app .settings-avatar {
+    width: 48px;
+    height: 48px;
+  }
+  .money-tools-app .profile-summary {
+    padding-top: 4px;
+    max-width: calc(100% - 65px);
+  }
+  .money-tools-app .settings-photo-btn {
+    margin-left: 62px;
+  }
+  .money-tools-app .settings-remove-photo {
+    margin-left: auto;
+  }
+  .money-tools-app .settings-form-grid-v2 {
+    grid-template-columns: 1fr;
+    gap: 13px;
+    margin-top: 14px;
+  }
+  .money-tools-app .settings-form-grid-v2 input,
+  .money-tools-app .settings-form-grid-v2 select,
+  .money-tools-app .money-input {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .money-tools-app .settings-form-grid-v2 label > span {
+    font-size: 10px;
+  }
+  .money-tools-app .field-hint {
+    font-size: 9px;
+  }
+  .money-tools-app .accessibility-row,
+  .money-tools-app .settings-option-row,
+  .money-tools-app .privacy-row,
+  .money-tools-app .security-v2-row {
+    align-items: flex-start;
+    padding: 13px 0;
+  }
+  .money-tools-app .text-size-picker {
+    width: 100%;
+    overflow-x: auto;
+    max-width: 100%;
+    margin-top: 4px;
+  }
+  .money-tools-app .text-size-picker button {
+    flex: 1;
+    min-width: 76px;
+    padding: 0 8px;
+  }
+  .money-tools-app .accessibility-row:has(.text-size-picker) {
+    display: grid;
+    gap: 9px;
+  }
+  .money-tools-app .security-v2-row {
+    flex-direction: column;
+    gap: 9px;
+  }
+  .money-tools-app .security-v2-row .tool-btn {
+    width: 100%;
+    min-height: 42px;
+  }
+  .money-tools-app .security-2fa-row {
+    align-items: flex-start;
+  }
+  .money-tools-app .security-2fa-control {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .money-tools-app .privacy-actions > * {
+    min-height: 42px;
+  }
+  .money-tools-app .settings-footer-v2 {
+    position: sticky;
+    bottom: 76px;
+    z-index: 9;
+    background: var(--db-bg);
+    padding: 8px 0 4px;
+    flex-wrap: wrap;
+  }
+  .money-tools-app .settings-footer-v2 .tool-primary {
+    min-height: 44px;
+    flex: 1;
+  }
+  .money-tools-app .settings-footer-v2 .ghost-btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 430px) {
+  .money-tools-app .settings-profile-header {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 9px 11px;
+  }
+  .money-tools-app .settings-photo-btn {
+    grid-column: 1/2;
+    margin: 0;
+    width: 100%;
+    padding: 0 5px;
+  }
+  .money-tools-app .settings-remove-photo {
+    grid-column: 2;
+    align-self: center;
+    margin: 0;
+    justify-self: start;
+  }
+  .money-tools-app .settings-card-v2 {
+    padding: 13px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading h3 {
+    font-size: 13px;
+  }
+  .money-tools-app .settings-footer-v2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .money-tools-app .settings-footer-v2 .tool-primary {
+    grid-column: 1/-1;
+    width: 100%;
+  }
+  .money-tools-app .settings-footer-v2 .settings-saved {
+    grid-column: 1/-1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .money-tools-app .settings-form-grid-v2 input,
+  .money-tools-app .settings-form-grid-v2 select,
+  .money-tools-app .money-input,
+  .money-tools-app .cc-switch,
+  .money-tools-app .cc-switch i {
+    transition: none;
+  }
+}
+
+/* =========================================================
+   CampusCoin Settings v3 — visual fidelity + responsive typography
+   Rebuilds the Settings hierarchy to match the supplied reference.
+   ========================================================= */
+.money-tools-app .settings-layout-v2 {
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.money-tools-app .settings-layout-v2 .settings-nav {
+  padding: 10px;
+  border-radius: 14px;
+  background: var(--db-surface);
+}
+.money-tools-app .settings-layout-v2 .settings-nav button {
+  min-height: 42px;
+  height: auto;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font:
+    600 13px/1.2 Inter,
+    system-ui,
+    sans-serif;
+  color: #23344d;
+}
+.money-tools-app .settings-layout-v2 .settings-nav button.active {
+  background: #e1f7ef;
+  color: #008b62;
+  font-weight: 800;
+}
+.money-tools-app .settings-main-v2 {
+  gap: 20px;
+}
+.money-tools-app .settings-card-v2 {
+  padding: 24px;
+  border-radius: 15px;
+  background: var(--db-surface);
+}
+.money-tools-app .settings-card-v2 .settings-card-heading {
+  margin-bottom: 20px;
+}
+.money-tools-app .settings-card-v2 .settings-card-heading h3 {
+  margin: 0;
+  font:
+    800 18px/1.25 Inter,
+    system-ui,
+    sans-serif;
+  color: #17263d;
+  letter-spacing: -0.2px;
+}
+.money-tools-app .settings-card-v2 .settings-card-heading p {
+  margin: 5px 0 0;
+  font:
+    400 12px/1.45 Inter,
+    system-ui,
+    sans-serif;
+  color: #718198;
+}
+.money-tools-app .settings-profile-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e1e7ee;
+}
+.money-tools-app .settings-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: #e1f7ef;
+  color: #008b62;
+  font:
+    800 16px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .profile-summary strong {
+  font:
+    800 14px/1.25 Inter,
+    system-ui,
+    sans-serif;
+  color: #17263d;
+}
+.money-tools-app .profile-summary small {
+  margin-top: 4px;
+  font:
+    400 11px/1.3 Inter,
+    system-ui,
+    sans-serif;
+  color: #718198;
+}
+.money-tools-app .settings-photo-btn {
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #d9e1ea;
+  border-radius: 9px;
+  background: #fff;
+  font:
+    700 11px/1 Inter,
+    system-ui,
+    sans-serif;
+  color: #26364d;
+}
+.money-tools-app .settings-remove-photo {
+  font:
+    600 11px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .settings-form-grid-v2 {
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 14px;
+  margin-top: 20px;
+}
+.money-tools-app .settings-form-grid-v2 label {
+  gap: 7px;
+}
+.money-tools-app .settings-form-grid-v2 label > span {
+  font:
+    700 11px/1.3 Inter,
+    system-ui,
+    sans-serif;
+  color: #26364d;
+}
+.money-tools-app .settings-form-grid-v2 input,
+.money-tools-app .settings-form-grid-v2 select,
+.money-tools-app .money-input {
+  min-height: 42px;
+  border: 1px solid #d9e1ea;
+  border-radius: 9px;
+  background: #fff;
+  color: #26364d;
+  font:
+    400 12px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .settings-form-grid-v2 input,
+.money-tools-app .settings-form-grid-v2 select {
+  padding: 0 12px;
+}
+.money-tools-app .field-hint {
+  font:
+    400 10px/1.4 Inter,
+    system-ui,
+    sans-serif;
+  color: #718198;
+}
+.money-tools-app .money-input > span {
+  padding-left: 12px;
+  font:
+    700 12px/1 Inter,
+    system-ui,
+    sans-serif;
+  color: #718198;
+}
+.money-tools-app .money-input input {
+  font-size: 12px !important;
+}
+.money-tools-app .accessibility-list {
+  margin-top: 0;
+}
+.money-tools-app .accessibility-row,
+.money-tools-app .settings-option-row,
+.money-tools-app .privacy-row,
+.money-tools-app .security-v2-row {
+  min-height: 54px;
+  padding: 14px 0;
+}
+.money-tools-app .accessibility-row strong,
+.money-tools-app .settings-option-row strong,
+.money-tools-app .privacy-row strong,
+.money-tools-app .security-v2-row strong {
+  font:
+    700 12px/1.3 Inter,
+    system-ui,
+    sans-serif;
+  color: #26364d;
+}
+.money-tools-app .accessibility-row small,
+.money-tools-app .settings-option-row small,
+.money-tools-app .privacy-row small,
+.money-tools-app .security-v2-row small {
+  font:
+    400 10px/1.45 Inter,
+    system-ui,
+    sans-serif;
+  color: #718198;
+}
+.money-tools-app .cc-switch {
+  width: 36px;
+  height: 21px;
+  padding: 3px;
+}
+.money-tools-app .cc-switch i {
+  width: 15px;
+  height: 15px;
+}
+.money-tools-app .cc-switch.on i {
+  transform: translateX(15px);
+}
+.money-tools-app .text-size-picker {
+  border-radius: 9px;
+  padding: 3px;
+}
+.money-tools-app .text-size-picker button {
+  min-height: 34px;
+  padding: 0 13px;
+  font:
+    600 10px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .text-size-picker button.active {
+  font-weight: 800;
+}
+.money-tools-app .security-v2-row .tool-btn {
+  min-height: 38px;
+  padding: 0 14px;
+  font:
+    700 11px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .security-2fa-control b {
+  font:
+    700 10px/1 Inter,
+    system-ui,
+    sans-serif;
+  padding: 6px 8px;
+}
+.money-tools-app .privacy-actions {
+  margin-top: 14px;
+}
+.money-tools-app .privacy-actions button {
+  min-height: 38px;
+  font-size: 11px;
+}
+.money-tools-app .settings-footer-v2 {
+  gap: 14px;
+  padding-top: 2px;
+}
+.money-tools-app .settings-footer-v2 .tool-primary {
+  min-height: 40px;
+  padding: 0 16px;
+  font:
+    800 11px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .settings-saved {
+  font:
+    600 10px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .settings-footer-v2 .ghost-btn {
+  min-height: 40px;
+  padding: 0 10px;
+  font:
+    700 11px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+
+@media (max-width: 1050px) {
+  .money-tools-app .settings-layout-v2 {
+    grid-template-columns: 180px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .money-tools-app .settings-card-v2 {
+    padding: 20px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading h3 {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 760px) {
+  .money-tools-app .settings-mobile-selector {
+    margin-bottom: 12px;
+  }
+  .money-tools-app .settings-mobile-selector > button {
+    min-height: 46px;
+    border-radius: 10px;
+    padding: 0 13px;
+    font:
+      800 12px/1 Inter,
+      system-ui,
+      sans-serif;
+  }
+  .money-tools-app .settings-mobile-menu button {
+    min-height: 44px;
+    font:
+      600 11px/1 Inter,
+      system-ui,
+      sans-serif;
+  }
+  .money-tools-app .settings-layout-v2 {
+    display: block;
+  }
+  .money-tools-app .settings-main-v2 {
+    gap: 14px;
+  }
+  .money-tools-app .settings-card-v2 {
+    padding: 18px;
+    border-radius: 13px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading {
+    margin-bottom: 16px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading h3 {
+    font-size: 16px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading p {
+    font-size: 11px;
+  }
+  .money-tools-app .settings-profile-header {
+    gap: 12px;
+    padding-bottom: 17px;
+  }
+  .money-tools-app .settings-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 14px;
+  }
+  .money-tools-app .profile-summary strong {
+    font-size: 13px;
+  }
+  .money-tools-app .profile-summary small {
+    font-size: 10px;
+  }
+  .money-tools-app .settings-photo-btn {
+    min-height: 38px;
+    font-size: 10px;
+  }
+  .money-tools-app .settings-form-grid-v2 {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-top: 17px;
+  }
+  .money-tools-app .settings-form-grid-v2 label > span {
+    font-size: 11px;
+  }
+  .money-tools-app .settings-form-grid-v2 input,
+  .money-tools-app .settings-form-grid-v2 select,
+  .money-tools-app .money-input {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .money-tools-app .field-hint {
+    font-size: 10px;
+  }
+  .money-tools-app .accessibility-row,
+  .money-tools-app .settings-option-row,
+  .money-tools-app .privacy-row {
+    gap: 12px;
+  }
+  .money-tools-app .accessibility-row strong,
+  .money-tools-app .settings-option-row strong,
+  .money-tools-app .privacy-row strong,
+  .money-tools-app .security-v2-row strong {
+    font-size: 11px;
+  }
+  .money-tools-app .accessibility-row small,
+  .money-tools-app .settings-option-row small,
+  .money-tools-app .privacy-row small,
+  .money-tools-app .security-v2-row small {
+    font-size: 9.5px;
+  }
+  .money-tools-app .text-size-picker {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .money-tools-app .text-size-picker button {
+    flex: 1;
+    min-width: 70px;
+  }
+  .money-tools-app .security-v2-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .money-tools-app .security-v2-row .tool-btn {
+    width: 100%;
+    min-height: 42px;
+  }
+  .money-tools-app .security-2fa-control {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .money-tools-app .privacy-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .money-tools-app .privacy-actions button {
+    width: 100%;
+    min-height: 42px;
+  }
+  .money-tools-app .settings-footer-v2 {
+    position: sticky;
+    bottom: 76px;
+    z-index: 9;
+    background: var(--db-bg);
+    padding: 9px 0 5px;
+  }
+}
+
+/* CampusCoin settings — budget preferences */
+.money-tools-app .settings-preferences-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 18px;
+  margin-top: 2px;
+}
+.money-tools-app .settings-preference-field {
+  min-height: 96px;
+  padding: 16px 0;
+  border-bottom: 1px solid #e7edf3;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.money-tools-app .settings-preference-field:nth-child(3),
+.money-tools-app .settings-preference-field:nth-child(4) {
+  border-bottom: 0;
+}
+.money-tools-app .settings-preference-field > span,
+.money-tools-app .settings-preference-toggle > div > span {
+  font:
+    700 12px/1.3 Inter,
+    system-ui,
+    sans-serif;
+  color: #26364d;
+}
+.money-tools-app .settings-preference-field select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #d9e1ea;
+  border-radius: 9px;
+  background: #fff;
+  color: #26364d;
+  padding: 0 12px;
+  font:
+    500 12px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .settings-preference-field > small,
+.money-tools-app .settings-preference-toggle > div > small {
+  font:
+    400 10px/1.4 Inter,
+    system-ui,
+    sans-serif;
+  color: #718198;
+}
+.money-tools-app .settings-preference-toggle {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.money-tools-app .settings-preference-toggle > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.money-tools-app .security-tip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 8px;
+  padding: 11px 12px;
+  border-radius: 9px;
+  background: #f4faf8;
+  color: #587069;
+  font:
+    400 10px/1.45 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .security-tip svg {
+  flex: 0 0 auto;
+  color: #008b62;
+}
+@media (max-width: 760px) {
+  .money-tools-app .settings-preferences-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .money-tools-app .settings-preference-field:nth-child(3) {
+    border-bottom: 1px solid #e7edf3;
+  }
+  .money-tools-app .settings-preference-field {
+    min-height: auto;
+    padding: 14px 0;
+  }
+  .money-tools-app .settings-preference-field > span,
+  .money-tools-app .settings-preference-toggle > div > span {
+    font-size: 12px;
+  }
+  .money-tools-app .settings-preference-field select {
+    min-height: 46px;
+    font-size: 13px;
+  }
+  .money-tools-app .settings-preference-field > small,
+  .money-tools-app .settings-preference-toggle > div > small {
+    font-size: 10px;
+  }
+}
+
+/* =========================================================
+   CampusCoin Settings — reference-matched responsive polish
+   Desktop keeps the supplied S13 composition. Mobile/tablet
+   stays readable instead of shrinking the UI into tiny text.
+   ========================================================= */
+.money-tools-app .money-page:has(.settings-layout-v2) {
+  max-width: 1240px;
+  padding-top: 25px;
+}
+.money-tools-app .settings-layout-v2 {
+  grid-template-columns: 196px minmax(0, 1fr);
+  gap: 20px;
+}
+.money-tools-app .settings-layout-v2 .settings-nav {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  border-radius: 13px;
+  padding: 8px;
+}
+.money-tools-app .settings-layout-v2 .settings-nav button {
+  width: 100%;
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #26364d;
+  padding: 0 10px;
+  font:
+    700 11px/1 Inter,
+    system-ui,
+    sans-serif;
+}
+.money-tools-app .settings-layout-v2 .settings-nav button.active {
+  background: #e1f7ef;
+  color: #008b62;
+}
+.money-tools-app .settings-main-v2 {
+  min-width: 0;
+  display: grid;
+  gap: 20px;
+}
+.money-tools-app .settings-card-v2 {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--db-border);
+  background: var(--db-surface);
+  border-radius: 13px;
+  padding: 20px;
+}
+.money-tools-app .settings-card-v2 .settings-card-heading h3 {
+  font-size: 16px;
+}
+.money-tools-app .settings-card-v2 .settings-card-heading p {
+  font-size: 10px;
+}
+.money-tools-app .settings-form-grid-v2 input,
+.money-tools-app .settings-form-grid-v2 select,
+.money-tools-app .money-input {
+  font-size: 11px;
+}
+
+@media (max-width: 760px) {
+  .money-tools-app .money-page:has(.settings-layout-v2) {
+    max-width: none;
+    padding: 20px 16px 100px;
+  }
+  .money-tools-app .money-page:has(.settings-layout-v2) .money-heading {
+    margin-bottom: 18px;
+  }
+  .money-tools-app .money-page:has(.settings-layout-v2) .money-heading label {
+    font-size: 10px;
+  }
+  .money-tools-app .money-page:has(.settings-layout-v2) .money-heading h1 {
+    font-size: 26px;
+    line-height: 1.12;
+    letter-spacing: -0.55px;
+  }
+  .money-tools-app .money-page:has(.settings-layout-v2) .money-heading p {
+    font-size: 12px;
+    line-height: 1.45;
+    margin-top: 5px;
+  }
+  .money-tools-app .settings-mobile-selector {
+    margin-bottom: 14px;
+  }
+  .money-tools-app .settings-mobile-selector > button {
+    min-height: 46px;
+    font-size: 13px;
+  }
+  .money-tools-app .settings-mobile-menu button {
+    min-height: 44px;
+    font-size: 12px;
+  }
+  .money-tools-app .settings-card-v2 {
+    padding: 18px;
+    border-radius: 13px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading {
+    margin-bottom: 18px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading h3 {
+    font-size: 17px;
+  }
+  .money-tools-app .settings-card-v2 .settings-card-heading p {
+    font-size: 11px;
+  }
+  .money-tools-app .settings-profile-header {
+    gap: 12px;
+    padding-bottom: 17px;
+  }
+  .money-tools-app .profile-summary strong {
+    font-size: 14px;
+  }
+  .money-tools-app .profile-summary small {
+    font-size: 11px;
+  }
+  .money-tools-app .settings-photo-btn,
+  .money-tools-app .settings-remove-photo {
+    font-size: 11px;
+  }
+  .money-tools-app .settings-form-grid-v2 {
+    gap: 15px;
+    margin-top: 17px;
+  }
+  .money-tools-app .settings-form-grid-v2 label > span {
+    font-size: 12px;
+  }
+  .money-tools-app .settings-form-grid-v2 input,
+  .money-tools-app .settings-form-grid-v2 select,
+  .money-tools-app .money-input {
+    min-height: 46px;
+    font-size: 13px;
+  }
+  .money-tools-app .field-hint {
+    font-size: 10px;
+  }
+  .money-tools-app .accessibility-row,
+  .money-tools-app .settings-option-row,
+  .money-tools-app .privacy-row,
+  .money-tools-app .security-v2-row {
+    padding: 15px 0;
+  }
+  .money-tools-app .accessibility-row strong,
+  .money-tools-app .settings-option-row strong,
+  .money-tools-app .privacy-row strong,
+  .money-tools-app .security-v2-row strong {
+    font-size: 12px;
+  }
+  .money-tools-app .accessibility-row small,
+  .money-tools-app .settings-option-row small,
+  .money-tools-app .privacy-row small,
+  .money-tools-app .security-v2-row small {
+    font-size: 10px;
+  }
+  .money-tools-app .cc-switch {
+    width: 38px;
+    height: 22px;
+  }
+  .money-tools-app .cc-switch i {
+    width: 16px;
+    height: 16px;
+  }
+  .money-tools-app .cc-switch.on i {
+    transform: translateX(16px);
+  }
+  .money-tools-app .text-size-picker button {
+    font-size: 11px;
+    min-height: 36px;
+  }
+  .money-tools-app .security-v2-row .tool-btn {
+    font-size: 11px;
+  }
+  .money-tools-app .settings-footer-v2 .tool-primary,
+  .money-tools-app .settings-footer-v2 .ghost-btn {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 430px) {
+  .money-tools-app .money-page:has(.settings-layout-v2) {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .money-tools-app .money-page:has(.settings-layout-v2) .money-heading h1 {
+    font-size: 23px;
+  }
+  .money-tools-app .settings-card-v2 {
+    padding: 16px;
+  }
+}
