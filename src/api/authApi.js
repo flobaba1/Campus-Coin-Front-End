@@ -16,3 +16,13 @@ export function signin(email, password) {
         }),
     })
 }
+
+export function adminSignin(email, password) {
+    return apiRequest('/api/auth/admin-login', {
+        method: 'POST',
+        body: JSON.stringify({
+            email,
+            password,
+        }),
+    })
+}
