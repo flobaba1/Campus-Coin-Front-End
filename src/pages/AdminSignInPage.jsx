@@ -5,7 +5,9 @@ import Icon from '../components/Icon'
 import Logo from '../components/Logo'
 
 import { navigate } from '../routes/AppRoutes'
-import { loadDemoUsers, setAdminSession } from '../utils'
+//import { loadDemoUsers, setAdminSession } from '../utils'
+import { setAdminSession } from '../utils'
+import { adminSignin } from '../api/authApi'
 
 import '../styles/admin-auth.css'
 
@@ -19,50 +21,41 @@ function AdminSignInPage() {
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
-    e.preventDefault()
+  e.preventDefault()
 
-    setError('')
+  setError('')
 
-    if (!email.trim()) {
-      setError('Please enter your admin email.')
-      return
-    }
-
-    if (!password) {
-      setError('Please enter your password.')
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const data = await loadDemoUsers()
-
-      const admin = data.admins?.find(
-        item =>
-          item.email?.toLowerCase() ===
-            email.trim().toLowerCase() &&
-          item.password === password
-      )
-
-      if (!admin) {
-        setError('Incorrect admin email or password.')
-        return
-      }
-
-      setAdminSession(admin)
-
-      navigate('/admin/overview')
-    } catch (err) {
-      console.error('Admin sign-in failed:', err)
-
-      setError(
-        'The admin account file could not be loaded. Please run the app with Vite.'
-      )
-    } finally {
-      setLoading(false)
-    }
+  if (!email.trim()) {
+    setError('Please enter your admin email.')
+    return
   }
+
+  if (!password) {
+    setError('Please enter your password.')
+    return
+  }
+
+  setLoading(true)
+
+  try {
+    const response = await adminSignin(
+      email.trim(),
+      password
+    )
+
+    setAdminSession(response)
+
+    navigate('/admin/overview')
+  } catch (err) {
+    console.error('Admin sign-in failed:', err)
+
+    setError(
+      err.message || 'Incorrect admin email or password.'
+    )
+  } finally {
+    setLoading(false)
+  }
+}
 
   return (
     <div className="admin-auth-page">
