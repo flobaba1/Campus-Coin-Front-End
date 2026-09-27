@@ -3,112 +3,98 @@ import { navigate } from "../routes/AppRoutes";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
 import { clearStudentSession } from "../utils";
+
+import { getTransactions, createTransaction } from "../api/transactionApi";
+import { getCategories } from "../api/categoryApi";
+
 import "../styles/dashboard.css";
 
-const baseTransactions = [
-  {
-    id: 1,
-    name: "Campus Cafe",
-    category: "Food",
-    date: "Sep 23",
-    amount: -8.5,
-    icon: "food",
-    tone: "amber",
-    ai: true,
-  },
-  {
-    id: 2,
-    name: "Ride to library",
-    category: "Transport",
-    date: "Sep 22",
-    amount: -6.2,
-    icon: "bus",
-    tone: "blue",
-  },
-  {
-    id: 3,
-    name: "Library desk shift",
-    category: "Part-time Job",
-    date: "Sep 21",
-    amount: 160,
-    icon: "briefcase",
-    tone: "mint",
-    edited: true,
-  },
-  {
-    id: 4,
-    name: "Chop & Go delivery",
-    category: "Food",
-    date: "Sep 20",
-    amount: -18.4,
-    icon: "food",
-    tone: "amber",
-    duplicate: true,
-  },
-  {
-    id: 5,
-    name: "Cinema night",
-    category: "Entertainment",
-    date: "Sep 18",
-    amount: -14,
-    icon: "ticket",
-    tone: "peach",
-  },
-];
-
-//Categories and budgets are hardcoded for the demo. In a real app, these would be fetched from the backend.
-const categories = [
-  { name: "Subscriptions", value: 25.98, budget: 20, tone: "pink", icon: "tv" },
-  { name: "Food", value: 214.6, budget: 250, tone: "amber", icon: "food" },
-  { name: "Transport", value: 68.4, budget: 90, tone: "blue", icon: "bus" },
-  { name: "Academics", value: 84.2, budget: 120, tone: "teal", icon: "grad" },
-  {
-    name: "Entertainment",
-    value: 38.4,
-    budget: 60,
-    tone: "peach",
-    icon: "ticket",
-  },
-];
-
-//Notifications are hardcoded for the demo. In a real app, these would be fetched from the backend.
-const notifications = [
+const DEMO_NOTIFICATIONS = [
   [
     "Your September insight is ready",
-    "Food delivery rose 40%",
+    "Your spending data has been updated",
     "sparkle",
-    "Today, 9:14 AM",
+    "Today",
   ],
   [
-    "Food is at 86% of budget",
-    "$35.40 left for 8 days",
+    "Transactions synced",
+    "Your latest transactions are available",
     "bell",
-    "Today, 9:02 AM",
-  ],
-  [
-    "Possible duplicate found",
-    "Chop & Go delivery, Sep 20",
-    "receipt",
-    "Sep 20",
-  ],
-  ["Subscriptions is over budget", "$25.98 on $20.00 spend", "ban", "Sep 15"],
-  [
-    "Hostel/Rent reached its limit",
-    "Paid in full for September",
-    "home",
-    "Sep 1",
+    "Today",
   ],
 ];
 
 function money(n) {
-  return `${n < 0 ? "−" : "+"}$${Math.abs(n).toFixed(2)}`;
+  const value = Number(n || 0);
+
+  return `${value < 0 ? "−" : "+"}$${Math.abs(
+    value
+  ).toFixed(2)}`;
 }
+
 function toneIcon(tone, icon) {
   return (
     <span className={`d-icon ${tone}`}>
       <Icon name={icon} size={17} />
     </span>
   );
+}
+
+function formatDate(date) {
+  if (!date) return "";
+
+  const parsed = new Date(`${date}T00:00:00`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
+
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function toneForCategory(categoryName = "") {
+  const name = categoryName.toLowerCase();
+
+  if (name.includes("food")) return "amber";
+  if (name.includes("transport")) return "blue";
+  if (name.includes("hostel") || name.includes("rent"))
+    return "purple";
+  if (name.includes("academic")) return "teal";
+  if (name.includes("subscription")) return "pink";
+  if (name.includes("entertainment")) return "peach";
+  if (name.includes("part-time")) return "mint";
+  if (name.includes("scholarship")) return "mint";
+  if (name.includes("allowance")) return "mint";
+  if (name.includes("freelance")) return "mint";
+  if (name.includes("gift")) return "mint";
+  if (name.includes("health")) return "blue";
+  if (name.includes("shopping")) return "pink";
+
+  return "slate";
+}
+
+function iconForCategory(categoryName = "") {
+  const name = categoryName.toLowerCase();
+
+  if (name.includes("food")) return "food";
+  if (name.includes("transport")) return "bus";
+  if (name.includes("hostel") || name.includes("rent"))
+    return "home";
+  if (name.includes("academic")) return "grad";
+  if (name.includes("subscription")) return "tv";
+  if (name.includes("entertainment")) return "ticket";
+  if (name.includes("part-time")) return "briefcase";
+  if (name.includes("scholarship")) return "grad";
+  if (name.includes("allowance")) return "wallet";
+  if (name.includes("freelance")) return "briefcase";
+  if (name.includes("gift")) return "gift";
+  if (name.includes("health")) return "health";
+  if (name.includes("shopping")) return "shopping";
+
+  return "receipt";
 }
 
 function DashboardShell({
@@ -118,7 +104,7 @@ function DashboardShell({
   notificationOpen,
   setNotificationOpen,
   page = "Dashboard",
-  //search,//
+  search,
   setSearch,
 }) {
   const nav = [
@@ -128,56 +114,83 @@ function DashboardShell({
     ["Budgets", "target", "/budgets"],
     ["Reports", "report", "/reports"],
   ];
+
   const smart = [
     ["AI Insights", "sparkle", "/ai-insights"],
     ["Saving Tips", "bulb", "/saving-tips"],
     ["Bookmarks", "bookmark", "/bookmarks"],
   ];
+
   const account = [
     ["Import CSV", "upload", "/import-csv"],
     ["Settings", "settings", "/settings"],
   ];
+
   const signOut = () => {
     clearStudentSession();
     navigate("/");
   };
+
   return (
     <div className={`dashboard-app ${dark ? "dark" : ""}`}>
       <aside className="dash-sidebar">
-        <button className="dash-brand" onClick={() => navigate("/dashboard")}>
+        <button
+          className="dash-brand"
+          onClick={() => navigate("/dashboard")}
+        >
           <Logo />
           <span className="brand-dot" />
         </button>
+
         <div className="side-label">MENU</div>
+
         <nav>
           {nav.map(([label, icon, path]) => (
             <button
               key={label}
-              className={`side-link ${page === label ? "active" : ""}`}
+              className={`side-link ${
+                page === label ? "active" : ""
+              }`}
               onClick={() => navigate(path)}
             >
               <Icon name={icon} size={18} />
               <span>{label}</span>
+
               {label === "Budgets" && <b>3</b>}
             </button>
           ))}
         </nav>
-        <div className="side-label smart">SMART MONEY</div>
+
+        <div className="side-label smart">
+          SMART MONEY
+        </div>
+
         {smart.map(([label, icon, path]) => (
           <button
-            className={`side-link ${page === label ? "active" : ""}`}
+            className={`side-link ${
+              page === label ? "active" : ""
+            }`}
             key={label}
             onClick={() => navigate(path)}
           >
             <Icon name={icon} size={18} />
             <span>{label}</span>
-            {label === "AI Insights" && <b className="new">New</b>}
+
+            {label === "AI Insights" && (
+              <b className="new">New</b>
+            )}
           </button>
         ))}
-        <div className="side-label smart">ACCOUNT</div>
+
+        <div className="side-label smart">
+          ACCOUNT
+        </div>
+
         {account.map(([label, icon, path]) => (
           <button
-            className={`side-link ${page === label ? "active" : ""}`}
+            className={`side-link ${
+              page === label ? "active" : ""
+            }`}
             key={label}
             onClick={() => navigate(path)}
           >
@@ -185,27 +198,42 @@ function DashboardShell({
             <span>{label}</span>
           </button>
         ))}
+
         <div className="side-spacer" />
+
         <div className="budget-mini">
           <div>
-            <span>Budget left · Sep</span>
-            <strong>85% used</strong>
+            <span>September spending</span>
+            <strong>Live</strong>
           </div>
-          <em>$127.20</em>
+
+          <em>Updated</em>
+
           <div className="mini-track">
             <i />
           </div>
-          <small>8 days left · $15.90/day</small>
+
+          <small>
+            Based on your transactions
+          </small>
         </div>
-        <button className="profile-mini" onClick={signOut} title="Sign out">
+
+        <button
+          className="profile-mini"
+          onClick={signOut}
+          title="Sign out"
+        >
           <span className="avatar">JD</span>
+
           <span>
-            <strong>Jordan Davis</strong>
+            <strong>CampusCoin User</strong>
             <small>Sign out</small>
           </span>
+
           <Icon name="logout" size={16} />
         </button>
       </aside>
+
       <main className="dash-main">
         <header className="dash-topbar">
           <div className="crumb">
@@ -213,34 +241,51 @@ function DashboardShell({
             <span>›</span>
             <strong>{page}</strong>
           </div>
+
           <div className="top-actions">
-            {/* <div className="global-search">
-              <Icon name="search" size={15} />
-              <input
-                value={search ?? ""}
-                onChange={(e) => setSearch?.(e.target.value)}
-                placeholder="Search transactions..."
+            <button className="top-btn">A</button>
+            <button className="top-btn">A</button>
+
+            <button
+              className="top-btn"
+              onClick={() =>
+                setDark((value) => !value)
+              }
+            >
+              <Icon
+                name={dark ? "sun" : "moon"}
+                size={17}
               />
-              <kbd>⌘K</kbd>
-            </div> */}
-            <button className="top-btn">A</button>
-            <button className="top-btn">A</button>
-            <button className="top-btn" onClick={() => setDark((v) => !v)}>
-              <Icon name={dark ? "sun" : "moon"} size={17} />
             </button>
+
             <div className="notify-wrap">
               <button
-                className={`top-btn ${notificationOpen ? "selected" : ""}`}
-                onClick={() => setNotificationOpen((v) => !v)}
+                className={`top-btn ${
+                  notificationOpen
+                    ? "selected"
+                    : ""
+                }`}
+                onClick={() =>
+                  setNotificationOpen(
+                    (value) => !value
+                  )
+                }
               >
                 <Icon name="bell" size={17} />
                 <i />
               </button>
-              {notificationOpen && <NotificationPanel />}
+
+              {notificationOpen && (
+                <NotificationPanel />
+              )}
             </div>
-            <span className="top-avatar">JD</span>
+
+            <span className="top-avatar">
+              JD
+            </span>
           </div>
         </header>
+
         {children}
       </main>
     </div>
@@ -252,24 +297,49 @@ function NotificationPanel() {
     <div className="notification-panel">
       <div className="notif-head">
         <strong>Notifications</strong>
-        <b>4 new</b>
-        <button>Mark all read</button>
+        <b>2 new</b>
+
+        <button>
+          Mark all read
+        </button>
       </div>
-      {notifications.map((n, i) => (
-        <div className="notif-item" key={i}>
-          {toneIcon(["mint", "amber", "purple", "pink", "blue"][i], n[2])}
-          <div>
-            <strong>{n[0]}</strong>
-            <p>{n[1]}</p>
-            <small>{n[3]}</small>
+
+      {DEMO_NOTIFICATIONS.map(
+        (notification, index) => (
+          <div
+            className="notif-item"
+            key={index}
+          >
+            {toneIcon(
+              ["mint", "blue"][index],
+              notification[2]
+            )}
+
+            <div>
+              <strong>
+                {notification[0]}
+              </strong>
+
+              <p>
+                {notification[1]}
+              </p>
+
+              <small>
+                {notification[3]}
+              </small>
+            </div>
+
+            <i />
           </div>
-          <i />
-        </div>
-      ))}
+        )
+      )}
+
       <button
         type="button"
         className="notif-settings"
-        onClick={() => navigate("/settings")}
+        onClick={() =>
+          navigate("/settings")
+        }
       >
         Notification settings
       </button>
@@ -278,238 +348,858 @@ function NotificationPanel() {
 }
 
 function DashboardPage() {
-  const params = new URLSearchParams(window.location.search);
+  const params = new URLSearchParams(
+    window.location.search
+  );
+
   const initialAdd = params.get("add");
   const initialState = params.get("state");
-  const initialAi = initialState === "ai" || params.get("ai") === "1";
-  const initialSaved = initialState === "saved";
-  const [dark, setDark] = useState(params.get("theme") === "dark"),
-    [notificationOpen, setNotificationOpen] = useState(
-      params.get("state") === "notifications",
-    ),
-    [modal, setModal] = useState(initialAdd || (initialAi ? "expense" : null)),
-    [toast, setToast] = useState(initialSaved),
-    [search, setSearch] = useState("");
-  const [expense, setExpense] = useState(initialAi ? 4.5 : 0);
-  const [income, setIncome] = useState(600);
-  const [saved, setSaved] = useState(initialSaved);
-  const loading = initialState === "loading";
-  const aiSuggestion = initialAi;
 
-  const transactions = useMemo(
-    () =>
-      baseTransactions.filter((t) =>
-        t.name.toLowerCase().includes(search.toLowerCase()),
-      ),
-    [search],
+  const initialAi =
+    initialState === "ai" ||
+    params.get("ai") === "1";
+
+  const initialSaved =
+    initialState === "saved";
+
+  const [dark, setDark] = useState(
+    params.get("theme") === "dark"
   );
-  const spent = saved ? 747.3 : 742.8;
-  const remaining = 870 - spent;
-  const saveTransaction = (type) => {
-    if (type === "expense") {
-      setSaved(true);
-      setToast(true);
-      setTimeout(() => setToast(false), 3500);
+
+  const [notificationOpen, setNotificationOpen] =
+    useState(
+      params.get("state") ===
+        "notifications"
+    );
+
+  const [modal, setModal] = useState(
+    initialAdd ||
+      (initialAi ? "expense" : null)
+  );
+
+  const [toast, setToast] =
+    useState(initialSaved);
+
+  const [search, setSearch] =
+    useState("");
+
+  const [transactions, setTransactions] =
+    useState([]);
+
+  const [categories, setCategories] =
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [expense, setExpense] =
+    useState(initialAi ? 4.5 : 0);
+
+  const [income, setIncome] =
+    useState(600);
+
+  const [saved, setSaved] =
+    useState(initialSaved);
+
+  const [refreshKey, setRefreshKey] =
+    useState(0);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [refreshKey]);
+
+  async function loadDashboardData() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [
+        transactionData,
+        categoryData,
+      ] = await Promise.all([
+        getTransactions(),
+        getCategories(),
+      ]);
+
+      setTransactions(
+        Array.isArray(transactionData)
+          ? transactionData
+          : []
+      );
+
+      setCategories(
+        Array.isArray(categoryData)
+          ? categoryData
+          : []
+      );
+    } catch (err) {
+      console.error(
+        "Failed to load dashboard data:",
+        err
+      );
+
+      setError(
+        err.message ||
+          "Failed to load dashboard data."
+      );
+    } finally {
+      setLoading(false);
     }
+  }
+
+  /*
+   * September transactions
+   */
+  const septemberTransactions =
+    useMemo(() => {
+      return transactions.filter(
+        (transaction) =>
+          transaction.date >=
+            "2026-09-01" &&
+          transaction.date <=
+            "2026-09-30"
+      );
+    }, [transactions]);
+
+  /*
+   * September income
+   */
+  const septemberIncome =
+    useMemo(() => {
+      return septemberTransactions
+        .filter(
+          (transaction) =>
+            transaction.type ===
+            "INCOME"
+        )
+        .reduce(
+          (total, transaction) =>
+            total +
+            Number(
+              transaction.amount || 0
+            ),
+          0
+        );
+    }, [septemberTransactions]);
+
+  /*
+   * September expenses
+   */
+  const septemberExpenses =
+    useMemo(() => {
+      return septemberTransactions
+        .filter(
+          (transaction) =>
+            transaction.type ===
+            "EXPENSE"
+        )
+        .reduce(
+          (total, transaction) =>
+            total +
+            Number(
+              transaction.amount || 0
+            ),
+          0
+        );
+    }, [septemberTransactions]);
+
+  /*
+   * September balance
+   */
+  const septemberBalance =
+    septemberIncome -
+    septemberExpenses;
+
+  /*
+   * Search recent transactions
+   */
+  const filteredTransactions =
+    useMemo(() => {
+      const query =
+        search.trim().toLowerCase();
+
+      if (!query) {
+        return transactions;
+      }
+
+      return transactions.filter(
+        (transaction) =>
+          transaction.description
+            ?.toLowerCase()
+            .includes(query) ||
+          transaction.categoryName
+            ?.toLowerCase()
+            .includes(query)
+      );
+    }, [transactions, search]);
+
+  /*
+   * Category spending
+   */
+  const categorySpending =
+    useMemo(() => {
+      const map = {};
+
+      septemberTransactions
+        .filter(
+          (transaction) =>
+            transaction.type ===
+            "EXPENSE"
+        )
+        .forEach((transaction) => {
+          const category =
+            transaction.categoryName ||
+            "Other";
+
+          if (!map[category]) {
+            map[category] = 0;
+          }
+
+          map[category] += Number(
+            transaction.amount || 0
+          );
+        });
+
+      return Object.entries(map)
+        .map(
+          ([name, value]) => ({
+            name,
+            value,
+          })
+        )
+        .sort(
+          (a, b) =>
+            b.value - a.value
+        );
+    }, [septemberTransactions]);
+
+  const topCategory =
+    categorySpending[0] || null;
+
+  const runnerUpCategory =
+    categorySpending[1] || null;
+
+  /*
+   * Recent transactions
+   */
+  const recentTransactions =
+    filteredTransactions.slice(0, 5);
+
+  /*
+   * Budget placeholder.
+   *
+   * Your backend currently does not expose
+   * a budget entity/API, so we don't pretend
+   * this value is real backend data yet.
+   */
+  const demoBudget = 870;
+
+  const budgetPercentage =
+    demoBudget > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (septemberExpenses /
+              demoBudget) *
+              100
+          )
+        )
+      : 0;
+
+  const budgetRemaining =
+    demoBudget -
+    septemberExpenses;
+
+  const saveTransaction = async (payload) => {
+  try {
+    setError("");
+
+    const createdTransaction =
+      await createTransaction(payload);
+
+    setTransactions((current) => [
+      createdTransaction,
+      ...current,
+    ]);
+
+    setSaved(true);
+    setToast(true);
     setModal(null);
-  };
+
+    setTimeout(() => {
+      setToast(false);
+    }, 3500);
+  } catch (err) {
+    console.error(
+      "Failed to create dashboard transaction:",
+      err
+    );
+
+    setError(
+      err.message ||
+        "Failed to save transaction."
+    );
+  }
+};
 
   const openTransaction = (type) => {
     setModal(type);
     setNotificationOpen(false);
   };
+
   return (
     <DashboardShell
       dark={dark}
       setDark={setDark}
-      notificationOpen={notificationOpen}
-      setNotificationOpen={setNotificationOpen}
+      notificationOpen={
+        notificationOpen
+      }
+      setNotificationOpen={
+        setNotificationOpen
+      }
       search={search}
       setSearch={setSearch}
     >
       <section className="dash-content">
         <div className="dash-heading">
           <div>
-            <label>WEDNESDAY, SEPTEMBER 23</label>
-            <h1>Good morning, Jordan</h1>
-            <p>Here's how your September money is moving.</p>
+            <label>
+              SEPTEMBER 2026
+            </label>
+
+            <h1>
+              Good morning, CampusCoin
+            </h1>
+
+            <p>
+              Here's how your September
+              money is moving.
+            </p>
           </div>
+
           <div className="heading-actions">
             <button
               className="outline-btn"
-              onClick={() => navigate("/import-csv")}
+              onClick={() =>
+                navigate("/import-csv")
+              }
             >
-              <Icon name="upload" size={15} /> Import CSV
+              <Icon
+                name="upload"
+                size={15}
+              />
+              Import CSV
             </button>
+
             <button
               className="income-btn"
-              onClick={() => openTransaction("income")}
+              onClick={() =>
+                openTransaction(
+                  "income"
+                )
+              }
             >
-              <Icon name="arrowup" size={15} /> Add income
+              <Icon
+                name="arrowup"
+                size={15}
+              />
+              Add income
             </button>
+
             <button
               className="primary-btn"
-              onClick={() => openTransaction("expense")}
+              onClick={() =>
+                openTransaction(
+                  "expense"
+                )
+              }
             >
-              <Icon name="plus" size={16} /> Add expense
+              <Icon
+                name="plus"
+                size={16}
+              />
+              Add expense
             </button>
           </div>
         </div>
+
+        {error && (
+          <div className="alert-row">
+            <div className="alert duplicate">
+              <span>⚠</span>
+
+              <div>
+                <b>
+                  Dashboard data issue
+                </b>
+
+                <small>
+                  {error}
+                </small>
+              </div>
+
+              <button
+                onClick={
+                  loadDashboardData
+                }
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="dashboard-grid">
-          <BalanceCard spent={spent} />
-          <BudgetCard spent={spent} />
-          <TopCategory />
-          <SpendingCard spent={spent} loading={loading} />
+          <BalanceCard
+            income={septemberIncome}
+            spent={septemberExpenses}
+            balance={septemberBalance}
+          />
+
+          <BudgetCard
+            spent={
+              septemberExpenses
+            }
+            budget={demoBudget}
+            percentage={
+              budgetPercentage
+            }
+            remaining={
+              budgetRemaining
+            }
+          />
+
+          <TopCategory
+            topCategory={
+              topCategory
+            }
+            runnerUpCategory={
+              runnerUpCategory
+            }
+            totalSpent={
+              septemberExpenses
+            }
+          />
+
+          <SpendingCard
+            spent={
+              septemberExpenses
+            }
+            loading={loading}
+          />
+
           <div className="right-stack">
             <InsightCard
               loading={loading}
-              onRead={() => navigate("/ai-insights")}
+              transactionCount={
+                septemberTransactions.length
+              }
+              onRead={() =>
+                navigate(
+                  "/ai-insights"
+                )
+              }
             />
-            <SavingTips onViewAll={() => navigate("/saving-tips")} />
+
+            <SavingTips
+              onViewAll={() =>
+                navigate(
+                  "/saving-tips"
+                )
+              }
+            />
           </div>
+
           <CategoryBudgets
-            saved={saved}
-            onManage={() => navigate("/budgets")}
+            categorySpending={
+              categorySpending
+            }
+            categories={
+              categories
+            }
+            onManage={() =>
+              navigate("/budgets")
+            }
           />
-          <RecentTransactions saved={saved} transactions={transactions} />
+
+          <RecentTransactions
+            transactions={
+              recentTransactions
+            }
+            loading={loading}
+          />
         </div>
       </section>
+
       {modal && (
         <TransactionModal
-          type={modal}
-          ai={modal === "expense" && aiSuggestion}
-          amount={modal === "income" ? income : expense}
-          setAmount={modal === "income" ? setIncome : setExpense}
-          onSwitch={(nextType) => setModal(nextType)}
-          onClose={() => setModal(null)}
-          onSave={() => saveTransaction(modal)}
-        />
+  type={modal}
+  ai={
+    modal === "expense" &&
+    initialAi
+  }
+  amount={
+    modal === "income"
+      ? income
+      : expense
+  }
+  setAmount={
+    modal === "income"
+      ? setIncome
+      : setExpense
+  }
+  categories={categories}
+  onSwitch={(nextType) =>
+    setModal(nextType)
+  }
+  onClose={() =>
+    setModal(null)
+  }
+  onSave={saveTransaction}
+/>
       )}
+
       {toast && (
         <div className="toast">
           <span>✓</span>
+
           <div>
-            <strong>Expense saved</strong>
-            <small>$4.50 to Academics · budget 74% used</small>
+            <strong>
+              Transaction saved
+            </strong>
+
+            <small>
+              Your dashboard has been
+              refreshed.
+            </small>
           </div>
-          <button onClick={() => setToast(false)}>Undo</button>
+
+          <button
+            onClick={() =>
+              setToast(false)
+            }
+          >
+            Undo
+          </button>
         </div>
       )}
     </DashboardShell>
   );
 }
 
-function BalanceCard({ spent }) {
-  const balance = (1220 - spent).toFixed(2);
-  const [whole, cents] = balance.split(".");
+function BalanceCard({
+  income,
+  spent,
+  balance,
+}) {
+  const formattedBalance =
+    Number(balance || 0).toFixed(2);
+
+  const [whole, cents] =
+    formattedBalance.split(".");
+
   return (
     <div className="balance-card">
       <div className="balance-top">
-        <span>SEPTEMBER BALANCE</span>
-        <Icon name="eye" size={18} />
+        <span>
+          SEPTEMBER BALANCE
+        </span>
+
+        <Icon
+          name="eye"
+          size={18}
+        />
       </div>
+
       <div className="balance-amount">
-        <strong>${whole}</strong>
-        <em>.{cents}</em>
+        <strong>
+          {balance < 0 ? "−" : ""}$
+          {Math.abs(
+            Number(whole)
+          )}
+        </strong>
+
+        <em>
+          .{cents}
+        </em>
       </div>
-      <p>Income minus expenses, Sep 1 to 23</p>
+
+      <p>
+        Income minus expenses,
+        September 1 to 30
+      </p>
+
       <div className="balance-stats">
         <div>
-          {toneIcon("blue", "downleft")}
+          {toneIcon(
+            "blue",
+            "downleft"
+          )}
+
           <span>
-            Income<b>$1,220.00</b>
+            Income
+            <b>
+              ${income.toFixed(2)}
+            </b>
           </span>
         </div>
+
         <div>
-          {toneIcon("blue", "upright")}
+          {toneIcon(
+            "blue",
+            "upright"
+          )}
+
           <span>
-            Expenses<b>${spent.toFixed(2)}</b>
+            Expenses
+            <b>
+              ${spent.toFixed(2)}
+            </b>
           </span>
         </div>
       </div>
     </div>
   );
 }
-function BudgetCard({ spent }) {
-  let pct = Math.round((spent / 870) * 100);
+
+function BudgetCard({
+  spent,
+  budget,
+  percentage,
+  remaining,
+}) {
   return (
     <div className="dash-card budget-card">
       <div className="card-title">
         <div>
-          <strong>Budget vs actual</strong>
-          <small>September 1 to 30</small>
+          <strong>
+            Budget vs actual
+          </strong>
+
+          <small>
+            September 1 to 30
+          </small>
         </div>
-        <Icon name="more" size={18} />
+
+        <Icon
+          name="more"
+          size={18}
+        />
       </div>
+
       <div className="budget-body">
-        <div className="donut" style={{ "--p": `${pct * 3.6}deg` }}>
-          <b>{pct}%</b>
-          <small>used</small>
+        <div
+          className="donut"
+          style={{
+            "--p": `${
+              percentage * 3.6
+            }deg`,
+          }}
+        >
+          <b>
+            {percentage}%
+          </b>
+
+          <small>
+            used
+          </small>
         </div>
+
         <div>
           <span>
-            Spent<b>${spent.toFixed(2)}</b>
+            Spent
+            <b>
+              ${spent.toFixed(2)}
+            </b>
           </span>
+
           <span>
-            Budget<b>$870.00</b>
+            Budget
+            <b>
+              ${budget.toFixed(2)}
+            </b>
           </span>
+
           <span>
-            Remaining<b className="green-text">${(870 - spent).toFixed(2)}</b>
+            Remaining
+            <b className="green-text">
+              $
+              {Math.max(
+                0,
+                remaining
+              ).toFixed(2)}
+            </b>
           </span>
         </div>
       </div>
+
       <div className="days-left">
-        ◷ &nbsp;8 days left · about ${((870 - spent) / 8).toFixed(2)} a day
+        ◷ &nbsp;September spending
+        · live transaction data
       </div>
     </div>
   );
 }
-function TopCategory() {
+
+function TopCategory({
+  topCategory,
+  runnerUpCategory,
+  totalSpent,
+}) {
+  if (!topCategory) {
+    return (
+      <div className="dash-card top-category">
+        <div className="card-title">
+          <strong>
+            Top category
+          </strong>
+
+          <Icon
+            name="more"
+            size={18}
+          />
+        </div>
+
+        <div className="cat-highlight">
+          {toneIcon(
+            "slate",
+            "receipt"
+          )}
+
+          <div>
+            <strong>
+              No spending yet
+            </strong>
+
+            <span>
+              Add an expense to see
+              your top category.
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const percentage =
+    totalSpent > 0
+      ? (
+          (topCategory.value /
+            totalSpent) *
+          100
+        ).toFixed(1)
+      : "0.0";
+
   return (
     <div className="dash-card top-category">
       <div className="card-title">
-        <strong>Top category</strong>
-        <Icon name="more" size={18} />
+        <strong>
+          Top category
+        </strong>
+
+        <Icon
+          name="more"
+          size={18}
+        />
       </div>
+
       <div className="cat-highlight">
-        {toneIcon("purple", "home")}
+        {toneIcon(
+          toneForCategory(
+            topCategory.name
+          ),
+          iconForCategory(
+            topCategory.name
+          )
+        )}
+
         <div>
-          <strong>Hostel/Rent</strong>
-          <span>$300.00 · 40.4% of spend</span>
+          <strong>
+            {topCategory.name}
+          </strong>
+
+          <span>
+            $
+            {topCategory.value.toFixed(
+              2
+            )}{" "}
+            · {percentage}% of spend
+          </span>
         </div>
       </div>
+
       <div className="purple-track">
-        <i />
+        <i
+          style={{
+            width: `${Math.min(
+              100,
+              Number(percentage)
+            )}%`,
+          }}
+        />
       </div>
+
       <small>
-        Runner-up <b>Food · $214.60</b>
+        Runner-up{" "}
+        <b>
+          {runnerUpCategory
+            ? `${runnerUpCategory.name} · $${runnerUpCategory.value.toFixed(
+                2
+              )}`
+            : "—"}
+        </b>
       </small>
-      <p>Rent is fixed; Food is your biggest flexible spend.</p>
+
+      <p>
+        Based on your September
+        expense records.
+      </p>
     </div>
   );
 }
-function SpendingCard({ spent, loading }) {
+
+function SpendingCard({
+  spent,
+  loading,
+}) {
   return (
     <div className="dash-card spending-card">
       <div className="card-title">
         <div>
-          <strong>Spending pace</strong>
+          <strong>
+            Spending pace
+          </strong>
+
           <small>
-            Cumulative spend, September 1 to 23, against your $870 budget
+            Cumulative spend,
+            September against your
+            budget
           </small>
         </div>
+
         <div className="seg">
-          <button className="active">Month</button>
-          <button>Week</button>
+          <button className="active">
+            Month
+          </button>
+
+          <button>
+            Week
+          </button>
         </div>
       </div>
+
       {loading ? (
         <>
           <div className="spend-loading-total">
             <span className="skeleton" />
             <span className="skeleton short" />
           </div>
+
           <div className="chart-skeleton">
+            <span />
             <span />
             <span />
             <span />
@@ -521,28 +1211,59 @@ function SpendingCard({ spent, loading }) {
       ) : (
         <>
           <div className="spend-total">
-            <strong>${spent.toFixed(2)}</strong>
-            <span>↘ 8.9% less than Aug 23</span>
+            <strong>
+              ${spent.toFixed(2)}
+            </strong>
+
+            <span>
+              Live September
+              spending
+            </span>
           </div>
+
           <div className="fake-chart">
-            <div className="budget-line">Budget $870</div>
-            <svg viewBox="0 0 520 190" preserveAspectRatio="none">
+            <div className="budget-line">
+              Budget $870
+            </div>
+
+            <svg
+              viewBox="0 0 520 190"
+              preserveAspectRatio="none"
+            >
               <defs>
-                <linearGradient id="fillg" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0" stopColor="#9de1c8" stopOpacity=".65" />
-                  <stop offset="1" stopColor="#9de1c8" stopOpacity=".08" />
+                <linearGradient
+                  id="fillg"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0"
+                    stopColor="#9de1c8"
+                    stopOpacity=".65"
+                  />
+
+                  <stop
+                    offset="1"
+                    stopColor="#9de1c8"
+                    stopOpacity=".08"
+                  />
                 </linearGradient>
               </defs>
+
               <path
                 d="M0 140 C65 112 120 120 180 105 S270 100 320 75 S420 65 520 30 L520 190 L0 190Z"
                 fill="url(#fillg)"
               />
+
               <path
                 d="M0 140 C65 112 120 120 180 105 S270 100 320 75 S420 65 520 30"
                 fill="none"
                 stroke="#008b62"
                 strokeWidth="2.5"
               />
+
               <circle
                 cx="520"
                 cy="30"
@@ -552,6 +1273,7 @@ function SpendingCard({ spent, loading }) {
                 strokeWidth="2"
               />
             </svg>
+
             <div className="chart-labels">
               <span>$0</span>
               <span>$300</span>
@@ -559,15 +1281,29 @@ function SpendingCard({ spent, loading }) {
               <span>$900</span>
             </div>
           </div>
+
           <div className="spend-stats">
             <span>
-              Daily average<b>$32.30</b>
+              Transactions
+              <b>
+                {spent > 0
+                  ? "Active"
+                  : "None"}
+              </b>
             </span>
+
             <span>
-              Biggest day<b>Sep 1 · $312.40</b>
+              September spend
+              <b>
+                ${spent.toFixed(2)}
+              </b>
             </span>
+
             <span>
-              No-spend days<b>4 of 23</b>
+              Data source
+              <b>
+                Transactions
+              </b>
             </span>
           </div>
         </>
@@ -575,62 +1311,137 @@ function SpendingCard({ spent, loading }) {
     </div>
   );
 }
-function InsightCard({ loading, onRead }) {
+
+function InsightCard({
+  loading,
+  transactionCount,
+  onRead,
+}) {
   return (
     <div className="insight-card">
       <div className="insight-title">
-        {toneIcon("mint", "sparkle")}
-        <strong>September insight</strong>
-        <Icon name="bookmark" size={16} />
+        {toneIcon(
+          "mint",
+          "sparkle"
+        )}
+
+        <strong>
+          September insight
+        </strong>
+
+        <Icon
+          name="bookmark"
+          size={16}
+        />
       </div>
+
       {loading ? (
         <>
           <div className="skeleton" />
           <div className="skeleton mid" />
           <div className="skeleton short" />
-          <p className="analysing">◔ Analysing 47 September transactions...</p>
+
+          <p className="analysing">
+            ◔ Analysing transactions...
+          </p>
         </>
       ) : (
         <>
           <p>
-            Food delivery rose 40% this month ($60.00 in August to $84.00 so
-            far). A $15 weekly delivery cap would save about $24 by month end.
+            Your dashboard is using{" "}
+            {transactionCount}{" "}
+            September transaction
+            {transactionCount === 1
+              ? ""
+              : "s"}{" "}
+            to calculate your
+            current spending picture.
           </p>
-          <button type="button" onClick={onRead}>
-            Read full insight <Icon name="arrow" size={15} />
+
+          <button
+            type="button"
+            onClick={onRead}
+          >
+            Read full insight{" "}
+            <Icon
+              name="arrow"
+              size={15}
+            />
           </button>
-          <small>AI suggestion · advisory only</small>
+
+          <small>
+            AI suggestion · advisory
+            only
+          </small>
         </>
       )}
     </div>
   );
 }
-function SavingTips({ onViewAll }) {
+
+function SavingTips({
+  onViewAll,
+}) {
   return (
     <div className="dash-card tips-card">
       <div className="card-title">
         <div>
-          <strong>Top saving tips</strong>
-          <small>Ranked by potential monthly savings</small>
+          <strong>
+            Top saving tips
+          </strong>
+
+          <small>
+            Ranked by potential
+            monthly savings
+          </small>
         </div>
-        <button>View all</button>
+
+        <button
+          onClick={onViewAll}
+        >
+          View all
+        </button>
       </div>
+
       {[
-        ["food", "amber", "Cap food delivery at $15 a week", "Save ~$24/mo"],
-        ["bus", "blue", "Take the campus shuttle twice a week", "Save ~$18/mo"],
+        [
+          "food",
+          "amber",
+          "Review your food spending",
+          "Based on your transactions",
+        ],
+        [
+          "bus",
+          "blue",
+          "Review your transport spending",
+          "Based on your transactions",
+        ],
         [
           "tv",
           "pink",
-          "Keep one streaming service, pause the other",
-          "Save $9.99/mo",
+          "Review your subscriptions",
+          "Based on your transactions",
         ],
-      ].map((x, i) => (
-        <div className="tip-row" key={i}>
-          {toneIcon(x[1], x[0])}
+      ].map((item, index) => (
+        <div
+          className="tip-row"
+          key={index}
+        >
+          {toneIcon(
+            item[1],
+            item[0]
+          )}
+
           <div>
-            <strong>{x[2]}</strong>
-            <small>{x[3]}</small>
+            <strong>
+              {item[2]}
+            </strong>
+
+            <small>
+              {item[3]}
+            </small>
           </div>
+
           <button>♧</button>
           <button>×</button>
         </div>
@@ -638,88 +1449,276 @@ function SavingTips({ onViewAll }) {
     </div>
   );
 }
-function CategoryBudgets({ saved, onManage }) {
+
+function CategoryBudgets({
+  categorySpending,
+  categories,
+  onManage,
+}) {
+  /*
+   * We only display categories that
+   * actually have expense records.
+   *
+   * Budget values are not yet coming
+   * from a backend budget API.
+   */
+  const expenseCategories =
+    categories.filter(
+      (category) =>
+        category.type ===
+        "EXPENSE"
+    );
+
   return (
     <div className="dash-card category-budgets">
       <div className="card-title">
         <div>
-          <strong>Category budgets</strong>
-          <small>Real-time consumption, September</small>
+          <strong>
+            Category budgets
+          </strong>
+
+          <small>
+            Real-time consumption,
+            September
+          </small>
         </div>
-        <button>Manage</button>
+
+        <button
+          onClick={onManage}
+        >
+          Manage
+        </button>
       </div>
-      {categories.map((c, i) => {
-        let val = c.value + (saved && c.name === "Academics" ? 4.5 : 0),
-          pct = Math.min(100, (val / c.budget) * 100);
-        return (
-          <div className="budget-row" key={c.name}>
-            {toneIcon(c.tone, c.icon)}
-            <div className="budget-row-main">
-              <div>
-                <strong>{c.name}</strong>
-                <span>
-                  ${val.toFixed(2)} / ${c.budget.toFixed(2)}
-                </span>
+
+      {expenseCategories
+        .filter((category) =>
+          categorySpending.some(
+            (item) =>
+              item.name ===
+              category.name
+          )
+        )
+        .slice(0, 5)
+        .map((category) => {
+          const spending =
+            categorySpending.find(
+              (item) =>
+                item.name ===
+                category.name
+            )?.value || 0;
+
+          /*
+           * Temporary presentation
+           * budget because the Budget
+           * backend module isn't built yet.
+           */
+          const budget = 100;
+
+          const percentage =
+            Math.min(
+              100,
+              (spending / budget) *
+                100
+            );
+
+          return (
+            <div
+              className="budget-row"
+              key={
+                category.categoryId
+              }
+            >
+              {toneIcon(
+                toneForCategory(
+                  category.name
+                ),
+                iconForCategory(
+                  category.name
+                )
+              )}
+
+              <div className="budget-row-main">
+                <div>
+                  <strong>
+                    {category.name}
+                  </strong>
+
+                  <span>
+                    $
+                    {spending.toFixed(
+                      2
+                    )}{" "}
+                    / $
+                    {budget.toFixed(
+                      2
+                    )}
+                  </span>
+                </div>
+
+                <div className="progress">
+                  <i
+                    style={{
+                      width: `${percentage}%`,
+                    }}
+                    className={
+                      percentage >= 100
+                        ? "over"
+                        : ""
+                    }
+                  />
+                </div>
+
+                <small>
+                  {Math.round(
+                    percentage
+                  )}
+                  %
+                </small>
               </div>
-              <div className="progress">
-                <i
-                  style={{ width: `${pct}%` }}
-                  className={pct > 100 ? "over" : ""}
-                />
-              </div>
-              <small>
-                {pct > 100
-                  ? `Over by $${(val - c.budget).toFixed(2)}`
-                  : `${Math.round(pct)}%${pct > 85 ? " · near limit" : ""}`}
-              </small>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+
+      {expenseCategories.filter(
+        (category) =>
+          categorySpending.some(
+            (item) =>
+              item.name ===
+              category.name
+          )
+      ).length === 0 && (
+        <div
+          style={{
+            padding:
+              "20px 0",
+            opacity: 0.65,
+          }}
+        >
+          No September expenses
+          yet.
+        </div>
+      )}
     </div>
   );
 }
-function RecentTransactions({ saved }) {
-  let list = [
-    ...(saved
-      ? [
-          {
-            id: 9,
-            name: "Printing, lecture notes",
-            category: "Academics",
-            date: "Sep 23",
-            amount: -4.5,
-            icon: "grad",
-            tone: "teal",
-            ai: true,
-          },
-        ]
-      : []),
-    ...baseTransactions,
-  ];
+
+function RecentTransactions({
+  transactions,
+  loading,
+}) {
   return (
     <div className="dash-card recent-card">
       <div className="card-title">
         <div>
-          <strong>Recent transactions</strong>
-          <small>Latest activity across income and expenses</small>
+          <strong>
+            Recent transactions
+          </strong>
+
+          <small>
+            Latest activity across
+            income and expenses
+          </small>
         </div>
-        <button onClick={() => navigate("/transactions")}>View all</button>
+
+        <button
+          onClick={() =>
+            navigate(
+              "/transactions"
+            )
+          }
+        >
+          View all
+        </button>
       </div>
-      {list.slice(0, 5).map((t) => (
-        <div className="recent-row" key={t.id}>
-          {toneIcon(t.tone, t.icon)}
-          <div>
-            <strong>
-              {t.name} {t.ai && <em>✦ AI</em>}
-            </strong>
-            <small>
-              {t.category} · {t.date}
-            </small>
-          </div>
-          <b className={t.amount > 0 ? "positive" : ""}>{money(t.amount)}</b>
+
+      {loading ? (
+        <div
+          style={{
+            padding:
+              "20px 0",
+          }}
+        >
+          Loading transactions...
         </div>
-      ))}
+      ) : transactions.length ===
+        0 ? (
+        <div
+          style={{
+            padding:
+              "20px 0",
+            opacity: 0.65,
+          }}
+        >
+          No transactions yet.
+        </div>
+      ) : (
+        transactions.map(
+          (transaction) => {
+            const tone =
+              toneForCategory(
+                transaction.categoryName
+              );
+
+            const icon =
+              iconForCategory(
+                transaction.categoryName
+              );
+
+            const value =
+              Number(
+                transaction.amount ||
+                  0
+              );
+
+            return (
+              <div
+                className="recent-row"
+                key={
+                  transaction.transactionId
+                }
+              >
+                {toneIcon(
+                  tone,
+                  icon
+                )}
+
+                <div>
+                  <strong>
+                    {transaction.description ||
+                      "Untitled transaction"}
+                  </strong>
+
+                  <small>
+                    {
+                      transaction.categoryName
+                    }{" "}
+                    ·{" "}
+                    {formatDate(
+                      transaction.date
+                    )}
+                  </small>
+                </div>
+
+                <b
+                  className={
+                    transaction.type ===
+                    "INCOME"
+                      ? "positive"
+                      : ""
+                  }
+                >
+                  {money(
+                    transaction.type ===
+                      "INCOME"
+                      ? value
+                      : -value
+                  )}
+                </b>
+              </div>
+            );
+          }
+        )
+      )}
     </div>
   );
 }
@@ -729,100 +1728,246 @@ function TransactionModal({
   ai = false,
   amount,
   setAmount,
+  categories = [],
   onSwitch,
   onClose,
   onSave,
 }) {
   const income = type === "income";
-  const [description, setDescription] = useState(
-    ai ? "Printing, lecture notes" : "",
-  );
-  const [category, setCategory] = useState(ai ? "Academics" : "");
-  const [repeat, setRepeat] = useState(false);
 
-  const expenseCategories = [
-    "Food",
-    "Transport",
-    "Hostel/Rent",
-    "Academics",
-    "Subscriptions",
-    "Entertainment",
-    "Miscellaneous",
-  ];
+  const [description, setDescription] =
+    useState(
+      ai
+        ? "Printing, lecture notes"
+        : ""
+    );
 
-  const incomeCategories = [
-    "Allowance",
-    "Part-time Job",
-    "Salary",
-    "Scholarship",
-    "Gift",
-    "Refund",
-    "Other",
-  ];
+  const [categoryId, setCategoryId] =
+    useState("");
 
-  const categoriesForType = income ? incomeCategories : expenseCategories;
+  const [date, setDate] =
+    useState(
+      new Date()
+        .toISOString()
+        .split("T")[0]
+    );
+
+  const [repeat, setRepeat] =
+    useState(false);
+
+  const [formError, setFormError] =
+    useState("");
+
+  const transactionType = income
+    ? "INCOME"
+    : "EXPENSE";
+
+  const availableCategories =
+    categories.filter(
+      (category) =>
+        category.type ===
+        transactionType
+    );
 
   useEffect(() => {
-    setCategory(ai && !income ? "Academics" : "");
-    setDescription(ai && !income ? "Printing, lecture notes" : "");
-  }, [type, ai, income]);
+    const defaultCategory =
+      availableCategories.find(
+        (category) =>
+          category.name ===
+          (ai && !income
+            ? "Academics"
+            : "")
+      );
+
+    setCategoryId(
+      defaultCategory
+        ? defaultCategory.categoryId
+        : availableCategories[0]
+            ?.categoryId || ""
+    );
+
+    if (ai && !income) {
+      setDescription(
+        "Printing, lecture notes"
+      );
+    } else {
+      setDescription("");
+    }
+
+    setFormError("");
+  }, [
+    type,
+    ai,
+    income,
+    categories,
+  ]);
 
   useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") {
+    const handleKeyDown = (
+      event
+    ) => {
+      if (
+        event.key === "Escape"
+      ) {
         event.preventDefault();
         onClose();
       }
-      if (event.key === "Enter" && event.target?.tagName !== "TEXTAREA") {
+
+      if (
+        event.key === "Enter" &&
+        event.target?.tagName !==
+          "TEXTAREA"
+      ) {
         event.preventDefault();
-        onSave();
+        handleSave();
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    document.addEventListener(
+      "keydown",
+      handleKeyDown
+    );
+
+    const previousOverflow =
+      document.body.style
+        .overflow;
+
+    document.body.style.overflow =
+      "hidden";
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [onClose, onSave]);
+      document.removeEventListener(
+        "keydown",
+        handleKeyDown
+      );
 
-  const switchType = (nextType) => {
-    if (nextType !== type) onSwitch(nextType);
+      document.body.style.overflow =
+        previousOverflow;
+    };
+  }, [
+    onClose,
+    amount,
+    categoryId,
+    description,
+    date,
+  ]);
+
+  const selectedCategory =
+    categories.find(
+      (category) =>
+        category.categoryId ===
+        categoryId
+    );
+
+  const switchType = (
+    nextType
+  ) => {
+    if (
+      nextType !== type
+    ) {
+      onSwitch(nextType);
+    }
   };
 
-  const handleBackdropClick = (event) => {
-    if (event.target === event.currentTarget) onClose();
+  const handleBackdropClick = (
+    event
+  ) => {
+    if (
+      event.target ===
+      event.currentTarget
+    ) {
+      onClose();
+    }
+  };
+
+  const handleSave = () => {
+    setFormError("");
+
+    if (
+      !amount ||
+      Number(amount) <= 0
+    ) {
+      setFormError(
+        "Please enter an amount greater than zero."
+      );
+      return;
+    }
+
+    if (!description.trim()) {
+      setFormError(
+        "Please enter a description."
+      );
+      return;
+    }
+
+    if (!categoryId) {
+      setFormError(
+        "Please select a category."
+      );
+      return;
+    }
+
+    if (!date) {
+      setFormError(
+        "Please select a date."
+      );
+      return;
+    }
+
+    onSave({
+      categoryId,
+      amount: Number(amount),
+      type: transactionType,
+      description:
+        description.trim(),
+      date,
+    });
   };
 
   return (
     <div
       className="modal-backdrop"
       role="presentation"
-      onMouseDown={handleBackdropClick}
+      onMouseDown={
+        handleBackdropClick
+      }
     >
       <div
-        className={`transaction-modal ${ai ? "ai-modal" : ""}`}
+        className={`transaction-modal ${
+          ai ? "ai-modal" : ""
+        }`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="transaction-modal-title"
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={(event) =>
+          event.stopPropagation()
+        }
       >
         <div className="modal-head">
           <div>
             <h2 id="transaction-modal-title">
-              Add {income ? "income" : "expense"}
+              Add{" "}
+              {income
+                ? "income"
+                : "expense"}
             </h2>
-            <p>Log it in seconds. Categories are suggested as you type.</p>
+
+            <p>
+              Log it in seconds.
+              Categories are suggested
+              as you type.
+            </p>
           </div>
+
           <button
             type="button"
             onClick={onClose}
             aria-label="Close transaction form"
           >
-            <Icon name="close" size={18} />
+            <Icon
+              name="close"
+              size={18}
+            />
           </button>
         </div>
 
@@ -833,17 +1978,34 @@ function TransactionModal({
         >
           <button
             type="button"
-            className={!income ? "active" : ""}
+            className={
+              !income
+                ? "active"
+                : ""
+            }
             aria-selected={!income}
-            onClick={() => switchType("expense")}
+            onClick={() =>
+              switchType(
+                "expense"
+              )
+            }
           >
             Expense
           </button>
+
           <button
             type="button"
-            className={income ? "active" : ""}
+            className={
+              income
+                ? "active"
+                : ""
+            }
             aria-selected={income}
-            onClick={() => switchType("income")}
+            onClick={() =>
+              switchType(
+                "income"
+              )
+            }
           >
             Income
           </button>
@@ -851,108 +2013,255 @@ function TransactionModal({
 
         <label>
           Amount
+
           <div className="amount-input">
             <span>$</span>
+
             <input
               inputMode="decimal"
               aria-label={`${income ? "Income" : "Expense"} amount`}
-              value={Number.isFinite(amount) ? amount : 0}
-              onChange={(e) => {
-                const value = e.target.value.replace(/[^0-9.]/g, "");
-                setAmount(Number(value) || 0);
+              value={
+                amount || ""
+              }
+              onChange={(event) => {
+                const value =
+                  event.target.value.replace(
+                    /[^0-9.]/g,
+                    ""
+                  );
+
+                setAmount(
+                  value === ""
+                    ? 0
+                    : Number(value)
+                );
               }}
-              onFocus={(e) => e.target.select()}
+              onFocus={(event) =>
+                event.target.select()
+              }
             />
           </div>
         </label>
 
         <label>
           Description
+
           <div className="field-input">
-            <Icon name="receipt" size={16} />
+            <Icon
+              name="receipt"
+              size={16}
+            />
+
             <input
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(event) =>
+                setDescription(
+                  event.target.value
+                )
+              }
               placeholder={
                 income
-                  ? "e.g. allowance, salary, scholarship"
+                  ? "e.g. allowance, scholarship, freelance"
                   : "e.g. Campus Cafe, bus fare, textbook"
               }
+              maxLength={500}
             />
           </div>
         </label>
 
-        {ai && !income && description.trim().length > 0 && (
-          <div className="ai-suggestion">
-            {toneIcon("mint", "sparkle")}
-            <div>
-              <strong>Suggested category: Academics</strong>
-              <small>
-                91% match · based on “printing” and your past entries
-              </small>
+        {ai &&
+          !income &&
+          description.trim()
+            .length > 0 && (
+            <div className="ai-suggestion">
+              {toneIcon(
+                "mint",
+                "sparkle"
+              )}
+
+              <div>
+                <strong>
+                  Suggested category:
+                  Academics
+                </strong>
+
+                <small>
+                  Based on your
+                  description
+                </small>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  const academics =
+                    availableCategories.find(
+                      (item) =>
+                        item.name ===
+                        "Academics"
+                    );
+
+                  if (academics) {
+                    setCategoryId(
+                      academics.categoryId
+                    );
+                  }
+                }}
+              >
+                Use
+              </button>
             </div>
-            <button type="button" onClick={() => setCategory("Academics")}>
-              Use
-            </button>
-          </div>
-        )}
+          )}
 
         <div className="category-select">
           <div className="label-row">
-            <label>Category</label>
-            <button type="button">Manage categories</button>
+            <label>
+              Category
+            </label>
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  "/categories"
+                )
+              }
+            >
+              Manage categories
+            </button>
           </div>
+
           <div className="chips">
-            {categoriesForType.map((item) => (
-              <button
-                type="button"
-                key={item}
-                className={category === item ? "selected" : ""}
-                onClick={() => setCategory(item)}
-              >
-                {item}
-              </button>
-            ))}
-            <button type="button">＋ New</button>
+            {availableCategories.map(
+              (item) => (
+                <button
+                  type="button"
+                  key={
+                    item.categoryId
+                  }
+                  className={
+                    categoryId ===
+                    item.categoryId
+                      ? "selected"
+                      : ""
+                  }
+                  onClick={() =>
+                    setCategoryId(
+                      item.categoryId
+                    )
+                  }
+                >
+                  {item.name}
+                </button>
+              )
+            )}
+
+            <button
+              type="button"
+              onClick={() =>
+                navigate(
+                  "/categories"
+                )
+              }
+            >
+              ＋ New
+            </button>
           </div>
         </div>
 
         <div className="date-grid">
           <label>
             Date
+
             <div className="field-input">
-              <Icon name="calendar" size={16} />
-              <input value="Wed, Sep 23, 2026" readOnly />
+              <Icon
+                name="calendar"
+                size={16}
+              />
+
+              <input
+                type="date"
+                value={date}
+                onChange={(event) =>
+                  setDate(
+                    event.target.value
+                  )
+                }
+              />
             </div>
           </label>
 
           <label>
             Repeat
+
             <button
               type="button"
-              className={`repeat-field ${repeat ? "on" : ""}`}
-              onClick={() => setRepeat((value) => !value)}
-              aria-pressed={repeat}
+              className={`repeat-field ${
+                repeat ? "on" : ""
+              }`}
+              onClick={() =>
+                setRepeat(
+                  (value) =>
+                    !value
+                )
+              }
+              aria-pressed={
+                repeat
+              }
             >
-              <Icon name="repeat" size={16} />
-              <span>{repeat ? "Monthly" : "None"}</span>
+              <Icon
+                name="repeat"
+                size={16}
+              />
+
+              <span>
+                {repeat
+                  ? "Monthly"
+                  : "None"}
+              </span>
+
               <i />
             </button>
           </label>
         </div>
 
+        {formError && (
+          <div
+            className="modal-form-error"
+            role="alert"
+          >
+            {formError}
+          </div>
+        )}
+
         <div className="modal-footer">
-          <small>Press Enter to save · Esc to close</small>
-          <button type="button" onClick={onClose}>
+          <small>
+            Press Enter to save · Esc
+            to close
+          </small>
+
+          <button
+            type="button"
+            onClick={onClose}
+          >
             Cancel
           </button>
+
           <button
             type="button"
             className="primary-btn"
-            onClick={onSave}
-            disabled={!amount || !category}
+            onClick={handleSave}
+            disabled={
+              !amount ||
+              !categoryId ||
+              !description.trim() ||
+              !date
+            }
           >
-            ✓ Save {income ? "income" : "expense"}
+            ✓ Save{" "}
+            {income
+              ? "income"
+              : "expense"}
           </button>
         </div>
       </div>
@@ -960,5 +2269,9 @@ function TransactionModal({
   );
 }
 
-export { DashboardShell, NotificationPanel };
+export {
+  DashboardShell,
+  NotificationPanel,
+};
+
 export default DashboardPage;

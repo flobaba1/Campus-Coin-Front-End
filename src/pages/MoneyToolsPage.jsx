@@ -1,10 +1,20 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import { navigate } from "../routes/AppRoutes";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
 import { clearStudentSession } from "../utils";
 import "../styles/dashboard.css";
 import "../styles/money-tools.css";
+import {
+  getBudgets,
+  getBudgetsForMonth,
+  createBudget,
+  updateBudget,
+  deleteBudget,
+} from "../api/budgetApi";
+
+import { getCategories } from "../api/categoryApi";
+import { getTransactions } from "../api/transactionApi";
 
 const categories = [
   {
@@ -614,21 +624,205 @@ function PageFrame({ eyebrow, title, description, actions, children }) {
 }
 
 function BudgetsPage() {
-  const [dark, setDark] = useState(false),
-    [notify, setNotify] = useState(false),
-    [progress, setProgress] = useState(true);
-  const [syncing, setSyncing] = useState(false),
-    [planOpen, setPlanOpen] = useState(false),
-    [budgetModal, setBudgetModal] = useState(false);
-  const [editing, setEditing] = useState(null),
-    [toast, showToast] = useToast();
-  const sync = () => {
-    setSyncing(true);
-    window.setTimeout(() => {
-      setSyncing(false);
-      showToast("Budgets synced successfully");
-    }, 900);
+  const now = new Date();
+
+  const [dark, setDark] = useState(false);
+  const [notify, setNotify] = useState(false);
+  const [progress, setProgress] = useState(true);
+
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+
+  const [budgets, setBudgets] = useState([]);
+  const [categories, setCategories] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
+
+  const [planOpen, setPlanOpen] = useState(false);
+  const [budgetModal, setBudgetModal] = useState(false);
+  const [editing, setEditing] = useState(null);
+
+  const [toast, showToast] = useToast();
+
+  const loadBudgets = async (
+    selectedYear = year,
+    selectedMonth = month,
+    showLoading = true
+  ) => {
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+
+      const [budgetData, categoryData] = await Promise.all([
+        getBudgetsForMonth(selectedYear, selectedMonth),
+        getCategories(),
+      ]);
+
+      setBudgets(Array.isArray(budgetData) ? budgetData : []);
+
+      const expenseCategories = Array.isArray(categoryData)
+        ? categoryData.filter((category) => category.type === "EXPENSE")
+        : [];
+
+      setCategories(expenseCategories);
+    } catch (error) {
+      console.error("Failed to load budgets:", error);
+      showToast(error.message || "Failed to load budgets");
+    } finally {
+      if (showLoading) {
+        setLoading(false);
+      }
+    }
   };
+
+  useEffect(() => {
+    loadBudgets(year, month);
+  }, [year, month]);
+
+  const monthName = new Date(year, month - 1, 1).toLocaleString(
+    "en-US",
+    {
+      month: "long",
+    }
+  );
+
+  const monthShortName = new Date(
+    year,
+    month - 1,
+    1
+  ).toLocaleString("en-US", {
+    month: "short",
+  });
+
+  const totalBudget = budgets.reduce(
+    (sum, budget) => sum + Number(budget.amount || 0),
+    0
+  );
+
+  const totalSpent = budgets.reduce(
+    (sum, budget) => sum + Number(budget.spent || 0),
+    0
+  );
+
+  const totalRemaining = totalBudget - totalSpent;
+
+  const alertBudgets = budgets.filter(
+    (budget) =>
+      budget.status === "OVER_BUDGET" ||
+      budget.status === "AT_LIMIT" ||
+      budget.status === "APPROACHING_LIMIT"
+  );
+
+  const sync = async () => {
+    try {
+      setSyncing(true);
+
+      await loadBudgets(year, month, false);
+
+      showToast("Budgets synced successfully");
+    } catch (error) {
+      console.error("Budget sync failed:", error);
+      showToast(error.message || "Budget sync failed");
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleMonthChange = (selectedMonth, selectedYear = year) => {
+    setMonth(selectedMonth);
+    setYear(selectedYear);
+    setPlanOpen(false);
+  };
+
+  const handleCreateBudget = async (payload) => {
+    try {
+      const created = await createBudget(payload);
+
+      setBudgets((current) => [
+        ...current,
+        created,
+      ]);
+
+      setBudgetModal(false);
+
+      showToast(
+        `${created.categoryName} budget set to ${money(
+          created.amount
+        )}`
+      );
+    } catch (error) {
+      console.error("Failed to create budget:", error);
+      showToast(
+        error.message || "Failed to create budget"
+      );
+    }
+  };
+
+  const handleUpdateBudget = async (budgetId, payload) => {
+    try {
+      const updated = await updateBudget(
+        budgetId,
+        payload
+      );
+
+      setBudgets((current) =>
+        current.map((budget) =>
+          budget.budgetId === budgetId
+            ? updated
+            : budget
+        )
+      );
+
+      setEditing(null);
+
+      showToast(
+        `${updated.categoryName} budget updated to ${money(
+          updated.amount
+        )}`
+      );
+    } catch (error) {
+      console.error("Failed to update budget:", error);
+      showToast(
+        error.message || "Failed to update budget"
+      );
+    }
+  };
+
+  const handleDeleteBudget = async (budgetId) => {
+    const budget = budgets.find(
+      (item) => item.budgetId === budgetId
+    );
+
+    if (!budget) return;
+
+    const confirmed = window.confirm(
+      `Delete the ${budget.categoryName} budget for ${monthName} ${year}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteBudget(budgetId);
+
+      setBudgets((current) =>
+        current.filter(
+          (item) => item.budgetId !== budgetId
+        )
+      );
+
+      setEditing(null);
+
+      showToast("Budget deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete budget:", error);
+      showToast(
+        error.message || "Failed to delete budget"
+      );
+    }
+  };
+
   return (
     <ToolsShell
       page="Budgets"
@@ -638,7 +832,7 @@ function BudgetsPage() {
       setNotificationOpen={setNotify}
     >
       <PageFrame
-        eyebrow="BUDGETS · SEP"
+        eyebrow={`BUDGETS · ${monthShortName.toUpperCase()}`}
         title="Budgets & alerts"
         description="Stay ahead of your monthly limits with category budgets and timely alerts."
         actions={
@@ -647,33 +841,89 @@ function BudgetsPage() {
               <button
                 className="tool-btn"
                 type="button"
-                onClick={() => setPlanOpen((v) => !v)}
+                onClick={() =>
+                  setPlanOpen((value) => !value)
+                }
               >
-                <Icon name="target" size={14} /> Monthly plan⌄
+                <Icon name="target" size={14} />{" "}
+                {monthName} {year}⌄
               </button>
+
               {planOpen && (
                 <div className="tool-dropdown">
                   <button
                     type="button"
-                    onClick={() => {
-                      setPlanOpen(false);
-                      showToast("September plan selected");
-                    }}
+                    onClick={() =>
+                      handleMonthChange(
+                        month,
+                        year
+                      )
+                    }
                   >
-                    September 2026
+                    {monthName} {year}
                   </button>
+
                   <button
                     type="button"
                     onClick={() => {
-                      setPlanOpen(false);
-                      showToast("October plan selected");
+                      const nextMonth =
+                        month === 12 ? 1 : month + 1;
+
+                      const nextYear =
+                        month === 12
+                          ? year + 1
+                          : year;
+
+                      handleMonthChange(
+                        nextMonth,
+                        nextYear
+                      );
                     }}
                   >
-                    October 2026
+                    {new Date(
+                      year,
+                      month,
+                      1
+                    ).toLocaleString("en-US", {
+                      month: "long",
+                    })}{" "}
+                    {month === 12
+                      ? year + 1
+                      : year}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const previousMonth =
+                        month === 1 ? 12 : month - 1;
+
+                      const previousYear =
+                        month === 1
+                          ? year - 1
+                          : year;
+
+                      handleMonthChange(
+                        previousMonth,
+                        previousYear
+                      );
+                    }}
+                  >
+                    {new Date(
+                      year,
+                      month - 2,
+                      1
+                    ).toLocaleString("en-US", {
+                      month: "long",
+                    })}{" "}
+                    {month === 1
+                      ? year - 1
+                      : year}
                   </button>
                 </div>
               )}
             </div>
+
             <button
               className="tool-btn"
               type="button"
@@ -681,12 +931,17 @@ function BudgetsPage() {
               disabled={syncing}
             >
               <Icon name="refresh" size={14} />{" "}
-              {syncing ? "Syncing…" : "Sync now"}
+              {syncing
+                ? "Syncing…"
+                : "Sync now"}
             </button>
+
             <button
               className="tool-primary"
               type="button"
-              onClick={() => setBudgetModal(true)}
+              onClick={() =>
+                setBudgetModal(true)
+              }
             >
               <Icon name="plus" size={14} /> Add budget
             </button>
@@ -694,227 +949,1112 @@ function BudgetsPage() {
         }
       >
         <div className="metric-grid four">
-          <Metric label="Sep budget" value="$870.00" />
-          <Metric label="Spent" value="$742.80" />
-          <Metric label="Remaining" value="$127.20" green />
-          <Metric label="Alerts" value="3" danger />
+          <Metric
+            label={`${monthShortName} budget`}
+            value={money(totalBudget)}
+          />
+
+          <Metric
+            label="Spent"
+            value={money(totalSpent)}
+          />
+
+          <Metric
+            label="Remaining"
+            value={money(totalRemaining)}
+            green={totalRemaining >= 0}
+            danger={totalRemaining < 0}
+          />
+
+          <Metric
+            label="Alerts"
+            value={String(alertBudgets.length)}
+            danger={alertBudgets.length > 0}
+          />
         </div>
-        <div className="alert-list">
-          {alerts.map(([t, d, icon, tag], i) => (
-            <div className="alert-row" key={t}>
-              {toneIcon(["pink", "amber", "blue"][i], icon)}
-              <div>
-                <strong>{t}</strong>
-                <small>{d}</small>
-              </div>
-              <b>{tag}</b>
-            </div>
-          ))}
-        </div>
-        <div className="budget-layout">
-          <div className="budget-category-grid">
-            {categories.map((c) => (
-              <BudgetCategory
-                key={c.name}
-                {...c}
-                progress={progress}
-                onEdit={() => setEditing(c)}
-              />
-            ))}
+
+        {loading ? (
+          <div className="empty-state">
+            <strong>Loading budgets…</strong>
+            <span>
+              Fetching your {monthName} budget plan.
+            </span>
           </div>
-          <BudgetAutomation />
-        </div>
-        <div className="budget-view-toggle">
-          <button
-            type="button"
-            className={progress ? "active" : ""}
-            onClick={() => setProgress(true)}
-          >
-            Show progress
-          </button>
-          <button
-            type="button"
-            className={!progress ? "active" : ""}
-            onClick={() => setProgress(false)}
-          >
-            Compact view
-          </button>
-        </div>
+        ) : (
+          <>
+            <div className="alert-list">
+              {alertBudgets.map((budget) => {
+                const alertInfo =
+                  getBudgetAlertInfo(budget);
+
+                return (
+                  <div
+                    className="alert-row"
+                    key={budget.budgetId}
+                  >
+                    {toneIcon(
+                      alertInfo.tone,
+                      alertInfo.icon
+                    )}
+
+                    <div>
+                      <strong>
+                        {alertInfo.title}
+                      </strong>
+
+                      <small>
+                        {alertInfo.description}
+                      </small>
+                    </div>
+
+                    <b>{alertInfo.tag}</b>
+                  </div>
+                );
+              })}
+
+              {alertBudgets.length === 0 && (
+                <div className="alert-row">
+                  {toneIcon(
+                    "teal",
+                    "check"
+                  )}
+
+                  <div>
+                    <strong>
+                      No budget alerts
+                    </strong>
+
+                    <small>
+                      Your budgets are currently
+                      within their limits.
+                    </small>
+                  </div>
+
+                  <b>On track</b>
+                </div>
+              )}
+            </div>
+
+            <div className="budget-layout">
+              <div className="budget-category-grid">
+                {budgets.map((budget) => (
+                  <BudgetCategory
+                    key={budget.budgetId}
+                    budget={budget}
+                    progress={progress}
+                    onEdit={() =>
+                      setEditing(budget)
+                    }
+                  />
+                ))}
+
+                {budgets.length === 0 && (
+                  <div className="empty-state">
+                    <strong>
+                      No budgets for {monthName}
+                    </strong>
+
+                    <span>
+                      Add your first category budget
+                      to start tracking spending.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <BudgetAutomation
+                alertCount={
+                  alertBudgets.length
+                }
+              />
+            </div>
+
+            <div className="budget-view-toggle">
+              <button
+                type="button"
+                className={
+                  progress ? "active" : ""
+                }
+                onClick={() =>
+                  setProgress(true)
+                }
+              >
+                Show progress
+              </button>
+
+              <button
+                type="button"
+                className={
+                  !progress ? "active" : ""
+                }
+                onClick={() =>
+                  setProgress(false)
+                }
+              >
+                Compact view
+              </button>
+            </div>
+          </>
+        )}
       </PageFrame>
+
       {budgetModal && (
         <Modal
           title="Add a budget"
-          description="Set a category limit for the current month."
-          onClose={() => setBudgetModal(false)}
+          description={`Set a category limit for ${monthName} ${year}.`}
+          onClose={() =>
+            setBudgetModal(false)
+          }
         >
           <BudgetForm
-            onClose={() => setBudgetModal(false)}
-            onSave={(name, amount) => {
-              setBudgetModal(false);
-              showToast(`${name} budget set to $${amount}`);
-            }}
+            categories={categories}
+            month={month}
+            year={year}
+            onClose={() =>
+              setBudgetModal(false)
+            }
+            onSave={handleCreateBudget}
           />
         </Modal>
       )}
+
       {editing && (
         <Modal
-          title={`Edit ${editing.name} budget`}
-          description="Update the monthly limit for this category."
-          onClose={() => setEditing(null)}
+          title={`Edit ${editing.categoryName} budget`}
+          description={`Update the monthly limit for ${monthName} ${year}.`}
+          onClose={() =>
+            setEditing(null)
+          }
         >
           <BudgetForm
-            initialName={editing.name}
-            initialAmount={editing.budget}
-            onClose={() => setEditing(null)}
-            onSave={(name, amount) => {
-              setEditing(null);
-              showToast(`${name} budget updated to $${amount}`);
-            }}
+            categories={categories}
+            month={editing.month}
+            year={editing.year}
+            initialCategoryId={
+              editing.categoryId
+            }
+            initialAmount={
+              editing.amount
+            }
+            editing
+            onClose={() =>
+              setEditing(null)
+            }
+            onDelete={() =>
+              handleDeleteBudget(
+                editing.budgetId
+              )
+            }
+            onSave={(payload) =>
+              handleUpdateBudget(
+                editing.budgetId,
+                payload
+              )
+            }
           />
         </Modal>
       )}
+
       <ActionToast message={toast} />
     </ToolsShell>
   );
 }
-function Metric({ label, value, green, danger }) {
+
+function Metric({
+  label,
+  value,
+  green,
+  danger,
+}) {
   return (
     <div className="metric-card">
       <span>{label}</span>
-      <strong className={green ? "green-text" : danger ? "danger-text" : ""}>
+
+      <strong
+        className={
+          green
+            ? "green-text"
+            : danger
+              ? "danger-text"
+              : ""
+        }
+      >
         {value}
       </strong>
     </div>
   );
 }
+
+function getCategoryPresentation(
+  categoryName
+) {
+  const map = {
+    Food: {
+      icon: "food",
+      tone: "amber",
+    },
+
+    Transport: {
+      icon: "bus",
+      tone: "blue",
+    },
+
+    "Hostel/Rent": {
+      icon: "home",
+      tone: "purple",
+    },
+
+    Academics: {
+      icon: "grad",
+      tone: "teal",
+    },
+
+    Entertainment: {
+      icon: "ticket",
+      tone: "peach",
+    },
+
+    Subscriptions: {
+      icon: "tv",
+      tone: "pink",
+    },
+
+    Miscellaneous: {
+      icon: "folder",
+      tone: "slate",
+    },
+
+    Education: {
+      icon: "grad",
+      tone: "teal",
+    },
+
+    Shopping: {
+      icon: "shopping",
+      tone: "pink",
+    },
+
+    "Bills & Utilities": {
+      icon: "bill",
+      tone: "blue",
+    },
+
+    Savings: {
+      icon: "target",
+      tone: "teal",
+    },
+
+    "Personal Care": {
+      icon: "user",
+      tone: "purple",
+    },
+
+    Other: {
+      icon: "folder",
+      tone: "slate",
+    },
+
+    Health: {
+      icon: "heart",
+      tone: "pink",
+    },
+  };
+
+  return (
+    map[categoryName] || {
+      icon: "folder",
+      tone: "slate",
+    }
+  );
+}
+
 function BudgetCategory({
-  name,
-  icon,
-  tone,
-  spent,
   budget,
-  status,
   progress,
   onEdit,
 }) {
-  const used = Math.min(100, Math.round((spent / budget) * 100));
+  const spent = Number(
+    budget.spent || 0
+  );
+
+  const amount = Number(
+    budget.amount || 0
+  );
+
+  const used = Math.min(
+    100,
+    Math.round(
+      Number(
+        budget.percentageUsed || 0
+      )
+    )
+  );
+
+  const presentation =
+    getCategoryPresentation(
+      budget.categoryName
+    );
+
+  const remaining = Number(
+    budget.remaining || 0
+  );
+
+  const statusLabels = {
+    ON_TRACK: "On track",
+    APPROACHING_LIMIT:
+      "Approaching limit",
+    AT_LIMIT: "At limit",
+    OVER_BUDGET: "Over budget",
+  };
+
+  const status =
+    statusLabels[budget.status] ||
+    budget.status ||
+    "On track";
+
   return (
     <div className="budget-category">
       <div className="budget-cat-head">
-        {toneIcon(tone, icon)}
+        {toneIcon(
+          presentation.tone,
+          presentation.icon
+        )}
+
         <div>
-          <strong>{name}</strong>
+          <strong>
+            {budget.categoryName}
+          </strong>
+
           <small>{status}</small>
         </div>
+
         <button
           type="button"
           onClick={onEdit}
-          aria-label={`Edit ${name} budget`}
+          aria-label={`Edit ${budget.categoryName} budget`}
         >
-          <Icon name="edit" size={13} />
+          <Icon
+            name="edit"
+            size={13}
+          />
         </button>
       </div>
+
       {progress && (
-        <div className={`mini-progress ${used >= 100 ? "danger" : ""}`}>
-          <i style={{ width: `${used}%` }} />
+        <div
+          className={`mini-progress ${
+            used >= 100
+              ? "danger"
+              : ""
+          }`}
+        >
+          <i
+            style={{
+              width: `${used}%`,
+            }}
+          />
         </div>
       )}
+
       <div className="budget-cat-foot">
-        <span>{money(spent)} spent</span>
-        <b>{money(budget)}</b>
+        <span>
+          {money(spent)} spent
+        </span>
+
+        <b>{money(amount)}</b>
       </div>
+
       <small className="budget-percent">
-        {used}% used · {money(Math.max(0, budget - spent))} left
+        {used}% used ·{" "}
+        {money(
+          Math.max(
+            0,
+            remaining
+          )
+        )}{" "}
+        left
       </small>
     </div>
   );
 }
 
 function BudgetForm({
-  initialName = "Food",
-  initialAmount = 250,
+  categories,
+  month,
+  year,
+  initialCategoryId = "",
+  initialAmount = "",
+  editing = false,
   onClose,
   onSave,
+  onDelete,
 }) {
-  const [name, setName] = useState(initialName),
-    [amount, setAmount] = useState(String(initialAmount));
-  const submit = (e) => {
+  const firstCategoryId =
+    initialCategoryId ||
+    categories[0]?.categoryId ||
+    "";
+
+  const [categoryId, setCategoryId] =
+    useState(firstCategoryId);
+
+  const [amount, setAmount] =
+    useState(
+      initialAmount !== ""
+        ? String(initialAmount)
+        : ""
+    );
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const selectedCategory =
+    categories.find(
+      (category) =>
+        category.categoryId ===
+        categoryId
+    );
+
+  const submit = async (e) => {
     e.preventDefault();
-    const n = Number(amount);
-    if (!name.trim() || !Number.isFinite(n) || n <= 0) return;
-    onSave(name.trim(), n.toFixed(2));
+
+    const numericAmount =
+      Number(amount);
+
+    if (
+      !categoryId ||
+      !Number.isFinite(
+        numericAmount
+      ) ||
+      numericAmount <= 0
+    ) {
+      return;
+    }
+
+    try {
+      setSaving(true);
+
+      await onSave({
+        categoryId,
+        amount: Number(
+          numericAmount.toFixed(2)
+        ),
+        month,
+        year,
+      });
+    } finally {
+      setSaving(false);
+    }
   };
+
   return (
-    <form className="cc-form" onSubmit={submit}>
+    <form
+      className="cc-form"
+      onSubmit={submit}
+    >
       <label>
         Category
-        <select value={name} onChange={(e) => setName(e.target.value)}>
-          {categories.map((c) => (
-            <option key={c.name}>{c.name}</option>
-          ))}
+
+        <select
+          value={categoryId}
+          onChange={(e) =>
+            setCategoryId(
+              e.target.value
+            )
+          }
+          disabled={editing}
+        >
+          <option value="">
+            Select category
+          </option>
+
+          {categories.map(
+            (category) => (
+              <option
+                key={
+                  category.categoryId
+                }
+                value={
+                  category.categoryId
+                }
+              >
+                {category.name}
+              </option>
+            )
+          )}
         </select>
       </label>
+
+      {selectedCategory && (
+        <small>
+          Budgeting{" "}
+          <strong>
+            {selectedCategory.name}
+          </strong>{" "}
+          for{" "}
+          {new Date(
+            year,
+            month - 1,
+            1
+          ).toLocaleString(
+            "en-US",
+            {
+              month: "long",
+              year: "numeric",
+            }
+          )}
+          .
+        </small>
+      )}
+
       <label>
         Monthly limit
+
         <input
           type="number"
-          min="1"
+          min="0.01"
           step="0.01"
           value={amount}
-          onChange={(e) => setAmount(e.target.value)}
+          onChange={(e) =>
+            setAmount(
+              e.target.value
+            )
+          }
+          placeholder="250.00"
+          required
         />
       </label>
+
       <div className="modal-actions">
-        <button type="button" className="ghost-btn" onClick={onClose}>
+        <button
+          type="button"
+          className="ghost-btn"
+          onClick={onClose}
+          disabled={saving}
+        >
           Cancel
         </button>
-        <button type="submit" className="tool-primary">
-          Save budget
+
+        {editing && onDelete && (
+          <button
+            type="button"
+            className="ghost-btn"
+            onClick={onDelete}
+            disabled={saving}
+          >
+            Delete
+          </button>
+        )}
+
+        <button
+          type="submit"
+          className="tool-primary"
+          disabled={
+            saving ||
+            !categoryId ||
+            !amount
+          }
+        >
+          {saving
+            ? "Saving…"
+            : editing
+              ? "Update budget"
+              : "Save budget"}
         </button>
       </div>
     </form>
   );
 }
-function BudgetAutomation() {
-  const [a, setA] = useState([true, true, true, false]);
+
+function getBudgetAlertInfo(
+  budget
+) {
+  switch (budget.status) {
+    case "OVER_BUDGET":
+      return {
+        title: `${budget.categoryName} is over budget`,
+        description: `${money(
+          Math.abs(
+            Number(
+              budget.remaining || 0
+            )
+          )
+        )} over the monthly limit.`,
+        tag: "Over budget",
+        icon: "alert",
+        tone: "pink",
+      };
+
+    case "AT_LIMIT":
+      return {
+        title: `${budget.categoryName} is at its limit`,
+        description: `You've used the full ${money(
+          budget.amount
+        )} budget.`,
+        tag: "At limit",
+        icon: "alert",
+        tone: "amber",
+      };
+
+    case "APPROACHING_LIMIT":
+      return {
+        title: `${budget.categoryName} is approaching its limit`,
+        description: `${money(
+          Math.max(
+            0,
+            Number(
+              budget.remaining || 0
+            )
+          )
+        )} remaining.`,
+        tag: "Watch",
+        icon: "alert",
+        tone: "blue",
+      };
+
+    default:
+      return {
+        title: `${budget.categoryName} is on track`,
+        description: `${money(
+          Math.max(
+            0,
+            Number(
+              budget.remaining || 0
+            )
+          )
+        )} remaining.`,
+        tag: "On track",
+        icon: "check",
+        tone: "teal",
+      };
+  }
+}
+
+function BudgetAutomation({
+  alertCount = 0,
+}) {
+  const [a, setA] = useState([
+    true,
+    true,
+    true,
+    false,
+  ]);
+
   return (
     <aside className="automation-card">
       <h3>AI alerts</h3>
-      <p>Let CampusCoin watch your budgets and flag changes early.</p>
+
+      <p>
+        Let CampusCoin watch your
+        budgets and flag changes early.
+      </p>
+
       {[
         "Approaching budget limit",
         "Unusual spend detected",
         "Weekly budget check",
         "Auto-adjust suggestions",
       ].map((x, i) => (
-        <div className="toggle-row" key={x}>
+        <div
+          className="toggle-row"
+          key={x}
+        >
           <span>{x}</span>
+
           <button
-            className={a[i] ? "on" : ""}
-            onClick={() => setA((v) => v.map((x, j) => (j === i ? !x : x)))}
+            type="button"
+            className={
+              a[i] ? "on" : ""
+            }
+            onClick={() =>
+              setA((value) =>
+                value.map(
+                  (item, index) =>
+                    index === i
+                      ? !item
+                      : item
+                )
+              )
+            }
           >
             <i />
           </button>
         </div>
       ))}
+
       <div className="automation-note">
-        <Icon name="sparkle" size={15} />
-        <span>AI found 3 budget alerts from your September transactions.</span>
+        <Icon
+          name="sparkle"
+          size={15}
+        />
+
+        <span>
+          {alertCount > 0
+            ? `CampusCoin found ${alertCount} budget alert${
+                alertCount === 1
+                  ? ""
+                  : "s"
+              } for this month.`
+            : "No budget alerts for this month."}
+        </span>
       </div>
     </aside>
   );
 }
 
 function ReportsPage() {
-  const params = new URLSearchParams(window.location.search);
-  const [dark, setDark] = useState(false),
-    [notify, setNotify] = useState(false),
-    [filled, setFilled] = useState(params.get("state") !== "empty"),
-    [exportOpen, setExportOpen] = useState(params.get("modal") === "export"),
-    [range, setRange] = useState("Sep 1 – Sep 30"),
-    [category, setCategory] = useState("All categories"),
-    [kind, setKind] = useState("All transactions"),
-    [toast, showToast] = useToast();
+  const now = new Date();
+
+  const [dark, setDark] = useState(false);
+  const [notify, setNotify] = useState(false);
+
+  const [transactions, setTransactions] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [exportOpen, setExportOpen] = useState(false);
+
+  const [range, setRange] = useState(
+    `${now.toLocaleString("en-US", { month: "short" })} 1 – ${now.toLocaleString(
+      "en-US",
+      { month: "short" }
+    )} ${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`
+  );
+
+  const [category, setCategory] = useState("All categories");
+  const [kind, setKind] = useState("All transactions");
+  const [view, setView] = useState("Month");
+
+  const [toast, showToast] = useToast();
+
+  useEffect(() => {
+    loadReportData();
+  }, []);
+
+  async function loadReportData() {
+    try {
+      setLoading(true);
+
+      const [transactionData, categoryData, budgetData] =
+        await Promise.all([
+          getTransactions(),
+          getCategories(),
+          getBudgets(),
+        ]);
+
+      setTransactions(
+        Array.isArray(transactionData) ? transactionData : []
+      );
+
+      setCategories(
+        Array.isArray(categoryData) ? categoryData : []
+      );
+
+      setBudgets(
+        Array.isArray(budgetData) ? budgetData : []
+      );
+    } catch (error) {
+      console.error("Failed to load report data:", error);
+      showToast(error.message || "Failed to load report data");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const expenseCategories = useMemo(
+    () =>
+      categories.filter(
+        (c) =>
+          String(c.type || "").toUpperCase() === "EXPENSE"
+      ),
+    [categories]
+  );
+
+  const currentMonthTransactions = useMemo(() => {
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    return transactions.filter((transaction) => {
+      const date = new Date(transaction.date);
+
+      return (
+        date.getFullYear() === year &&
+        date.getMonth() + 1 === month
+      );
+    });
+  }, [transactions]);
+
+  const filteredTransactions = useMemo(() => {
+    let result = [...currentMonthTransactions];
+
+    if (category !== "All categories") {
+      result = result.filter(
+        (transaction) =>
+          transaction.categoryName === category ||
+          transaction.category?.name === category
+      );
+    }
+
+    if (kind === "Expenses") {
+      result = result.filter(
+        (transaction) =>
+          String(transaction.type || "").toUpperCase() === "EXPENSE"
+      );
+    }
+
+    if (kind === "Income") {
+      result = result.filter(
+        (transaction) =>
+          String(transaction.type || "").toUpperCase() === "INCOME"
+      );
+    }
+
+    return result;
+  }, [currentMonthTransactions, category, kind]);
+
+  const expenseTransactions = useMemo(
+    () =>
+      filteredTransactions.filter(
+        (transaction) =>
+          String(transaction.type || "").toUpperCase() === "EXPENSE"
+      ),
+    [filteredTransactions]
+  );
+
+  const incomeTransactions = useMemo(
+    () =>
+      filteredTransactions.filter(
+        (transaction) =>
+          String(transaction.type || "").toUpperCase() === "INCOME"
+      ),
+    [filteredTransactions]
+  );
+
+  const totalSpend = useMemo(
+    () =>
+      expenseTransactions.reduce(
+        (sum, transaction) =>
+          sum + Number(transaction.amount || 0),
+        0
+      ),
+    [expenseTransactions]
+  );
+
+  const totalIncome = useMemo(
+    () =>
+      incomeTransactions.reduce(
+        (sum, transaction) =>
+          sum + Number(transaction.amount || 0),
+        0
+      ),
+    [incomeTransactions]
+  );
+
+  const categorySpending = useMemo(() => {
+    const map = {};
+
+    expenseTransactions.forEach((transaction) => {
+      const name =
+        transaction.categoryName ||
+        transaction.category?.name ||
+        "Uncategorized";
+
+      map[name] = (map[name] || 0) + Number(transaction.amount || 0);
+    });
+
+    return Object.entries(map)
+      .map(([name, spent]) => ({
+        name,
+        spent,
+      }))
+      .sort((a, b) => b.spent - a.spent);
+  }, [expenseTransactions]);
+
+  const selectedMonthBudget = useMemo(() => {
+    return budgets
+      .filter(
+        (budget) =>
+          Number(budget.month) === now.getMonth() + 1 &&
+          Number(budget.year) === now.getFullYear()
+      )
+      .reduce(
+        (sum, budget) => sum + Number(budget.amount || 0),
+        0
+      );
+  }, [budgets]);
+
+  const monthlyBudgetSpent = useMemo(
+    () =>
+      currentMonthTransactions
+        .filter(
+          (transaction) =>
+            String(transaction.type || "").toUpperCase() === "EXPENSE"
+        )
+        .reduce(
+          (sum, transaction) =>
+            sum + Number(transaction.amount || 0),
+          0
+        ),
+    [currentMonthTransactions]
+  );
+
+  const remainingBudget =
+    selectedMonthBudget - monthlyBudgetSpent;
+
+  const monthlyData = useMemo(() => {
+    const result = [];
+
+    for (let offset = 4; offset >= 0; offset--) {
+      const date = new Date(
+        now.getFullYear(),
+        now.getMonth() - offset,
+        1
+      );
+
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
+
+      const monthTransactions = transactions.filter((transaction) => {
+        const transactionDate = new Date(transaction.date);
+
+        return (
+          transactionDate.getFullYear() === year &&
+          transactionDate.getMonth() + 1 === month &&
+          String(transaction.type || "").toUpperCase() === "EXPENSE"
+        );
+      });
+
+      const spent = monthTransactions.reduce(
+        (sum, transaction) =>
+          sum + Number(transaction.amount || 0),
+        0
+      );
+
+      const budget = budgets
+        .filter(
+          (item) =>
+            Number(item.month) === month &&
+            Number(item.year) === year
+        )
+        .reduce(
+          (sum, item) => sum + Number(item.amount || 0),
+          0
+        );
+
+      result.push({
+        month: date.toLocaleString("en-US", {
+          month: "short",
+        }),
+        budget,
+        spent,
+      });
+    }
+
+    return result;
+  }, [transactions, budgets]);
+
+  const dailySpending = useMemo(() => {
+    const daysInMonth = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0
+    ).getDate();
+
+    const values = [];
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const total = currentMonthTransactions
+        .filter((transaction) => {
+          if (
+            String(transaction.type || "").toUpperCase() !==
+            "EXPENSE"
+          ) {
+            return false;
+          }
+
+          const date = new Date(transaction.date);
+
+          return date.getDate() === day;
+        })
+        .reduce(
+          (sum, transaction) =>
+            sum + Number(transaction.amount || 0),
+          0
+        );
+
+      values.push(total);
+    }
+
+    return values;
+  }, [currentMonthTransactions]);
+
+  const maxDailySpend = Math.max(...dailySpending, 1);
+
+  const topCategories = categorySpending.slice(0, 5);
+
+  const monthLabel = now.toLocaleString("en-US", {
+    month: "long",
+  });
+
+  const yearLabel = now.getFullYear();
+
+  const handleExport = (format) => {
+    if (format === "CSV data") {
+      const headers = [
+        "Date",
+        "Description",
+        "Type",
+        "Category",
+        "Amount",
+      ];
+
+      const rows = filteredTransactions.map((transaction) => [
+        transaction.date || "",
+        transaction.description || "",
+        transaction.type || "",
+        transaction.categoryName ||
+          transaction.category?.name ||
+          "",
+        transaction.amount || 0,
+      ]);
+
+      const csv = [
+        headers,
+        ...rows,
+      ]
+        .map((row) =>
+          row
+            .map((value) =>
+              `"${String(value).replaceAll('"', '""')}"`
+            )
+            .join(",")
+        )
+        .join("\n");
+
+      const blob = new Blob([csv], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `campuscoin-report-${monthLabel.toLowerCase()}-${yearLabel}.csv`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+
+      setExportOpen(false);
+      showToast("CSV report downloaded");
+      return;
+    }
+
+    window.print();
+  };
+
   return (
     <ToolsShell
       page="Reports"
@@ -924,7 +2064,7 @@ function ReportsPage() {
       setNotificationOpen={setNotify}
     >
       <PageFrame
-        eyebrow="INSIGHTS · SEP"
+        eyebrow={`INSIGHTS · ${monthLabel.slice(0, 3).toUpperCase()}`}
         title="Reports"
         description="Understand where your money goes and how your spending changes over time."
         actions={
@@ -934,8 +2074,10 @@ function ReportsPage() {
               type="button"
               onClick={() => setExportOpen(true)}
             >
-              <Icon name="download" size={14} /> Export report
+              <Icon name="download" size={14} />
+              Export report
             </button>
+
             <button
               className="tool-btn"
               type="button"
@@ -943,125 +2085,231 @@ function ReportsPage() {
                 showToast("Use the filters below to refine this report")
               }
             >
-              <Icon name="filter" size={14} /> Filters
+              <Icon name="filter" size={14} />
+              Filters
             </button>
           </>
         }
       >
         <div className="report-filters">
-          <select value={range} onChange={(e) => setRange(e.target.value)}>
-            <option>Sep 1 – Sep 30</option>
-            <option>Sep 1 – Sep 23</option>
-            <option>Aug 1 – Aug 31</option>
+          <select
+            value={range}
+            onChange={(e) => setRange(e.target.value)}
+          >
+            <option>
+              {monthLabel.slice(0, 3)} 1 – {monthLabel.slice(0, 3)}{" "}
+              {new Date(
+                now.getFullYear(),
+                now.getMonth() + 1,
+                0
+              ).getDate()}
+            </option>
+
+            <option>
+              {monthLabel.slice(0, 3)} 1 – {monthLabel.slice(0, 3)}{" "}
+              {now.getDate()}
+            </option>
+
+            <option>
+              {new Date(
+                now.getFullYear(),
+                now.getMonth() - 1,
+                1
+              ).toLocaleString("en-US", {
+                month: "short",
+              })}{" "}
+              1 –{" "}
+              {new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                0
+              ).toLocaleString("en-US", {
+                month: "short",
+              })}{" "}
+              {new Date(
+                now.getFullYear(),
+                now.getMonth(),
+                0
+              ).getDate()}
+            </option>
           </select>
+
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
           >
             <option>All categories</option>
-            {categories.map((c) => (
-              <option key={c.name}>{c.name}</option>
+
+            {expenseCategories.map((c) => (
+              <option key={c.categoryId || c.name}>
+                {c.name}
+              </option>
             ))}
           </select>
-          <select value={kind} onChange={(e) => setKind(e.target.value)}>
+
+          <select
+            value={kind}
+            onChange={(e) => setKind(e.target.value)}
+          >
             <option>All transactions</option>
             <option>Expenses</option>
             <option>Income</option>
           </select>
+
           <div />
-          <button
-            className={filled ? "active" : ""}
-            type="button"
-            onClick={() => setFilled(true)}
-          >
-            Month
-          </button>
-          <button
-            className={!filled ? "active" : ""}
-            type="button"
-            onClick={() => setFilled(false)}
-          >
-            Week
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              showToast("Day view will use the selected date range")
-            }
-          >
-            Day
-          </button>
+
+          {["Month", "Week", "Day"].map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={view === item ? "active" : ""}
+              onClick={() => setView(item)}
+            >
+              {item}
+            </button>
+          ))}
         </div>
+
         <div className="report-filter-summary">
-          Showing <strong>{category}</strong> · <strong>{kind}</strong> ·{" "}
-          <strong>{range}</strong>
+          Showing <strong>{category}</strong> ·{" "}
+          <strong>{kind}</strong> · <strong>{range}</strong>
         </div>
-        <div className="report-grid">
-          <CategoryReport filled={filled} />
-          <BudgetActualReport filled={filled} />
-          <DailySpendReport filled={filled} />
-          <TopSpenders />
-        </div>
+
+        {loading ? (
+          <div
+            className="report-card"
+            style={{
+              padding: "40px",
+              textAlign: "center",
+              gridColumn: "1 / -1",
+            }}
+          >
+            Loading your report...
+          </div>
+        ) : (
+          <div className="report-grid">
+            <CategoryReport
+              categorySpending={categorySpending}
+              totalSpend={totalSpend}
+            />
+
+            <BudgetActualReport
+              monthlyData={monthlyData}
+              selectedMonthBudget={selectedMonthBudget}
+              monthlyBudgetSpent={monthlyBudgetSpent}
+              remainingBudget={remainingBudget}
+            />
+
+            <DailySpendReport
+              dailySpending={dailySpending}
+              maxDailySpend={maxDailySpend}
+              view={view}
+            />
+
+            <TopSpenders
+              topCategories={topCategories}
+            />
+          </div>
+        )}
+
         <div className="report-banner">
           <Icon name="sparkle" size={16} />
+
           <div>
             <strong>AI report ready</strong>
+
             <span>
-              We found a few useful patterns in your September spending.
+              Your report is based on your latest CampusCoin
+              transactions and budgets.
             </span>
           </div>
-          <button type="button" onClick={() => navigate("/ai-insights")}>
+
+          <button
+            type="button"
+            onClick={() => navigate("/ai-insights")}
+          >
             View insight
           </button>
         </div>
       </PageFrame>
+
       {exportOpen && (
         <ExportModal
           onClose={() => setExportOpen(false)}
-          onDone={() => {
-            setExportOpen(false);
-            showToast("Report export prepared");
-          }}
+          onExport={handleExport}
         />
       )}
+
       <ActionToast message={toast} />
     </ToolsShell>
   );
 }
-function CategoryReport({ filled }) {
+
+function CategoryReport({
+  categorySpending,
+  totalSpend,
+}) {
+  const max = Math.max(
+    ...categorySpending.map((item) => item.spent),
+    1
+  );
+
   return (
     <div className="report-card">
       <div className="report-card-title">
         <div>
           <strong>Spend by category</strong>
-          <small>September total</small>
+          <small>Current month total</small>
         </div>
+
         <span className="legend-dot green" />
       </div>
-      <div className="donut-report" style={{ "--p": filled ? "48%" : "0%" }}>
-        <b>{filled ? "$742.80" : "$0.00"}</b>
+
+      <div
+        className="donut-report"
+        style={{
+          "--p": totalSpend > 0 ? "48%" : "0%",
+        }}
+      >
+        <b>{money(totalSpend)}</b>
         <small>total spend</small>
       </div>
+
       <div className="legend-list">
-        {categories.slice(0, 6).map((c, i) => (
-          <span key={c.name}>
-            <i className={`legend-color l${i}`} />
-            {c.name}
-            <b>{filled ? money(c.spent) : "$0.00"}</b>
+        {categorySpending.length === 0 ? (
+          <span>
+            No expense data for this period.
           </span>
-        ))}
+        ) : (
+          categorySpending.slice(0, 6).map((item, index) => (
+            <span key={item.name}>
+              <i className={`legend-color l${index}`} />
+
+              {item.name}
+
+              <b>{money(item.spent)}</b>
+            </span>
+          ))
+        )}
       </div>
     </div>
   );
 }
-function BudgetActualReport({ filled }) {
-  const vals = [
-    { m: "May", b: 690, s: 510 },
-    { m: "Jun", b: 760, s: 580 },
-    { m: "Jul", b: 720, s: 610 },
-    { m: "Aug", b: 820, s: 680 },
-    { m: "Sep", b: 870, s: 743 },
-  ];
+
+function BudgetActualReport({
+  monthlyData,
+  selectedMonthBudget,
+  monthlyBudgetSpent,
+  remainingBudget,
+}) {
+  const max = Math.max(
+    ...monthlyData.flatMap((item) => [
+      item.budget,
+      item.spent,
+    ]),
+    1
+  );
+
   return (
     <div className="report-card budget-chart-card">
       <div className="report-card-title">
@@ -1069,155 +2317,276 @@ function BudgetActualReport({ filled }) {
           <strong>Budget vs actual</strong>
           <small>Monthly comparison</small>
         </div>
+
         <span className="chart-legend">
           <i />
           Budget <i />
           Actual
         </span>
       </div>
-      <div className={`bars ${filled ? "filled" : ""}`}>
-        {vals.map((v) => (
-          <div className="bar-group" key={v.m}>
+
+      <div className="bars filled">
+        {monthlyData.map((item) => (
+          <div className="bar-group" key={item.month}>
             <div className="bars-area">
-              <i style={{ height: filled ? `${(v.b / 900) * 100}%` : "4%" }} />
-              <b style={{ height: filled ? `${(v.s / 900) * 100}%` : "4%" }} />
+              <i
+                style={{
+                  height:
+                    item.budget > 0
+                      ? `${(item.budget / max) * 100}%`
+                      : "4%",
+                }}
+              />
+
+              <b
+                style={{
+                  height:
+                    item.spent > 0
+                      ? `${(item.spent / max) * 100}%`
+                      : "4%",
+                }}
+              />
             </div>
-            <span>{v.m}</span>
+
+            <span>{item.month}</span>
           </div>
         ))}
       </div>
+
       <div className="chart-summary">
         <span>
-          Budget<b>{filled ? "$870.00" : "—"}</b>
+          Budget
+          <b>
+            {selectedMonthBudget > 0
+              ? money(selectedMonthBudget)
+              : "—"}
+          </b>
         </span>
+
         <span>
-          Spent<b>{filled ? "$742.80" : "—"}</b>
+          Spent
+          <b>
+            {monthlyBudgetSpent > 0
+              ? money(monthlyBudgetSpent)
+              : "—"}
+          </b>
         </span>
+
         <span>
-          Remaining<b className="green-text">{filled ? "$127.20" : "—"}</b>
+          Remaining
+          <b className="green-text">
+            {selectedMonthBudget > 0
+              ? money(Math.max(remainingBudget, 0))
+              : "—"}
+          </b>
         </span>
       </div>
     </div>
   );
 }
-function DailySpendReport({ filled }) {
-  const bars = [
-    25, 90, 42, 38, 52, 44, 37, 50, 47, 44, 78, 52, 62, 40, 56, 82, 65,
-  ];
+
+function DailySpendReport({
+  dailySpending,
+  maxDailySpend,
+  view,
+}) {
+  const values =
+    view === "Month"
+      ? dailySpending
+      : dailySpending.slice(0, view === "Week" ? 7 : 1);
+
   return (
     <div className="report-card daily-card">
       <div className="report-card-title">
         <div>
           <strong>Daily spending</strong>
-          <small>September 1–23</small>
+
+          <small>
+            {view === "Month"
+              ? "Current month"
+              : `${view} view`}
+          </small>
         </div>
       </div>
-      <div className={`daily-bars ${filled ? "filled" : ""}`}>
-        {bars.map((v, i) => (
-          <i key={i} style={{ height: filled ? `${v}%` : "3%" }} />
+
+      <div className="daily-bars filled">
+        {values.map((value, index) => (
+          <i
+            key={index}
+            style={{
+              height:
+                value > 0
+                  ? `${Math.max(
+                      (value / maxDailySpend) * 100,
+                      5
+                    )}%`
+                  : "3%",
+            }}
+            title={`${money(value)}`}
+          />
         ))}
       </div>
+
       <small className="chart-foot">
-        Low days are shown beside your higher-spend days.
+        Higher bars represent days with greater spending.
       </small>
     </div>
   );
 }
-function TopSpenders() {
+
+function TopSpenders({ topCategories }) {
   return (
     <div className="report-card top-spenders">
       <div className="report-card-title">
         <div>
           <strong>Top categories</strong>
-          <small>By September spend</small>
+          <small>By current-month spend</small>
         </div>
       </div>
-      {categories.slice(0, 5).map((c) => (
-        <div className="spender-row" key={c.name}>
+
+      {topCategories.length === 0 ? (
+        <div className="spender-row">
           <span>
-            {c.name}
-            <small>{c.status}</small>
+            No spending yet
+            <small>Add an expense to see it here.</small>
           </span>
-          <b>{money(c.spent)}</b>
         </div>
-      ))}
-      <button className="text-link">View all categories</button>
+      ) : (
+        topCategories.map((item) => (
+          <div className="spender-row" key={item.name}>
+            <span>
+              {item.name}
+              <small>Current month</small>
+            </span>
+
+            <b>{money(item.spent)}</b>
+          </div>
+        ))
+      )}
+
+      <button
+        className="text-link"
+        type="button"
+        onClick={() => navigate("/categories")}
+      >
+        View all categories
+      </button>
     </div>
   );
 }
-function ExportModal({ onClose, onDone }) {
-  const [format, setFormat] = useState("PDF report"),
-    [ai, setAi] = useState(true),
-    [items, setItems] = useState([true, true, true, true]);
+
+function ExportModal({
+  onClose,
+  onExport,
+}) {
+  const [format, setFormat] = useState("PDF report");
+  const [ai, setAi] = useState(true);
+
+  const [items, setItems] = useState([
+    true,
+    true,
+    true,
+    true,
+  ]);
+
   const labels = [
     "Spending summary",
     "Category breakdown",
     "Budget vs actual",
     "Daily spending chart",
   ];
+
   return (
     <Modal
-      title="Export September report"
+      title="Export report"
       description="Choose the format and data you want to include."
       onClose={onClose}
       wide
     >
       <div className="export-tabs">
-        {["PDF report", "CSV data"].map((x) => (
+        {["PDF report", "CSV data"].map((item) => (
           <button
             type="button"
-            key={x}
-            className={format === x ? "active" : ""}
-            onClick={() => setFormat(x)}
+            key={item}
+            className={format === item ? "active" : ""}
+            onClick={() => setFormat(item)}
           >
             <Icon
-              name={x.startsWith("PDF") ? "receipt" : "download"}
+              name={
+                item.startsWith("PDF")
+                  ? "receipt"
+                  : "download"
+              }
               size={15}
             />
-            {x}
-            {format === x && <b>✓</b>}
+
+            {item}
+
+            {format === item && <b>✓</b>}
           </button>
         ))}
       </div>
+
       <div className="check-list">
-        {labels.map((x, i) => (
-          <label key={x}>
+        {labels.map((label, index) => (
+          <label key={label}>
             <input
               type="checkbox"
-              checked={items[i]}
-              onChange={(e) =>
-                setItems((v) =>
-                  v.map((a, j) => (j === i ? e.target.checked : a)),
+              checked={items[index]}
+              onChange={(event) =>
+                setItems((current) =>
+                  current.map((value, itemIndex) =>
+                    itemIndex === index
+                      ? event.target.checked
+                      : value
+                  )
                 )
               }
             />
+
             <span>✓</span>
-            {x}
+
+            {label}
           </label>
         ))}
       </div>
+
       <div className="toggle-row export-toggle">
         <span>Include AI insights</span>
+
         <button
           type="button"
           className={ai ? "on" : ""}
-          onClick={() => setAi((v) => !v)}
+          onClick={() => setAi((value) => !value)}
         >
           <i />
         </button>
       </div>
+
       <div className="export-footer">
-        <button type="button" onClick={onClose}>
+        <button
+          type="button"
+          onClick={onClose}
+        >
           Cancel
         </button>
-        <button type="button" className="tool-primary" onClick={onDone}>
-          <Icon name="download" size={14} /> Download{" "}
-          {format === "CSV data" ? "CSV" : "report"}
+
+        <button
+          type="button"
+          className="tool-primary"
+          onClick={() => onExport(format)}
+        >
+          <Icon name="download" size={14} />
+
+          {format === "CSV data"
+            ? "Download CSV"
+            : "Print report"}
         </button>
       </div>
     </Modal>
   );
 }
+
 function AIInsightsPage() {
   const [dark, setDark] = useState(false),
     [notify, setNotify] = useState(false),
