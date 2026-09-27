@@ -1,0 +1,545 @@
+.admin-auth-page {
+    min-height: 100vh;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    background: #061a38;
+    color: #17233d;
+    font-family: Inter, Arial, sans-serif;
+}
+
+.admin-auth-page::before,
+.admin-auth-page::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 52%;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(120, 157, 205, 0.14);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.admin-auth-page::before {
+    width: 840px;
+    height: 840px;
+}
+
+.admin-auth-page::after {
+    width: 640px;
+    height: 640px;
+}
+
+.admin-auth-header {
+    position: relative;
+    z-index: 2;
+
+    width: 100%;
+    height: 78px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 48px 0 56px;
+}
+
+.admin-auth-logo {
+    border: 0;
+    padding: 0;
+    margin: 0;
+
+    background: transparent;
+
+    display: flex;
+    align-items: center;
+
+    cursor: pointer;
+}
+
+.admin-auth-logo svg {
+    display: block;
+}
+
+.admin-console-badge {
+    border: 0;
+
+    min-height: 28px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    padding: 0 12px;
+
+    border-radius: 999px;
+
+    background: #fff6e5;
+    color: #a56700;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: default;
+}
+
+.admin-auth-main {
+    position: relative;
+    z-index: 1;
+
+    min-height: calc(100vh - 78px);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    padding: 36px 24px 46px;
+}
+
+.admin-auth-card {
+    width: 100%;
+    max-width: 480px;
+
+    background: #ffffff;
+
+    border-radius: 22px;
+
+    padding: 40px 40px 38px;
+
+    box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.18);
+
+    position: relative;
+}
+
+.admin-auth-icon {
+    width: 56px;
+    height: 56px;
+
+    border-radius: 17px;
+
+    background: #061a38;
+    color: #ffffff;
+
+    display: grid;
+    place-items: center;
+
+    margin-bottom: 13px;
+}
+
+.admin-auth-card h1 {
+    margin: 0;
+
+    color: #18243d;
+
+    font-family: Manrope, Inter, Arial, sans-serif;
+    font-size: 30px;
+    line-height: 1.2;
+    font-weight: 800;
+
+    letter-spacing: -0.7px;
+}
+
+.admin-auth-description {
+    margin: 10px 0 22px;
+
+    max-width: 390px;
+
+    color: #64738d;
+
+    font-size: 14px;
+    line-height: 21px;
+}
+
+.admin-auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 19px;
+}
+
+.admin-auth-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-auth-field label {
+    color: #17233d;
+
+    font-size: 13px;
+    line-height: 18px;
+
+    font-weight: 600;
+}
+
+.admin-auth-input {
+    width: 100%;
+    height: 48px;
+
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+
+    padding: 0 13px;
+
+    border: 1px solid #dce3ed;
+    border-radius: 11px;
+
+    background: #ffffff;
+
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.admin-auth-input:focus-within {
+    border-color: #0f6b4f;
+
+    box-shadow:
+        0 0 0 3px rgba(15, 107, 79, 0.1);
+}
+
+.admin-auth-input>svg {
+    flex: 0 0 auto;
+
+    color: #71809a;
+}
+
+.admin-auth-input input {
+    width: 100%;
+    min-width: 0;
+
+    border: 0;
+    outline: 0;
+
+    padding: 0;
+
+    background: transparent;
+
+    color: #17233d;
+
+    font-family: Inter, Arial, sans-serif;
+    font-size: 14px;
+}
+
+.admin-auth-input input::placeholder {
+    color: #9aa7ba;
+}
+
+.admin-auth-input input:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.admin-password-toggle {
+    width: 30px;
+    height: 30px;
+
+    flex: 0 0 30px;
+
+    border: 0;
+    padding: 0;
+
+    background: transparent;
+
+    display: grid;
+    place-items: center;
+
+    color: #71809a;
+
+    cursor: pointer;
+}
+
+.admin-password-toggle:hover {
+    color: #17233d;
+}
+
+.admin-password-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.admin-auth-error {
+    padding: 11px 12px;
+
+    border-radius: 9px;
+
+    background: #fff0f0;
+
+    border: 1px solid #f3caca;
+
+    color: #b42318;
+
+    font-size: 13px;
+    line-height: 18px;
+}
+
+.admin-auth-submit {
+    width: 100%;
+    height: 52px;
+
+    margin-top: 1px;
+
+    border-radius: 12px !important;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 8px;
+
+    background: #061a38 !important;
+    color: #ffffff !important;
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.admin-auth-submit:hover {
+    background: #0a254b !important;
+}
+
+.admin-auth-submit:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
+.admin-auth-student {
+    margin-top: 20px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 6px;
+
+    font-size: 13px;
+}
+
+.admin-auth-student span {
+    color: #64738d;
+}
+
+.admin-auth-student button {
+    border: 0;
+    padding: 0;
+
+    background: transparent;
+
+    color: #008c65;
+
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+
+    cursor: pointer;
+}
+
+.admin-auth-student button:hover {
+    color: #006f50;
+    text-decoration: underline;
+}
+
+.admin-auth-footer {
+    margin: 48px 0 0;
+
+    color: #8798b1;
+
+    text-align: center;
+
+    font-size: 12px;
+    line-height: 18px;
+}
+
+.admin-auth-logo {
+    color: #ffffff;
+}
+
+@media (max-width: 700px) {
+    .admin-auth-header {
+        height: 70px;
+        padding: 0 24px;
+    }
+
+    .admin-auth-main {
+        min-height: calc(100vh - 70px);
+        padding: 28px 18px 36px;
+    }
+
+    .admin-auth-card {
+        max-width: 100%;
+        padding: 32px 26px 30px;
+        border-radius: 20px;
+    }
+
+    .admin-auth-card h1 {
+        font-size: 26px;
+    }
+
+    .admin-auth-footer {
+        margin-top: 32px;
+    }
+
+    .admin-auth-page::before {
+        width: 700px;
+        height: 700px;
+    }
+
+    .admin-auth-page::after {
+        width: 520px;
+        height: 520px;
+    }
+}
+
+@media (max-width: 460px) {
+    .admin-auth-header {
+        padding: 0 18px;
+    }
+
+    .admin-console-badge {
+        padding: 0 9px;
+        font-size: 11px;
+    }
+
+    .admin-auth-card {
+        padding: 28px 20px 26px;
+    }
+
+    .admin-auth-card h1 {
+        font-size: 24px;
+    }
+
+    .admin-auth-description {
+        font-size: 13px;
+    }
+}
+
+.admin-auth-logo .brand-name>span {
+    color: #ffffff;
+}
+
+.admin-auth-logo .brand-name>strong {
+    color: #00a878;
+}
+
+/* =========================================================
+   ADMIN AUTH — DARK MODE
+   ========================================================= */
+
+html[data-theme="dark"] .admin-auth-page {
+    background: #04152e;
+    color: #eef4ff;
+}
+
+html[data-theme="dark"] .admin-auth-card {
+    background: #0d223f;
+    border: 1px solid #29425f;
+    box-shadow:
+        0 24px 60px rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme="dark"] .admin-auth-card h1 {
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .admin-auth-description {
+    color: #a9b8ce;
+}
+
+/* Email/password labels */
+html[data-theme="dark"] .admin-auth-field label {
+    color: #eef4ff;
+}
+
+/* Input boxes */
+html[data-theme="dark"] .admin-auth-input {
+    background: #071a32;
+    border-color: #29425f;
+}
+
+html[data-theme="dark"] .admin-auth-input:focus-within {
+    border-color: #3a9d7d;
+    box-shadow:
+        0 0 0 3px rgba(58, 157, 125, 0.14);
+}
+
+html[data-theme="dark"] .admin-auth-input>svg {
+    color: #8fa4bf;
+}
+
+html[data-theme="dark"] .admin-auth-input input {
+    color: #ffffff;
+}
+
+html[data-theme="dark"] .admin-auth-input input::placeholder {
+    color: #71849e;
+}
+
+/* Password eye */
+html[data-theme="dark"] .admin-password-toggle {
+    color: #8fa4bf;
+}
+
+html[data-theme="dark"] .admin-password-toggle:hover {
+    color: #ffffff;
+}
+
+/* Error */
+html[data-theme="dark"] .admin-auth-error {
+    background: #351b20;
+    border-color: #633039;
+    color: #ffb4b4;
+}
+
+/* Sign-in button */
+html[data-theme="dark"] .admin-auth-submit {
+    background: #0f6b4f !important;
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .admin-auth-submit:hover {
+    background: #12805e !important;
+}
+
+/* Student sign-in link */
+html[data-theme="dark"] .admin-auth-student span {
+    color: #9aabc2;
+}
+
+html[data-theme="dark"] .admin-auth-student button {
+    color: #65c49f;
+}
+
+html[data-theme="dark"] .admin-auth-student button:hover {
+    color: #8be0bd;
+}
+
+/* Bottom security text */
+html[data-theme="dark"] .admin-auth-footer {
+    color: #71849e;
+}
+
+/* Admin console badge */
+html[data-theme="dark"] .admin-console-badge {
+    background: #332814;
+    color: #e9b85d;
+}
+
+/* Keep Campus white and Coin green */
+html[data-theme="dark"] .admin-auth-logo .brand-name>span {
+    color: #ffffff !important;
+}
+
+html[data-theme="dark"] .admin-auth-logo .brand-name>strong {
+    color: #00a878 !important;
+}
+
+/* Shield icon */
+html[data-theme="dark"] .admin-auth-icon {
+    background: #0f6b4f;
+    color: #ffffff;
+}
