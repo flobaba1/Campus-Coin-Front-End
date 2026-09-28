@@ -1,6 +1,6 @@
 .landing {
   width: 100%;
-  overflow: hidden
+  overflow-x: clip
 }
 
 .navbar {
@@ -79,6 +79,7 @@
 }
 
 .hero-section {
+  margin-top: -10px;
   min-height: 704px;
   background: var(--bg);
   display: flex;
@@ -101,7 +102,8 @@
   color: var(--green);
   border-radius: 999px;
   padding: 6px 12px;
-  font: 600 13px/1 Inter, Arial, sans-serif
+  font: 600 13px/1 Inter, Arial, sans-serif;
+  /* animation: fade-in 0.4s ease; */
 }
 
 .hero-copy h1 {
@@ -392,6 +394,39 @@
 .quick-chip>strong {
   font: 700 13px/1 Inter, Arial, sans-serif;
   color: var(--text)
+}
+
+@keyframes landing-card-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.landing .budget-card,
+.landing .ai-chip,
+.landing .quick-chip {
+  animation: landing-card-float 5.2s ease-in-out infinite;
+}
+
+.landing .ai-chip {
+  animation-delay: -1.7s;
+}
+
+.landing .quick-chip {
+  animation-delay: -3.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing .budget-card,
+  .landing .ai-chip,
+  .landing .quick-chip {
+    animation: none;
+  }
 }
 
 .section-light {
@@ -726,7 +761,8 @@
   }
 
   .hero-section {
-    padding-top: 60px
+    padding-top: 60px;
+    align-items: center;
   }
 
   .hero-copy h1 {
@@ -749,9 +785,13 @@
   }
 
   .hero-visual {
-    transform: scale(.65);
+    align-self: center;
+    max-width: none;
+    transform: scale(.52);
+    transform-origin: top center;
     width: 624px;
-    margin-bottom: -180px
+    margin-left: 0;
+    margin-bottom: -250px
   }
 
   .features-section,
@@ -767,6 +807,43 @@
   .feature-grid,
   .steps-grid {
     grid-template-columns: 1fr
+  }
+
+  .landing .feature-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .landing .feature-card {
+    position: sticky;
+    top: 88px;
+    z-index: 1;
+  }
+
+  .landing .feature-card:nth-child(2) {
+    top: 100px;
+    z-index: 2;
+  }
+
+  .landing .feature-card:nth-child(3) {
+    top: 112px;
+    z-index: 3;
+  }
+
+  .landing .feature-card:nth-child(4) {
+    top: 124px;
+    z-index: 4;
+  }
+
+  .landing .feature-card:nth-child(5) {
+    top: 136px;
+    z-index: 5;
+  }
+
+  .landing .feature-card:nth-child(6) {
+    top: 148px;
+    z-index: 6;
   }
 
   .privacy-section {
@@ -805,9 +882,10 @@
 
 @media(max-width:450px) {
   .hero-visual {
-    margin-left: -55px;
-    transform: scale(.52);
-    margin-bottom: -230px
+    margin-left: 0;
+    transform: scale(.46);
+    transform-origin: top center;
+    margin-bottom: -280px
   }
 
   .footer {
@@ -820,6 +898,13 @@
 
   .hero-actions .cc-button {
     width: 100%
+  }
+}
+
+@media(max-width:360px) {
+  .hero-visual {
+    transform: scale(.42);
+    margin-bottom: -300px;
   }
 }
 
@@ -853,6 +938,12 @@ html[data-theme="dark"] .landing .hero-copy h1,
 html[data-theme="dark"] .landing .section-heading h2,
 html[data-theme="dark"] .landing .cta-section h2 {
   color: #eef4ff
+}
+
+html[data-theme="dark"] .landing .hero-badge {
+  background: #164c3d;
+  border: 1px solid #2b765b;
+  color: #b5f3d5;
 }
 
 html[data-theme="dark"] .landing .hero-description,
@@ -1026,7 +1117,7 @@ html[data-theme="dark"] .landing .ai-chip {
 
 .landing {
   width: 100%;
-  overflow: hidden;
+  overflow-x: clip;
   padding-top: 80px;
 }
 
@@ -1184,12 +1275,14 @@ html[data-theme="dark"] .landing .hero-actions .cc-button-secondary:focus-visibl
   .landing .nav-links .mobile-nav-cta {
     display: inline-flex;
     height: 44px;
+    max-width: 100%;
     padding: 0 18px;
     border: 0;
     border-radius: 12px;
     background: var(--green);
     color: #fff;
     font: 600 14px/1 Inter, Arial, sans-serif;
+    white-space: nowrap;
   }
 
   .landing .nav-links .mobile-nav-cta:hover,

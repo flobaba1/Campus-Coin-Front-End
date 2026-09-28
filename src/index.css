@@ -102,7 +102,7 @@ html[data-theme="dark"] #root {
 }
 .theme-toggle {
   height: 36px;
-  border: 1px solid var(--line);
+  border: 0.5px solid var(--line);
   background: transparent;
   color: var(--text);
   border-radius: 10px;
