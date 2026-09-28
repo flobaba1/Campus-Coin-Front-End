@@ -96,6 +96,12 @@ function SignInPage() {
       brandEyebrow="SMART MONEY, STUDENT STYLE"
       brandTitle="Smart spending, student style."
       brandDescription="Log your allowance, gigs and scholarships, set simple budgets, and understand your spending without connecting a bank account."
+      topContent={(
+        <button type="button" className="legal-back-button" onClick={() => navigate('/')}>
+          <span>←</span>
+          Back to Home
+        </button>
+      )}
     >
       <form
         className="auth-form"
