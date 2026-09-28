@@ -1,3 +1,4 @@
+import { formatMoney } from "../utils/currency";
 import Navbar from '../components/Navbar'
 import Button from '../components/Button'
 import FeatureCard from '../components/FeatureCard'
@@ -52,10 +53,10 @@ function LandingPage() {
           <div className="hero-visual" aria-label="CampusCoin dashboard preview">
             <div className="balance-card">
               <p>September balance</p>
-              <strong>$477.20</strong>
+              <strong>{formatMoney(477.20)}</strong>
               <div className="balance-stats">
-                <div><span>Income</span><b>$1,220.00</b></div>
-                <div><span>Spent</span><b>$742.80</b></div>
+                <div><span>Income</span><b>{formatMoney(1220)}</b></div>
+                <div><span>Spent</span><b>{formatMoney(742.80)}</b></div>
               </div>
             </div>
 
@@ -68,13 +69,13 @@ function LandingPage() {
 
             <div className="ai-chip">
               <span className="chip-icon"><Icon name="sparkles" size={16} /></span>
-              <div><b>Food delivery is up 40%</b><span>A $15 weekly cap saves about $24</span></div>
+              <div><b>Food delivery is up 40%</b><span>A {formatMoney(15)} weekly cap saves about {formatMoney(24)}</span></div>
             </div>
 
             <div className="quick-chip">
               <span className="quick-icon"><Icon name="food" size={15} /></span>
               <div><b>Campus Cafe</b><span>Food · AI sorted</span></div>
-              <strong>−$8.50</strong>
+              <strong>−{formatMoney(8.50)}</strong>
             </div>
           </div>
         </section>

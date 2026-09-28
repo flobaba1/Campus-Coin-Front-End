@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DashboardShell } from "./DashboardPage";
 import Icon from "../components/Icon";
+import { getCurrencyInfo } from "../utils/currency";
 import "../styles/dashboard.css";
 
 import {
@@ -150,6 +151,8 @@ function getCategoryVisual(category) {
 }
 
 function CategoriesPage() {
+  const currencyInfo = getCurrencyInfo();
+
   const [dark, setDark] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -173,7 +176,7 @@ function CategoriesPage() {
   const [name, setName] = useState("");
   const [selectedIcon, setSelectedIcon] = useState("refresh");
   const [selectedColor, setSelectedColor] = useState("#008b62");
-  const [budget, setBudget] = useState("15.00");
+  const [budget, setBudget] = useState("");
 
   // Page tab
   const [categoryTab, setCategoryTab] = useState("expense");
@@ -315,7 +318,7 @@ function CategoriesPage() {
 
     setSelectedIcon("refresh");
     setSelectedColor("#008b62");
-    setBudget("15.00");
+    setBudget("");
 
     setFormOpen(true);
   };
@@ -347,7 +350,7 @@ function CategoriesPage() {
 
     setSelectedIcon(visual.icon);
     setSelectedColor("#008b62");
-    setBudget("15.00");
+    setBudget("");
 
     setFormOpen(true);
   };
@@ -1159,7 +1162,7 @@ function CategoriesPage() {
                   Monthly budget (optional)
 
                   <div className="field-input budget-input">
-                    <span>$</span>
+                    <span>{currencyInfo.symbol}</span>
 
                     <input
                       value={budget}
