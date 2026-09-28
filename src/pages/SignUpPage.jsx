@@ -70,13 +70,16 @@ function SignUpPage() {
               autoComplete="new-password"
             />
             <button
-              type="button"
-              className="auth-eye"
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-              onClick={() => setShowPassword(prev => !prev)}
-            >
-              <Icon name="eye" size={18} />
-            </button>
+  type="button"
+  className="auth-eye"
+  aria-label={showPassword ? 'Hide password' : 'Show password'}
+  onClick={() => setShowPassword(prev => !prev)}
+>
+  <Icon
+    name={showPassword ? 'eyeOff' : 'eye'}
+    size={18}
+  />
+</button>
           </div>
           <div className="password-strength-bars" aria-hidden="true">
             {[0, 1, 2, 3].map(i => <i key={i} className={passwordRules[i][1] ? 'is-valid' : ''} />)}
