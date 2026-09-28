@@ -17,6 +17,15 @@ import {
 
 import { getCategories } from "../api/categoryApi";
 import { getTransactions } from "../api/transactionApi";
+import { getNotes, createNote, updateNote, deleteNote } from "../api/noteApi";
+import {
+  getProfile,
+  updateProfile,
+  uploadProfilePhoto,
+  deleteProfilePhoto,
+  loadProfilePhoto,
+} from "../api/profileApi";
+import { getStudentSession } from "../utils";
 
 const categories = [
   {
@@ -416,6 +425,13 @@ function ToolsShell({
       .map((part) => part[0].toUpperCase())
       .join("") || "CU";
 
+  // Shared authenticated profile used by the top avatar and sidebar.
+  // Settings updates dispatch "campuscoin:profile-updated" so this shell
+  // refreshes immediately without affecting the other tool pages.
+  const initialSession = getStudentSession() || {};
+  const [shellProfile, setShellProfile] = useState(initialSession);
+  const [shellPhoto, setShellPhoto] = useState(null);
+
   const nav = [
     ["Dashboard", "grid", "/dashboard"],
     ["Transactions", "swap", "/transactions"],
@@ -432,6 +448,76 @@ function ToolsShell({
     ["Import CSV", "upload", "/import-csv"],
     ["Settings", "settings", "/settings"],
   ];
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadShellProfile = async () => {
+      try {
+        const profile = await getProfile();
+        if (!mounted) return;
+
+        setShellProfile((current) => ({
+          ...current,
+          ...profile,
+        }));
+
+        if (profile?.profilePhotoAvailable) {
+          const photoUrl = await loadProfilePhoto();
+          if (mounted) {
+            setShellPhoto((previous) => {
+              if (previous?.startsWith?.("blob:") && previous !== photoUrl) {
+                URL.revokeObjectURL(previous);
+              }
+              return photoUrl;
+            });
+          }
+        } else {
+          setShellPhoto((previous) => {
+            if (previous?.startsWith?.("blob:")) URL.revokeObjectURL(previous);
+            return null;
+          });
+        }
+      } catch (error) {
+        // Keep the values returned by login if the profile request fails.
+        console.warn("Unable to load shared profile:", error);
+      }
+    };
+
+    const handleProfileUpdated = () => {
+      loadShellProfile();
+    };
+
+    loadShellProfile();
+    window.addEventListener("campuscoin:profile-updated", handleProfileUpdated);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener(
+        "campuscoin:profile-updated",
+        handleProfileUpdated,
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (shellPhoto?.startsWith?.("blob:")) {
+        URL.revokeObjectURL(shellPhoto);
+      }
+    };
+  }, [shellPhoto]);
+
+  const displayName = shellProfile?.name || "CampusCoin User";
+  const initials =
+    displayName
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "CC";
+
   const signOut = () => {
     clearStudentSession();
     navigate("/");
@@ -511,9 +597,25 @@ function ToolsShell({
           onClick={signOut}
           title="Sign out"
         >
-          <span className="avatar">{userInitials}</span>
+          <span className="avatar">
+            {shellPhoto ? (
+              <img
+                src={shellPhoto}
+                alt={`${displayName} profile`}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  borderRadius: "inherit",
+                  display: "block",
+                }}
+              />
+            ) : (
+              initials
+            )}
+          </span>
           <span>
-            <strong>{userFullName}</strong>
+            <strong>{displayName}</strong>
             <small>Sign out</small>
           </span>
           <Icon name="logout" size={14} />
@@ -551,9 +653,24 @@ function ToolsShell({
               className="top-avatar"
               type="button"
               onClick={() => navigate("/settings")}
-              aria-label="Open settings"
+              aria-label="Open profile settings"
+              title={displayName}
             >
-              {userInitials}
+              {shellPhoto ? (
+                <img
+                  src={shellPhoto}
+                  alt={`${displayName} profile`}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    borderRadius: "inherit",
+                    display: "block",
+                  }}
+                />
+              ) : (
+                initials
+              )}
             </button>
           </div>
         </header>
@@ -645,7 +762,7 @@ function BudgetsPage() {
   const loadBudgets = async (
     selectedYear = year,
     selectedMonth = month,
-    showLoading = true
+    showLoading = true,
   ) => {
     try {
       if (showLoading) {
@@ -678,29 +795,22 @@ function BudgetsPage() {
     loadBudgets(year, month);
   }, [year, month]);
 
-  const monthName = new Date(year, month - 1, 1).toLocaleString(
-    "en-US",
-    {
-      month: "long",
-    }
-  );
+  const monthName = new Date(year, month - 1, 1).toLocaleString("en-US", {
+    month: "long",
+  });
 
-  const monthShortName = new Date(
-    year,
-    month - 1,
-    1
-  ).toLocaleString("en-US", {
+  const monthShortName = new Date(year, month - 1, 1).toLocaleString("en-US", {
     month: "short",
   });
 
   const totalBudget = budgets.reduce(
     (sum, budget) => sum + Number(budget.amount || 0),
-    0
+    0,
   );
 
   const totalSpent = budgets.reduce(
     (sum, budget) => sum + Number(budget.spent || 0),
-    0
+    0,
   );
 
   const totalRemaining = totalBudget - totalSpent;
@@ -709,7 +819,7 @@ function BudgetsPage() {
     (budget) =>
       budget.status === "OVER_BUDGET" ||
       budget.status === "AT_LIMIT" ||
-      budget.status === "APPROACHING_LIMIT"
+      budget.status === "APPROACHING_LIMIT",
   );
 
   const sync = async () => {
@@ -737,65 +847,47 @@ function BudgetsPage() {
     try {
       const created = await createBudget(payload);
 
-      setBudgets((current) => [
-        ...current,
-        created,
-      ]);
+      setBudgets((current) => [...current, created]);
 
       setBudgetModal(false);
 
       showToast(
-        `${created.categoryName} budget set to ${money(
-          created.amount
-        )}`
+        `${created.categoryName} budget set to ${money(created.amount)}`,
       );
     } catch (error) {
       console.error("Failed to create budget:", error);
-      showToast(
-        error.message || "Failed to create budget"
-      );
+      showToast(error.message || "Failed to create budget");
     }
   };
 
   const handleUpdateBudget = async (budgetId, payload) => {
     try {
-      const updated = await updateBudget(
-        budgetId,
-        payload
-      );
+      const updated = await updateBudget(budgetId, payload);
 
       setBudgets((current) =>
         current.map((budget) =>
-          budget.budgetId === budgetId
-            ? updated
-            : budget
-        )
+          budget.budgetId === budgetId ? updated : budget,
+        ),
       );
 
       setEditing(null);
 
       showToast(
-        `${updated.categoryName} budget updated to ${money(
-          updated.amount
-        )}`
+        `${updated.categoryName} budget updated to ${money(updated.amount)}`,
       );
     } catch (error) {
       console.error("Failed to update budget:", error);
-      showToast(
-        error.message || "Failed to update budget"
-      );
+      showToast(error.message || "Failed to update budget");
     }
   };
 
   const handleDeleteBudget = async (budgetId) => {
-    const budget = budgets.find(
-      (item) => item.budgetId === budgetId
-    );
+    const budget = budgets.find((item) => item.budgetId === budgetId);
 
     if (!budget) return;
 
     const confirmed = window.confirm(
-      `Delete the ${budget.categoryName} budget for ${monthName} ${year}?`
+      `Delete the ${budget.categoryName} budget for ${monthName} ${year}?`,
     );
 
     if (!confirmed) return;
@@ -804,9 +896,7 @@ function BudgetsPage() {
       await deleteBudget(budgetId);
 
       setBudgets((current) =>
-        current.filter(
-          (item) => item.budgetId !== budgetId
-        )
+        current.filter((item) => item.budgetId !== budgetId),
       );
 
       setEditing(null);
@@ -814,9 +904,7 @@ function BudgetsPage() {
       showToast("Budget deleted successfully");
     } catch (error) {
       console.error("Failed to delete budget:", error);
-      showToast(
-        error.message || "Failed to delete budget"
-      );
+      showToast(error.message || "Failed to delete budget");
     }
   };
 
@@ -838,24 +926,16 @@ function BudgetsPage() {
               <button
                 className="tool-btn"
                 type="button"
-                onClick={() =>
-                  setPlanOpen((value) => !value)
-                }
+                onClick={() => setPlanOpen((value) => !value)}
               >
-                <Icon name="target" size={14} />{" "}
-                {monthName} {year}⌄
+                <Icon name="target" size={14} /> {monthName} {year}⌄
               </button>
 
               {planOpen && (
                 <div className="tool-dropdown">
                   <button
                     type="button"
-                    onClick={() =>
-                      handleMonthChange(
-                        month,
-                        year
-                      )
-                    }
+                    onClick={() => handleMonthChange(month, year)}
                   >
                     {monthName} {year}
                   </button>
@@ -863,59 +943,33 @@ function BudgetsPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const nextMonth =
-                        month === 12 ? 1 : month + 1;
+                      const nextMonth = month === 12 ? 1 : month + 1;
 
-                      const nextYear =
-                        month === 12
-                          ? year + 1
-                          : year;
+                      const nextYear = month === 12 ? year + 1 : year;
 
-                      handleMonthChange(
-                        nextMonth,
-                        nextYear
-                      );
+                      handleMonthChange(nextMonth, nextYear);
                     }}
                   >
-                    {new Date(
-                      year,
-                      month,
-                      1
-                    ).toLocaleString("en-US", {
+                    {new Date(year, month, 1).toLocaleString("en-US", {
                       month: "long",
                     })}{" "}
-                    {month === 12
-                      ? year + 1
-                      : year}
+                    {month === 12 ? year + 1 : year}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => {
-                      const previousMonth =
-                        month === 1 ? 12 : month - 1;
+                      const previousMonth = month === 1 ? 12 : month - 1;
 
-                      const previousYear =
-                        month === 1
-                          ? year - 1
-                          : year;
+                      const previousYear = month === 1 ? year - 1 : year;
 
-                      handleMonthChange(
-                        previousMonth,
-                        previousYear
-                      );
+                      handleMonthChange(previousMonth, previousYear);
                     }}
                   >
-                    {new Date(
-                      year,
-                      month - 2,
-                      1
-                    ).toLocaleString("en-US", {
+                    {new Date(year, month - 2, 1).toLocaleString("en-US", {
                       month: "long",
                     })}{" "}
-                    {month === 1
-                      ? year - 1
-                      : year}
+                    {month === 1 ? year - 1 : year}
                   </button>
                 </div>
               )}
@@ -928,17 +982,13 @@ function BudgetsPage() {
               disabled={syncing}
             >
               <Icon name="refresh" size={14} />{" "}
-              {syncing
-                ? "Syncing…"
-                : "Sync now"}
+              {syncing ? "Syncing…" : "Sync now"}
             </button>
 
             <button
               className="tool-primary"
               type="button"
-              onClick={() =>
-                setBudgetModal(true)
-              }
+              onClick={() => setBudgetModal(true)}
             >
               <Icon name="plus" size={14} /> Add budget
             </button>
@@ -951,10 +1001,7 @@ function BudgetsPage() {
             value={money(totalBudget)}
           />
 
-          <Metric
-            label="Spent"
-            value={money(totalSpent)}
-          />
+          <Metric label="Spent" value={money(totalSpent)} />
 
           <Metric
             label="Remaining"
@@ -973,35 +1020,22 @@ function BudgetsPage() {
         {loading ? (
           <div className="empty-state">
             <strong>Loading budgets…</strong>
-            <span>
-              Fetching your {monthName} budget plan.
-            </span>
+            <span>Fetching your {monthName} budget plan.</span>
           </div>
         ) : (
           <>
             <div className="alert-list">
               {alertBudgets.map((budget) => {
-                const alertInfo =
-                  getBudgetAlertInfo(budget);
+                const alertInfo = getBudgetAlertInfo(budget);
 
                 return (
-                  <div
-                    className="alert-row"
-                    key={budget.budgetId}
-                  >
-                    {toneIcon(
-                      alertInfo.tone,
-                      alertInfo.icon
-                    )}
+                  <div className="alert-row" key={budget.budgetId}>
+                    {toneIcon(alertInfo.tone, alertInfo.icon)}
 
                     <div>
-                      <strong>
-                        {alertInfo.title}
-                      </strong>
+                      <strong>{alertInfo.title}</strong>
 
-                      <small>
-                        {alertInfo.description}
-                      </small>
+                      <small>{alertInfo.description}</small>
                     </div>
 
                     <b>{alertInfo.tag}</b>
@@ -1011,19 +1045,13 @@ function BudgetsPage() {
 
               {alertBudgets.length === 0 && (
                 <div className="alert-row">
-                  {toneIcon(
-                    "teal",
-                    "check"
-                  )}
+                  {toneIcon("teal", "check")}
 
                   <div>
-                    <strong>
-                      No budget alerts
-                    </strong>
+                    <strong>No budget alerts</strong>
 
                     <small>
-                      Your budgets are currently
-                      within their limits.
+                      Your budgets are currently within their limits.
                     </small>
                   </div>
 
@@ -1039,54 +1067,37 @@ function BudgetsPage() {
                     key={budget.budgetId}
                     budget={budget}
                     progress={progress}
-                    onEdit={() =>
-                      setEditing(budget)
-                    }
+                    onEdit={() => setEditing(budget)}
                   />
                 ))}
 
                 {budgets.length === 0 && (
                   <div className="empty-state">
-                    <strong>
-                      No budgets for {monthName}
-                    </strong>
+                    <strong>No budgets for {monthName}</strong>
 
                     <span>
-                      Add your first category budget
-                      to start tracking spending.
+                      Add your first category budget to start tracking spending.
                     </span>
                   </div>
                 )}
               </div>
 
-              <BudgetAutomation
-                alertCount={
-                  alertBudgets.length
-                }
-              />
+              <BudgetAutomation alertCount={alertBudgets.length} />
             </div>
 
             <div className="budget-view-toggle">
               <button
                 type="button"
-                className={
-                  progress ? "active" : ""
-                }
-                onClick={() =>
-                  setProgress(true)
-                }
+                className={progress ? "active" : ""}
+                onClick={() => setProgress(true)}
               >
                 Show progress
               </button>
 
               <button
                 type="button"
-                className={
-                  !progress ? "active" : ""
-                }
-                onClick={() =>
-                  setProgress(false)
-                }
+                className={!progress ? "active" : ""}
+                onClick={() => setProgress(false)}
               >
                 Compact view
               </button>
@@ -1099,17 +1110,13 @@ function BudgetsPage() {
         <Modal
           title="Add a budget"
           description={`Set a category limit for ${monthName} ${year}.`}
-          onClose={() =>
-            setBudgetModal(false)
-          }
+          onClose={() => setBudgetModal(false)}
         >
           <BudgetForm
             categories={categories}
             month={month}
             year={year}
-            onClose={() =>
-              setBudgetModal(false)
-            }
+            onClose={() => setBudgetModal(false)}
             onSave={handleCreateBudget}
           />
         </Modal>
@@ -1119,35 +1126,18 @@ function BudgetsPage() {
         <Modal
           title={`Edit ${editing.categoryName} budget`}
           description={`Update the monthly limit for ${monthName} ${year}.`}
-          onClose={() =>
-            setEditing(null)
-          }
+          onClose={() => setEditing(null)}
         >
           <BudgetForm
             categories={categories}
             month={editing.month}
             year={editing.year}
-            initialCategoryId={
-              editing.categoryId
-            }
-            initialAmount={
-              editing.amount
-            }
+            initialCategoryId={editing.categoryId}
+            initialAmount={editing.amount}
             editing
-            onClose={() =>
-              setEditing(null)
-            }
-            onDelete={() =>
-              handleDeleteBudget(
-                editing.budgetId
-              )
-            }
-            onSave={(payload) =>
-              handleUpdateBudget(
-                editing.budgetId,
-                payload
-              )
-            }
+            onClose={() => setEditing(null)}
+            onDelete={() => handleDeleteBudget(editing.budgetId)}
+            onSave={(payload) => handleUpdateBudget(editing.budgetId, payload)}
           />
         </Modal>
       )}
@@ -1157,34 +1147,19 @@ function BudgetsPage() {
   );
 }
 
-function Metric({
-  label,
-  value,
-  green,
-  danger,
-}) {
+function Metric({ label, value, green, danger }) {
   return (
     <div className="metric-card">
       <span>{label}</span>
 
-      <strong
-        className={
-          green
-            ? "green-text"
-            : danger
-              ? "danger-text"
-              : ""
-        }
-      >
+      <strong className={green ? "green-text" : danger ? "danger-text" : ""}>
         {value}
       </strong>
     </div>
   );
 }
 
-function getCategoryPresentation(
-  categoryName
-) {
+function getCategoryPresentation(categoryName) {
   const map = {
     Food: {
       icon: "food",
@@ -1265,62 +1240,33 @@ function getCategoryPresentation(
   );
 }
 
-function BudgetCategory({
-  budget,
-  progress,
-  onEdit,
-}) {
-  const spent = Number(
-    budget.spent || 0
-  );
+function BudgetCategory({ budget, progress, onEdit }) {
+  const spent = Number(budget.spent || 0);
 
-  const amount = Number(
-    budget.amount || 0
-  );
+  const amount = Number(budget.amount || 0);
 
-  const used = Math.min(
-    100,
-    Math.round(
-      Number(
-        budget.percentageUsed || 0
-      )
-    )
-  );
+  const used = Math.min(100, Math.round(Number(budget.percentageUsed || 0)));
 
-  const presentation =
-    getCategoryPresentation(
-      budget.categoryName
-    );
+  const presentation = getCategoryPresentation(budget.categoryName);
 
-  const remaining = Number(
-    budget.remaining || 0
-  );
+  const remaining = Number(budget.remaining || 0);
 
   const statusLabels = {
     ON_TRACK: "On track",
-    APPROACHING_LIMIT:
-      "Approaching limit",
+    APPROACHING_LIMIT: "Approaching limit",
     AT_LIMIT: "At limit",
     OVER_BUDGET: "Over budget",
   };
 
-  const status =
-    statusLabels[budget.status] ||
-    budget.status ||
-    "On track";
+  const status = statusLabels[budget.status] || budget.status || "On track";
 
   return (
     <div className="budget-category">
       <div className="budget-cat-head">
-        {toneIcon(
-          presentation.tone,
-          presentation.icon
-        )}
+        {toneIcon(presentation.tone, presentation.icon)}
 
         <div>
-          <strong>
-            {budget.categoryName}
-          </strong>
+          <strong>{budget.categoryName}</strong>
 
           <small>{status}</small>
         </div>
@@ -1330,10 +1276,7 @@ function BudgetCategory({
           onClick={onEdit}
           aria-label={`Edit ${budget.categoryName} budget`}
         >
-          <Icon
-            name="edit"
-            size={13}
-          />
+          <Icon name="edit" size={13} />
         </button>
       </div>
 
@@ -1353,22 +1296,13 @@ function BudgetCategory({
       )}
 
       <div className="budget-cat-foot">
-        <span>
-          {money(spent)} spent
-        </span>
+        <span>{money(spent)} spent</span>
 
         <b>{money(amount)}</b>
       </div>
 
       <small className="budget-percent">
-        {used}% used ·{" "}
-        {money(
-          Math.max(
-            0,
-            remaining
-          )
-        )}{" "}
-        left
+        {used}% used · {money(Math.max(0, remaining))} left
       </small>
     </div>
   );
@@ -1385,44 +1319,26 @@ function BudgetForm({
   onSave,
   onDelete,
 }) {
-  const firstCategoryId =
-    initialCategoryId ||
-    categories[0]?.categoryId ||
-    "";
+  const firstCategoryId = initialCategoryId || categories[0]?.categoryId || "";
 
-  const [categoryId, setCategoryId] =
-    useState(firstCategoryId);
+  const [categoryId, setCategoryId] = useState(firstCategoryId);
 
-  const [amount, setAmount] =
-    useState(
-      initialAmount !== ""
-        ? String(initialAmount)
-        : ""
-    );
+  const [amount, setAmount] = useState(
+    initialAmount !== "" ? String(initialAmount) : "",
+  );
 
-  const [saving, setSaving] =
-    useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const selectedCategory =
-    categories.find(
-      (category) =>
-        category.categoryId ===
-        categoryId
-    );
+  const selectedCategory = categories.find(
+    (category) => category.categoryId === categoryId,
+  );
 
   const submit = async (e) => {
     e.preventDefault();
 
-    const numericAmount =
-      Number(amount);
+    const numericAmount = Number(amount);
 
-    if (
-      !categoryId ||
-      !Number.isFinite(
-        numericAmount
-      ) ||
-      numericAmount <= 0
-    ) {
+    if (!categoryId || !Number.isFinite(numericAmount) || numericAmount <= 0) {
       return;
     }
 
@@ -1431,9 +1347,7 @@ function BudgetForm({
 
       await onSave({
         categoryId,
-        amount: Number(
-          numericAmount.toFixed(2)
-        ),
+        amount: Number(numericAmount.toFixed(2)),
         month,
         year,
       });
@@ -1443,78 +1357,43 @@ function BudgetForm({
   };
 
   return (
-    <form
-      className="cc-form"
-      onSubmit={submit}
-    >
+    <form className="cc-form" onSubmit={submit}>
       <label>
         Category
-
         <select
           value={categoryId}
-          onChange={(e) =>
-            setCategoryId(
-              e.target.value
-            )
-          }
+          onChange={(e) => setCategoryId(e.target.value)}
           disabled={editing}
         >
-          <option value="">
-            Select category
-          </option>
+          <option value="">Select category</option>
 
-          {categories.map(
-            (category) => (
-              <option
-                key={
-                  category.categoryId
-                }
-                value={
-                  category.categoryId
-                }
-              >
-                {category.name}
-              </option>
-            )
-          )}
+          {categories.map((category) => (
+            <option key={category.categoryId} value={category.categoryId}>
+              {category.name}
+            </option>
+          ))}
         </select>
       </label>
 
       {selectedCategory && (
         <small>
-          Budgeting{" "}
-          <strong>
-            {selectedCategory.name}
-          </strong>{" "}
-          for{" "}
-          {new Date(
-            year,
-            month - 1,
-            1
-          ).toLocaleString(
-            "en-US",
-            {
-              month: "long",
-              year: "numeric",
-            }
-          )}
+          Budgeting <strong>{selectedCategory.name}</strong> for{" "}
+          {new Date(year, month - 1, 1).toLocaleString("en-US", {
+            month: "long",
+            year: "numeric",
+          })}
           .
         </small>
       )}
 
       <label>
         Monthly limit
-
         <input
           type="number"
           min="0.01"
           step="0.01"
           value={amount}
-          onChange={(e) =>
-            setAmount(
-              e.target.value
-            )
-          }
+          onChange={(e) => setAmount(e.target.value)}
           placeholder="250.00"
           required
         />
@@ -1544,36 +1423,22 @@ function BudgetForm({
         <button
           type="submit"
           className="tool-primary"
-          disabled={
-            saving ||
-            !categoryId ||
-            !amount
-          }
+          disabled={saving || !categoryId || !amount}
         >
-          {saving
-            ? "Saving…"
-            : editing
-              ? "Update budget"
-              : "Save budget"}
+          {saving ? "Saving…" : editing ? "Update budget" : "Save budget"}
         </button>
       </div>
     </form>
   );
 }
 
-function getBudgetAlertInfo(
-  budget
-) {
+function getBudgetAlertInfo(budget) {
   switch (budget.status) {
     case "OVER_BUDGET":
       return {
         title: `${budget.categoryName} is over budget`,
         description: `${money(
-          Math.abs(
-            Number(
-              budget.remaining || 0
-            )
-          )
+          Math.abs(Number(budget.remaining || 0)),
         )} over the monthly limit.`,
         tag: "Over budget",
         icon: "alert",
@@ -1583,9 +1448,7 @@ function getBudgetAlertInfo(
     case "AT_LIMIT":
       return {
         title: `${budget.categoryName} is at its limit`,
-        description: `You've used the full ${money(
-          budget.amount
-        )} budget.`,
+        description: `You've used the full ${money(budget.amount)} budget.`,
         tag: "At limit",
         icon: "alert",
         tone: "amber",
@@ -1595,12 +1458,7 @@ function getBudgetAlertInfo(
       return {
         title: `${budget.categoryName} is approaching its limit`,
         description: `${money(
-          Math.max(
-            0,
-            Number(
-              budget.remaining || 0
-            )
-          )
+          Math.max(0, Number(budget.remaining || 0)),
         )} remaining.`,
         tag: "Watch",
         icon: "alert",
@@ -1611,12 +1469,7 @@ function getBudgetAlertInfo(
       return {
         title: `${budget.categoryName} is on track`,
         description: `${money(
-          Math.max(
-            0,
-            Number(
-              budget.remaining || 0
-            )
-          )
+          Math.max(0, Number(budget.remaining || 0)),
         )} remaining.`,
         tag: "On track",
         icon: "check",
@@ -1625,24 +1478,14 @@ function getBudgetAlertInfo(
   }
 }
 
-function BudgetAutomation({
-  alertCount = 0,
-}) {
-  const [a, setA] = useState([
-    true,
-    true,
-    true,
-    false,
-  ]);
+function BudgetAutomation({ alertCount = 0 }) {
+  const [a, setA] = useState([true, true, true, false]);
 
   return (
     <aside className="automation-card">
       <h3>AI alerts</h3>
 
-      <p>
-        Let CampusCoin watch your
-        budgets and flag changes early.
-      </p>
+      <p>Let CampusCoin watch your budgets and flag changes early.</p>
 
       {[
         "Approaching budget limit",
@@ -1650,25 +1493,15 @@ function BudgetAutomation({
         "Weekly budget check",
         "Auto-adjust suggestions",
       ].map((x, i) => (
-        <div
-          className="toggle-row"
-          key={x}
-        >
+        <div className="toggle-row" key={x}>
           <span>{x}</span>
 
           <button
             type="button"
-            className={
-              a[i] ? "on" : ""
-            }
+            className={a[i] ? "on" : ""}
             onClick={() =>
               setA((value) =>
-                value.map(
-                  (item, index) =>
-                    index === i
-                      ? !item
-                      : item
-                )
+                value.map((item, index) => (index === i ? !item : item)),
               )
             }
           >
@@ -1678,10 +1511,7 @@ function BudgetAutomation({
       ))}
 
       <div className="automation-note">
-        <Icon
-          name="sparkle"
-          size={15}
-        />
+        <Icon name="sparkle" size={15} />
 
         <span>
           {alertCount > 0
@@ -1712,8 +1542,8 @@ function ReportsPage() {
   const [range, setRange] = useState(
     `${now.toLocaleString("en-US", { month: "short" })} 1 – ${now.toLocaleString(
       "en-US",
-      { month: "short" }
-    )} ${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`
+      { month: "short" },
+    )} ${new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}`,
   );
 
   const [category, setCategory] = useState("All categories");
@@ -1730,24 +1560,17 @@ function ReportsPage() {
     try {
       setLoading(true);
 
-      const [transactionData, categoryData, budgetData] =
-        await Promise.all([
-          getTransactions(),
-          getCategories(),
-          getBudgets(),
-        ]);
+      const [transactionData, categoryData, budgetData] = await Promise.all([
+        getTransactions(),
+        getCategories(),
+        getBudgets(),
+      ]);
 
-      setTransactions(
-        Array.isArray(transactionData) ? transactionData : []
-      );
+      setTransactions(Array.isArray(transactionData) ? transactionData : []);
 
-      setCategories(
-        Array.isArray(categoryData) ? categoryData : []
-      );
+      setCategories(Array.isArray(categoryData) ? categoryData : []);
 
-      setBudgets(
-        Array.isArray(budgetData) ? budgetData : []
-      );
+      setBudgets(Array.isArray(budgetData) ? budgetData : []);
     } catch (error) {
       console.error("Failed to load report data:", error);
       showToast(error.message || "Failed to load report data");
@@ -1759,10 +1582,9 @@ function ReportsPage() {
   const expenseCategories = useMemo(
     () =>
       categories.filter(
-        (c) =>
-          String(c.type || "").toUpperCase() === "EXPENSE"
+        (c) => String(c.type || "").toUpperCase() === "EXPENSE",
       ),
-    [categories]
+    [categories],
   );
 
   const currentMonthTransactions = useMemo(() => {
@@ -1772,10 +1594,7 @@ function ReportsPage() {
     return transactions.filter((transaction) => {
       const date = new Date(transaction.date);
 
-      return (
-        date.getFullYear() === year &&
-        date.getMonth() + 1 === month
-      );
+      return date.getFullYear() === year && date.getMonth() + 1 === month;
     });
   }, [transactions]);
 
@@ -1786,21 +1605,21 @@ function ReportsPage() {
       result = result.filter(
         (transaction) =>
           transaction.categoryName === category ||
-          transaction.category?.name === category
+          transaction.category?.name === category,
       );
     }
 
     if (kind === "Expenses") {
       result = result.filter(
         (transaction) =>
-          String(transaction.type || "").toUpperCase() === "EXPENSE"
+          String(transaction.type || "").toUpperCase() === "EXPENSE",
       );
     }
 
     if (kind === "Income") {
       result = result.filter(
         (transaction) =>
-          String(transaction.type || "").toUpperCase() === "INCOME"
+          String(transaction.type || "").toUpperCase() === "INCOME",
       );
     }
 
@@ -1811,38 +1630,36 @@ function ReportsPage() {
     () =>
       filteredTransactions.filter(
         (transaction) =>
-          String(transaction.type || "").toUpperCase() === "EXPENSE"
+          String(transaction.type || "").toUpperCase() === "EXPENSE",
       ),
-    [filteredTransactions]
+    [filteredTransactions],
   );
 
   const incomeTransactions = useMemo(
     () =>
       filteredTransactions.filter(
         (transaction) =>
-          String(transaction.type || "").toUpperCase() === "INCOME"
+          String(transaction.type || "").toUpperCase() === "INCOME",
       ),
-    [filteredTransactions]
+    [filteredTransactions],
   );
 
   const totalSpend = useMemo(
     () =>
       expenseTransactions.reduce(
-        (sum, transaction) =>
-          sum + Number(transaction.amount || 0),
-        0
+        (sum, transaction) => sum + Number(transaction.amount || 0),
+        0,
       ),
-    [expenseTransactions]
+    [expenseTransactions],
   );
 
   const totalIncome = useMemo(
     () =>
       incomeTransactions.reduce(
-        (sum, transaction) =>
-          sum + Number(transaction.amount || 0),
-        0
+        (sum, transaction) => sum + Number(transaction.amount || 0),
+        0,
       ),
-    [incomeTransactions]
+    [incomeTransactions],
   );
 
   const categorySpending = useMemo(() => {
@@ -1870,12 +1687,9 @@ function ReportsPage() {
       .filter(
         (budget) =>
           Number(budget.month) === now.getMonth() + 1 &&
-          Number(budget.year) === now.getFullYear()
+          Number(budget.year) === now.getFullYear(),
       )
-      .reduce(
-        (sum, budget) => sum + Number(budget.amount || 0),
-        0
-      );
+      .reduce((sum, budget) => sum + Number(budget.amount || 0), 0);
   }, [budgets]);
 
   const monthlyBudgetSpent = useMemo(
@@ -1883,28 +1697,19 @@ function ReportsPage() {
       currentMonthTransactions
         .filter(
           (transaction) =>
-            String(transaction.type || "").toUpperCase() === "EXPENSE"
+            String(transaction.type || "").toUpperCase() === "EXPENSE",
         )
-        .reduce(
-          (sum, transaction) =>
-            sum + Number(transaction.amount || 0),
-          0
-        ),
-    [currentMonthTransactions]
+        .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0),
+    [currentMonthTransactions],
   );
 
-  const remainingBudget =
-    selectedMonthBudget - monthlyBudgetSpent;
+  const remainingBudget = selectedMonthBudget - monthlyBudgetSpent;
 
   const monthlyData = useMemo(() => {
     const result = [];
 
     for (let offset = 4; offset >= 0; offset--) {
-      const date = new Date(
-        now.getFullYear(),
-        now.getMonth() - offset,
-        1
-      );
+      const date = new Date(now.getFullYear(), now.getMonth() - offset, 1);
 
       const month = date.getMonth() + 1;
       const year = date.getFullYear();
@@ -1920,21 +1725,15 @@ function ReportsPage() {
       });
 
       const spent = monthTransactions.reduce(
-        (sum, transaction) =>
-          sum + Number(transaction.amount || 0),
-        0
+        (sum, transaction) => sum + Number(transaction.amount || 0),
+        0,
       );
 
       const budget = budgets
         .filter(
-          (item) =>
-            Number(item.month) === month &&
-            Number(item.year) === year
+          (item) => Number(item.month) === month && Number(item.year) === year,
         )
-        .reduce(
-          (sum, item) => sum + Number(item.amount || 0),
-          0
-        );
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
       result.push({
         month: date.toLocaleString("en-US", {
@@ -1952,7 +1751,7 @@ function ReportsPage() {
     const daysInMonth = new Date(
       now.getFullYear(),
       now.getMonth() + 1,
-      0
+      0,
     ).getDate();
 
     const values = [];
@@ -1960,10 +1759,7 @@ function ReportsPage() {
     for (let day = 1; day <= daysInMonth; day++) {
       const total = currentMonthTransactions
         .filter((transaction) => {
-          if (
-            String(transaction.type || "").toUpperCase() !==
-            "EXPENSE"
-          ) {
+          if (String(transaction.type || "").toUpperCase() !== "EXPENSE") {
             return false;
           }
 
@@ -1971,11 +1767,7 @@ function ReportsPage() {
 
           return date.getDate() === day;
         })
-        .reduce(
-          (sum, transaction) =>
-            sum + Number(transaction.amount || 0),
-          0
-        );
+        .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
 
       values.push(total);
     }
@@ -1995,13 +1787,7 @@ function ReportsPage() {
 
   const handleExport = (format) => {
     if (format === "CSV data") {
-      const headers = [
-        "Date",
-        "Description",
-        "Type",
-        "Category",
-        "Amount",
-      ];
+      const headers = ["Date", "Description", "Type", "Category", "Amount"];
 
       const rows = filteredTransactions.map((transaction) => [
         transaction.date || "",
@@ -2013,16 +1799,11 @@ function ReportsPage() {
         transaction.amount || 0,
       ]);
 
-      const csv = [
-        headers,
-        ...rows,
-      ]
+      const csv = [headers, ...rows]
         .map((row) =>
           row
-            .map((value) =>
-              `"${String(value).replaceAll('"', '""')}"`
-            )
-            .join(",")
+            .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+            .join(","),
         )
         .join("\n");
 
@@ -2087,17 +1868,10 @@ function ReportsPage() {
         }
       >
         <div className="report-filters">
-          <select
-            value={range}
-            onChange={(e) => setRange(e.target.value)}
-          >
+          <select value={range} onChange={(e) => setRange(e.target.value)}>
             <option>
               {monthLabel.slice(0, 3)} 1 – {monthLabel.slice(0, 3)}{" "}
-              {new Date(
-                now.getFullYear(),
-                now.getMonth() + 1,
-                0
-              ).getDate()}
+              {new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()}
             </option>
 
             <option>
@@ -2109,23 +1883,18 @@ function ReportsPage() {
               {new Date(
                 now.getFullYear(),
                 now.getMonth() - 1,
-                1
+                1,
               ).toLocaleString("en-US", {
                 month: "short",
               })}{" "}
               1 –{" "}
-              {new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                0
-              ).toLocaleString("en-US", {
-                month: "short",
-              })}{" "}
-              {new Date(
-                now.getFullYear(),
-                now.getMonth(),
-                0
-              ).getDate()}
+              {new Date(now.getFullYear(), now.getMonth(), 0).toLocaleString(
+                "en-US",
+                {
+                  month: "short",
+                },
+              )}{" "}
+              {new Date(now.getFullYear(), now.getMonth(), 0).getDate()}
             </option>
           </select>
 
@@ -2136,16 +1905,11 @@ function ReportsPage() {
             <option>All categories</option>
 
             {expenseCategories.map((c) => (
-              <option key={c.categoryId || c.name}>
-                {c.name}
-              </option>
+              <option key={c.categoryId || c.name}>{c.name}</option>
             ))}
           </select>
 
-          <select
-            value={kind}
-            onChange={(e) => setKind(e.target.value)}
-          >
+          <select value={kind} onChange={(e) => setKind(e.target.value)}>
             <option>All transactions</option>
             <option>Expenses</option>
             <option>Income</option>
@@ -2166,8 +1930,8 @@ function ReportsPage() {
         </div>
 
         <div className="report-filter-summary">
-          Showing <strong>{category}</strong> ·{" "}
-          <strong>{kind}</strong> · <strong>{range}</strong>
+          Showing <strong>{category}</strong> · <strong>{kind}</strong> ·{" "}
+          <strong>{range}</strong>
         </div>
 
         {loading ? (
@@ -2201,9 +1965,7 @@ function ReportsPage() {
               view={view}
             />
 
-            <TopSpenders
-              topCategories={topCategories}
-            />
+            <TopSpenders topCategories={topCategories} />
           </div>
         )}
 
@@ -2214,15 +1976,12 @@ function ReportsPage() {
             <strong>AI report ready</strong>
 
             <span>
-              Your report is based on your latest CampusCoin
-              transactions and budgets.
+              Your report is based on your latest CampusCoin transactions and
+              budgets.
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => navigate("/ai-insights")}
-          >
+          <button type="button" onClick={() => navigate("/ai-insights")}>
             View insight
           </button>
         </div>
@@ -2240,14 +1999,8 @@ function ReportsPage() {
   );
 }
 
-function CategoryReport({
-  categorySpending,
-  totalSpend,
-}) {
-  const max = Math.max(
-    ...categorySpending.map((item) => item.spent),
-    1
-  );
+function CategoryReport({ categorySpending, totalSpend }) {
+  const max = Math.max(...categorySpending.map((item) => item.spent), 1);
 
   return (
     <div className="report-card">
@@ -2272,9 +2025,7 @@ function CategoryReport({
 
       <div className="legend-list">
         {categorySpending.length === 0 ? (
-          <span>
-            No expense data for this period.
-          </span>
+          <span>No expense data for this period.</span>
         ) : (
           categorySpending.slice(0, 6).map((item, index) => (
             <span key={item.name}>
@@ -2298,11 +2049,8 @@ function BudgetActualReport({
   remainingBudget,
 }) {
   const max = Math.max(
-    ...monthlyData.flatMap((item) => [
-      item.budget,
-      item.spent,
-    ]),
-    1
+    ...monthlyData.flatMap((item) => [item.budget, item.spent]),
+    1,
   );
 
   return (
@@ -2327,18 +2075,14 @@ function BudgetActualReport({
               <i
                 style={{
                   height:
-                    item.budget > 0
-                      ? `${(item.budget / max) * 100}%`
-                      : "4%",
+                    item.budget > 0 ? `${(item.budget / max) * 100}%` : "4%",
                 }}
               />
 
               <b
                 style={{
                   height:
-                    item.spent > 0
-                      ? `${(item.spent / max) * 100}%`
-                      : "4%",
+                    item.spent > 0 ? `${(item.spent / max) * 100}%` : "4%",
                 }}
               />
             </div>
@@ -2351,20 +2095,12 @@ function BudgetActualReport({
       <div className="chart-summary">
         <span>
           Budget
-          <b>
-            {selectedMonthBudget > 0
-              ? money(selectedMonthBudget)
-              : "—"}
-          </b>
+          <b>{selectedMonthBudget > 0 ? money(selectedMonthBudget) : "—"}</b>
         </span>
 
         <span>
           Spent
-          <b>
-            {monthlyBudgetSpent > 0
-              ? money(monthlyBudgetSpent)
-              : "—"}
-          </b>
+          <b>{monthlyBudgetSpent > 0 ? money(monthlyBudgetSpent) : "—"}</b>
         </span>
 
         <span>
@@ -2380,11 +2116,7 @@ function BudgetActualReport({
   );
 }
 
-function DailySpendReport({
-  dailySpending,
-  maxDailySpend,
-  view,
-}) {
+function DailySpendReport({ dailySpending, maxDailySpend, view }) {
   const values =
     view === "Month"
       ? dailySpending
@@ -2396,11 +2128,7 @@ function DailySpendReport({
         <div>
           <strong>Daily spending</strong>
 
-          <small>
-            {view === "Month"
-              ? "Current month"
-              : `${view} view`}
-          </small>
+          <small>{view === "Month" ? "Current month" : `${view} view`}</small>
         </div>
       </div>
 
@@ -2470,19 +2198,11 @@ function TopSpenders({ topCategories }) {
   );
 }
 
-function ExportModal({
-  onClose,
-  onExport,
-}) {
+function ExportModal({ onClose, onExport }) {
   const [format, setFormat] = useState("PDF report");
   const [ai, setAi] = useState(true);
 
-  const [items, setItems] = useState([
-    true,
-    true,
-    true,
-    true,
-  ]);
+  const [items, setItems] = useState([true, true, true, true]);
 
   const labels = [
     "Spending summary",
@@ -2507,11 +2227,7 @@ function ExportModal({
             onClick={() => setFormat(item)}
           >
             <Icon
-              name={
-                item.startsWith("PDF")
-                  ? "receipt"
-                  : "download"
-              }
+              name={item.startsWith("PDF") ? "receipt" : "download"}
               size={15}
             />
 
@@ -2531,10 +2247,8 @@ function ExportModal({
               onChange={(event) =>
                 setItems((current) =>
                   current.map((value, itemIndex) =>
-                    itemIndex === index
-                      ? event.target.checked
-                      : value
-                  )
+                    itemIndex === index ? event.target.checked : value,
+                  ),
                 )
               }
             />
@@ -2559,10 +2273,7 @@ function ExportModal({
       </div>
 
       <div className="export-footer">
-        <button
-          type="button"
-          onClick={onClose}
-        >
+        <button type="button" onClick={onClose}>
           Cancel
         </button>
 
@@ -2573,9 +2284,7 @@ function ExportModal({
         >
           <Icon name="download" size={14} />
 
-          {format === "CSV data"
-            ? "Download CSV"
-            : "Print report"}
+          {format === "CSV data" ? "Download CSV" : "Print report"}
         </button>
       </div>
     </Modal>
@@ -2811,7 +2520,12 @@ function SavingTipsPage() {
               type="button"
               key={x}
               className={tab === x ? "active" : ""}
-              onClick={() => setTab(x)}
+              onClick={() => {
+                setTab(x);
+                if (x === "Notes") {
+                  loadNotes();
+                }
+              }}
             >
               {x}
             </button>
@@ -2888,25 +2602,117 @@ function BookmarksPage() {
     [tab, setTab] = useState("All"),
     [sort, setSort] = useState("Newest"),
     [items, setItems] = useState(bookmarks),
+    [notes, setNotes] = useState([]),
+    [notesLoading, setNotesLoading] = useState(false),
+    [notesError, setNotesError] = useState(""),
     [modal, setModal] = useState(false),
+    [editingNote, setEditingNote] = useState(null),
+    [viewingNote, setViewingNote] = useState(null),
+    [deletingNote, setDeletingNote] = useState(null),
     [toast, showToast] = useToast();
-  const filtered = useMemo(
+
+  const loadNotes = async () => {
+    try {
+      setNotesLoading(true);
+      setNotesError("");
+      const data = await getNotes();
+      setNotes(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load notes:", error);
+      setNotesError(error.message || "Unable to load your notes");
+    } finally {
+      setNotesLoading(false);
+    }
+  };
+
+  const filteredBookmarks = useMemo(
     () =>
       items
         .filter(
           (x) =>
             tab === "All" ||
             (tab === "Tips" && x[2] === "amber") ||
-            (tab === "Insights" && x[2] === "blue") ||
-            (tab === "Notes" && x[2] === "teal"),
+            (tab === "Insights" && x[2] === "blue"),
         )
         .sort((a, b) => (sort === "A–Z" ? a[0].localeCompare(b[0]) : 0)),
     [items, tab, sort],
   );
-  const remove = (title) => {
+
+  const filteredNotes = useMemo(() => {
+    const sorted = [...notes];
+
+    if (sort === "Newest") {
+      sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    } else if (sort === "Oldest") {
+      sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    } else if (sort === "A–Z") {
+      sorted.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sort === "Z–A") {
+      sorted.sort((a, b) => b.title.localeCompare(a.title));
+    } else if (sort === "Recently updated") {
+      sorted.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    }
+
+    return sorted;
+  }, [notes, sort]);
+
+  const removeLegacyBookmark = (title) => {
     setItems((v) => v.filter((x) => x[0] !== title));
     showToast("Bookmark removed");
   };
+
+  const handleCreateNote = async ({ title, content }) => {
+    try {
+      const created = await createNote({ title, content });
+      setNotes((current) => [created, ...current]);
+      setModal(false);
+      showToast("Note saved");
+    } catch (error) {
+      console.error("Failed to create note:", error);
+      showToast(error.message || "Failed to save note");
+    }
+  };
+
+  const handleUpdateNote = async ({ title, content }) => {
+    if (!editingNote) return;
+
+    try {
+      const updated = await updateNote(editingNote.noteId, {
+        title,
+        content,
+      });
+
+      setNotes((current) =>
+        current.map((note) =>
+          note.noteId === updated.noteId ? updated : note,
+        ),
+      );
+      setEditingNote(null);
+      showToast("Note updated");
+    } catch (error) {
+      console.error("Failed to update note:", error);
+      showToast(error.message || "Failed to update note");
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    if (!deletingNote) return;
+
+    try {
+      await deleteNote(deletingNote.noteId);
+      setNotes((current) =>
+        current.filter((note) => note.noteId !== deletingNote.noteId),
+      );
+      setDeletingNote(null);
+      showToast("Note removed");
+    } catch (error) {
+      console.error("Failed to delete note:", error);
+      showToast(error.message || "Failed to remove note");
+    }
+  };
+
+  const isNotesTab = tab === "Notes";
+
   return (
     <ToolsShell
       page="Bookmarks"
@@ -2924,17 +2730,38 @@ function BookmarksPage() {
             <button
               className="tool-primary"
               type="button"
-              onClick={() => setModal(true)}
+              onClick={() => {
+                if (isNotesTab) {
+                  setEditingNote(null);
+                  setModal(true);
+                } else {
+                  setModal(true);
+                }
+              }}
             >
-              <Icon name="bookmark" size={14} /> New bookmark
+              <Icon name={isNotesTab ? "edit" : "bookmark"} size={14} />
+              {isNotesTab ? "New note" : "New bookmark"}
             </button>
             <select
               className="tool-btn-select"
               value={sort}
               onChange={(e) => setSort(e.target.value)}
+              aria-label={isNotesTab ? "Sort notes" : "Sort bookmarks"}
             >
-              <option>Newest</option>
-              <option>A–Z</option>
+              {isNotesTab ? (
+                <>
+                  <option>Newest</option>
+                  <option>Oldest</option>
+                  <option>A–Z</option>
+                  <option>Z–A</option>
+                  <option>Recently updated</option>
+                </>
+              ) : (
+                <>
+                  <option>Newest</option>
+                  <option>A–Z</option>
+                </>
+              )}
             </select>
           </>
         }
@@ -2948,46 +2775,134 @@ function BookmarksPage() {
               onClick={() => setTab(x)}
             >
               {x}
+              {x === "Notes" && notes.length > 0 ? ` · ${notes.length}` : ""}
             </button>
           ))}
         </div>
-        <div className="bookmark-grid">
-          {filtered.map(([title, text, tone, icon]) => (
-            <div className="bookmark-card" key={title}>
-              {toneIcon(tone, icon)}
-              <div className="bookmark-head">
-                <strong>{title}</strong>
-                <span aria-hidden="true">•••</span>
+
+        {isNotesTab ? (
+          <div className="bookmark-grid notes-grid">
+            {notesLoading && (
+              <div className="empty-state" role="status">
+                <strong>Loading notes…</strong>
+                <span>Getting your saved notes.</span>
               </div>
-              <p>{text}</p>
-              <div className="bookmark-actions">
+            )}
+
+            {!notesLoading && notesError && (
+              <div className="empty-state note-error-state">
+                <strong>We couldn't load your notes.</strong>
+                <span>{notesError}</span>
                 <button
                   type="button"
-                  onClick={() => showToast(`Opened ${title}`)}
+                  className="tool-primary"
+                  onClick={loadNotes}
                 >
-                  Open
-                </button>
-                <button
-                  type="button"
-                  onClick={() => showToast("Bookmark editing is ready")}
-                >
-                  <Icon name="edit" size={13} /> Edit
-                </button>
-                <button type="button" onClick={() => remove(title)}>
-                  <Icon name="trash" size={13} /> Remove
+                  Try again
                 </button>
               </div>
-            </div>
-          ))}
-          {filtered.length === 0 && (
-            <div className="empty-state">
-              <strong>No bookmarks match</strong>
-              <span>Choose another tab or add a new bookmark.</span>
-            </div>
-          )}
-        </div>
+            )}
+
+            {!notesLoading && !notesError && filteredNotes.length === 0 && (
+              <div className="empty-state">
+                <strong>No notes yet</strong>
+                <span>
+                  Create a note to keep a useful reminder close at hand.
+                </span>
+                <button
+                  type="button"
+                  className="tool-primary"
+                  onClick={() => {
+                    setEditingNote(null);
+                    setModal(true);
+                  }}
+                >
+                  Create your first note
+                </button>
+              </div>
+            )}
+
+            {!notesLoading &&
+              !notesError &&
+              filteredNotes.map((note) => (
+                <div className="bookmark-card note-card" key={note.noteId}>
+                  {toneIcon("teal", "edit")}
+                  <div className="bookmark-head">
+                    <strong>{note.title}</strong>
+                    <button
+                      className="bookmark-menu-button"
+                      type="button"
+                      onClick={() => setViewingNote(note)}
+                      aria-label={`Open ${note.title}`}
+                    >
+                      •••
+                    </button>
+                  </div>
+                  <div className="bookmark-note-label">
+                    <Icon name="receipt" size={12} />
+                    My note
+                  </div>
+                  <p>{note.content}</p>
+                  <small className="note-updated">
+                    Updated {formatNoteDate(note.updatedAt)}
+                  </small>
+                  <div className="bookmark-actions">
+                    <button type="button" onClick={() => setViewingNote(note)}>
+                      Open
+                    </button>
+                    <button type="button" onClick={() => setEditingNote(note)}>
+                      <Icon name="edit" size={13} /> Edit
+                    </button>
+                    <button type="button" onClick={() => setDeletingNote(note)}>
+                      <Icon name="trash" size={13} /> Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+          </div>
+        ) : (
+          <div className="bookmark-grid">
+            {filteredBookmarks.map(([title, text, tone, icon]) => (
+              <div className="bookmark-card" key={title}>
+                {toneIcon(tone, icon)}
+                <div className="bookmark-head">
+                  <strong>{title}</strong>
+                  <span aria-hidden="true">•••</span>
+                </div>
+                <p>{text}</p>
+                <div className="bookmark-actions">
+                  <button
+                    type="button"
+                    onClick={() => showToast(`Opened ${title}`)}
+                  >
+                    Open
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => showToast("Bookmark editing is ready")}
+                  >
+                    <Icon name="edit" size={13} /> Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeLegacyBookmark(title)}
+                  >
+                    <Icon name="trash" size={13} /> Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+            {filteredBookmarks.length === 0 && (
+              <div className="empty-state">
+                <strong>No bookmarks match</strong>
+                <span>Choose another tab or add a new bookmark.</span>
+              </div>
+            )}
+          </div>
+        )}
       </PageFrame>
-      {modal && (
+
+      {!isNotesTab && modal && (
         <Modal
           title="New bookmark"
           description="Save a useful note for later."
@@ -3003,10 +2918,174 @@ function BookmarksPage() {
           />
         </Modal>
       )}
+
+      {isNotesTab && modal && (
+        <Modal
+          title="New note"
+          description="Keep a useful reminder close at hand."
+          onClose={() => setModal(false)}
+        >
+          <NoteForm
+            submitLabel="Save note"
+            onClose={() => setModal(false)}
+            onSave={handleCreateNote}
+          />
+        </Modal>
+      )}
+
+      {editingNote && (
+        <Modal
+          title="Edit note"
+          description="Update your note and save your changes."
+          onClose={() => setEditingNote(null)}
+        >
+          <NoteForm
+            initialNote={editingNote}
+            submitLabel="Save changes"
+            onClose={() => setEditingNote(null)}
+            onSave={handleUpdateNote}
+          />
+        </Modal>
+      )}
+
+      {viewingNote && (
+        <Modal
+          title={viewingNote.title}
+          description={`Updated ${formatNoteDate(viewingNote.updatedAt)}`}
+          onClose={() => setViewingNote(null)}
+        >
+          <div className="note-viewer">
+            <div className="bookmark-note-label">
+              <Icon name="receipt" size={12} />
+              My note
+            </div>
+            <p>{viewingNote.content}</p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => {
+                  setViewingNote(null);
+                  setEditingNote(viewingNote);
+                }}
+              >
+                Edit note
+              </button>
+              <button
+                type="button"
+                className="tool-primary"
+                onClick={() => setViewingNote(null)}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {deletingNote && (
+        <Modal
+          title="Remove note?"
+          description={`This will permanently remove “${deletingNote.title}”.`}
+          onClose={() => setDeletingNote(null)}
+        >
+          <div className="modal-actions">
+            <button
+              type="button"
+              className="ghost-btn"
+              onClick={() => setDeletingNote(null)}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="danger-btn"
+              onClick={handleDeleteNote}
+            >
+              Remove note
+            </button>
+          </div>
+        </Modal>
+      )}
+
       <ActionToast message={toast} />
     </ToolsShell>
   );
 }
+
+function formatNoteDate(value) {
+  if (!value) return "just now";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "just now";
+
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function NoteForm({ initialNote = null, onClose, onSave, submitLabel }) {
+  const [title, setTitle] = useState(initialNote?.title || "");
+  const [content, setContent] = useState(initialNote?.content || "");
+  const [saving, setSaving] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+
+    if (!title.trim() || !content.trim() || saving) return;
+
+    try {
+      setSaving(true);
+      await onSave({
+        title: title.trim(),
+        content: content.trim(),
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form className="cc-form" onSubmit={submit}>
+      <label>
+        Title
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Lecture week checklist"
+          maxLength={255}
+          required
+        />
+      </label>
+      <label>
+        Note
+        <textarea
+          rows="6"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="What should you remember?"
+          maxLength={10000}
+          required
+        />
+      </label>
+      <div className="modal-actions">
+        <button type="button" className="ghost-btn" onClick={onClose}>
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="tool-primary"
+          disabled={saving || !title.trim() || !content.trim()}
+        >
+          {saving ? "Saving…" : submitLabel}
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function BookmarkForm({ onClose, onSave }) {
   const [title, setTitle] = useState(""),
     [text, setText] = useState("");
@@ -3317,25 +3396,42 @@ function ReviewPage() {
   );
 }
 function SettingsPage() {
-  const [dark, setDark] = useState(false),
-    [notify, setNotify] = useState(false),
-    [saved, setSaved] = useState(false),
-    [active, setActive] = useState("Profile"),
-    [toast, showToast] = useToast(),
-    [passwordOpen, setPasswordOpen] = useState(false),
-    [twoFA, setTwoFA] = useState(false);
-  const sections = {
-    Profile: "settings-profile",
-    Preferences: "settings-preferences",
-    Notifications: "settings-notifications",
-    Security: "settings-security",
-  };
+  const [dark, setDark] = useState(false);
+  const [notify, setNotify] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [active, setActive] = useState("Profile & goals");
+  const [toast, showToast] = useToast();
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [mobileSectionOpen, setMobileSectionOpen] = useState(false);
+  const profileSaveRef = useRef(null);
+
+  const sections = [
+    ["Profile & goals", "settings-profile", "settings"],
+    ["Budget preferences", "settings-preferences", "target"],
+    ["Notifications", "settings-notifications", "bell"],
+    ["Security", "settings-security", "settings"],
+    ["Data & privacy", "settings-data", "settings"],
+  ];
+
   const jump = (name) => {
     setActive(name);
+    setMobileSectionOpen(false);
+    const id = sections.find((x) => x[0] === name)?.[1];
     document
-      .getElementById(sections[name])
+      .getElementById(id)
       ?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
+
+  const save = async () => {
+    try {
+      await profileSaveRef.current?.();
+      setSaved(true);
+      showToast("Your settings have been saved");
+    } catch (error) {
+      showToast(error?.message || "Unable to save your settings");
+    }
+  };
+
   return (
     <ToolsShell
       page="Settings"
@@ -3347,85 +3443,93 @@ function SettingsPage() {
       <PageFrame
         eyebrow="ACCOUNT"
         title="Profile & settings"
-        description="Manage your profile, preferences, notifications and security."
+        description="Your details, goals, preferences and security."
       >
-        <div className="settings-layout">
+        <div className="settings-mobile-selector">
+          <button type="button" onClick={() => setMobileSectionOpen((v) => !v)}>
+            <span>{active}</span>
+            <Icon name="chevron" size={14} />
+          </button>
+          {mobileSectionOpen && (
+            <div className="settings-mobile-menu">
+              {sections.map(([label, , icon]) => (
+                <button
+                  type="button"
+                  key={label}
+                  className={active === label ? "active" : ""}
+                  onClick={() => jump(label)}
+                >
+                  <Icon name={icon} size={14} />
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="settings-layout settings-layout-v2">
           <aside className="settings-nav">
-            {[
-              "Profile",
-              "Preferences",
-              "Notifications",
-              "Security",
-              "Connected apps",
-            ].map((x) => (
+            {sections.map(([label, , icon]) => (
               <button
                 type="button"
-                key={x}
-                className={active === x ? "active" : ""}
-                onClick={() =>
-                  x === "Connected apps"
-                    ? showToast("Connected apps settings coming next")
-                    : jump(x)
-                }
+                key={label}
+                className={active === label ? "active" : ""}
+                onClick={() => jump(label)}
               >
-                {x}
+                <Icon name={icon} size={15} />
+                <span>{label}</span>
               </button>
             ))}
           </aside>
-          <div className="settings-main">
+
+          <div className="settings-main settings-main-v2">
             <div id="settings-profile">
-              <SettingsProfile />
+              <SettingsProfileV2
+                saveRef={profileSaveRef}
+                showToast={showToast}
+              />
             </div>
-            <div id="settings-preferences">
-              <SettingsPreferences />
-            </div>
+            {/* <div id="settings-preferences">
+              <SettingsGoals />
+              <SettingsBudgetPreferences showToast={showToast} />
+            </div> */}
             <div id="settings-notifications">
-              <SettingsNotifications />
+              <SettingsNotificationsV2 />
             </div>
             <div id="settings-security">
-              <SettingsSecurity
-                twoFA={twoFA}
-                setTwoFA={setTwoFA}
+              <SettingsSecurityV2
                 onPassword={() => setPasswordOpen(true)}
+                showToast={showToast}
               />
-              <div className="settings-card">
-                <h3>Session</h3>
-                <p>Sign out of CampusCoin on this device.</p>
-                <button
-                  className="settings-signout"
-                  type="button"
-                  onClick={() => {
-                    clearStudentSession();
-                    navigate("/");
-                  }}
-                >
-                  <Icon name="logout" size={14} /> Sign out
-                </button>
-              </div>
             </div>
-            <div className="settings-footer">
-              <button
-                className="tool-primary"
-                type="button"
-                onClick={() => {
-                  setSaved(true);
-                  showToast("Changes saved");
-                }}
-              >
-                Save changes
+            <div id="settings-data">
+              <SettingsDataPrivacy showToast={showToast} />
+            </div>
+
+            <div className="settings-footer settings-footer-v2">
+              <button className="tool-primary" type="button" onClick={save}>
+                <Icon name="check" size={14} /> Save changes
               </button>
-              {saved && <span>Changes saved</span>}
+              {saved && (
+                <span className="settings-saved">
+                  <Icon name="check" size={12} /> Changes saved
+                </span>
+              )}
               <button
                 className="ghost-btn"
                 type="button"
-                onClick={() => setSaved(false)}
+                onClick={() => {
+                  setSaved(false);
+                  showToast("Unsaved status reset");
+                }}
               >
-                Reset status
+                Discard
               </button>
             </div>
           </div>
         </div>
       </PageFrame>
+
       {passwordOpen && (
         <Modal
           title="Change password"
@@ -3436,7 +3540,7 @@ function SettingsPage() {
             onClose={() => setPasswordOpen(false)}
             onSave={() => {
               setPasswordOpen(false);
-              showToast("Password updated");
+              showToast("Password updated successfully");
             }}
           />
         </Modal>
@@ -3445,231 +3549,568 @@ function SettingsPage() {
     </ToolsShell>
   );
 }
-function SettingsProfile() {
-  const [name, setName] = useState("Jordan Davis"),
-    [email, setEmail] = useState("jordan.davis@example.com");
+
+function SettingsProfileV2({ saveRef, showToast }) {
+  const session = getStudentSession();
+  const [name, setName] = useState(session?.name || "");
+  const [email, setEmail] = useState(session?.email || "");
+  const [year, setYear] = useState(session?.academicYear || "Year 1");
+  const [currency, setCurrency] = useState("NGN · ₦");
+  const [photo, setPhoto] = useState(null);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadProfile() {
+      try {
+        setProfileLoading(true);
+        setError("");
+        const profile = await getProfile();
+        if (!mounted) return;
+
+        setName(profile?.name || "");
+        setEmail(profile?.email || "");
+        setYear(profile?.academicYear || "Year 1");
+
+        const currentSession = getStudentSession() || {};
+        localStorage.setItem(
+          "campuscoin.student.auth",
+          JSON.stringify({
+            ...currentSession,
+            name: profile?.name,
+            email: profile?.email,
+            academicYear: profile?.academicYear,
+            monthlySavingsGoal: profile?.monthlySavingsGoal,
+            monthlyIncome: profile?.monthlyIncome,
+          }),
+        );
+
+        if (profile?.profilePhotoAvailable) {
+          const photoUrl = await loadProfilePhoto();
+          if (mounted) setPhoto(photoUrl);
+        }
+      } catch (err) {
+        if (mounted) setError(err?.message || "Unable to load your profile");
+      } finally {
+        if (mounted) setProfileLoading(false);
+      }
+    }
+
+    loadProfile();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (photo?.startsWith("blob:")) {
+        URL.revokeObjectURL(photo);
+      }
+    };
+  }, [photo]);
+
+  const initials = (name || "CampusCoin")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  const saveProfile = async () => {
+    if (!name.trim()) {
+      throw new Error("Full name is required");
+    }
+
+    setSaving(true);
+    try {
+      const profile = await updateProfile({
+        name: name.trim(),
+        academicYear: year,
+      });
+
+      const currentSession = getStudentSession() || {};
+      localStorage.setItem(
+        "campuscoin.student.auth",
+        JSON.stringify({
+          ...currentSession,
+          name: profile?.name || name.trim(),
+          email: profile?.email || email,
+          academicYear: profile?.academicYear || year,
+          monthlySavingsGoal: profile?.monthlySavingsGoal,
+          monthlyIncome: profile?.monthlyIncome,
+        }),
+      );
+
+      setName(profile?.name || name.trim());
+      setEmail(profile?.email || email);
+      setYear(profile?.academicYear || year);
+      setError("");
+
+      window.dispatchEvent(new Event("campuscoin:profile-updated"));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!saveRef) return undefined;
+    saveRef.current = saveProfile;
+    return () => {
+      if (saveRef.current === saveProfile) saveRef.current = null;
+    };
+  }, [saveRef, name, year]);
+
+  const handlePhotoChange = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Please choose an image file");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Profile photo must be 5 MB or smaller");
+      return;
+    }
+
+    const preview = URL.createObjectURL(file);
+    setPhotoLoading(true);
+    setError("");
+
+    try {
+      await uploadProfilePhoto(file);
+      const oldPhoto = photo;
+      setPhoto(preview);
+      if (oldPhoto?.startsWith("blob:")) URL.revokeObjectURL(oldPhoto);
+      window.dispatchEvent(new Event("campuscoin:profile-updated"));
+      showToast("Profile photo updated");
+    } catch (err) {
+      URL.revokeObjectURL(preview);
+      showToast(err?.message || "Unable to upload profile photo");
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    setPhotoLoading(true);
+    try {
+      await deleteProfilePhoto();
+      if (photo?.startsWith("blob:")) URL.revokeObjectURL(photo);
+      setPhoto(null);
+      window.dispatchEvent(new Event("campuscoin:profile-updated"));
+      showToast("Profile photo removed");
+    } catch (err) {
+      showToast(err?.message || "Unable to remove profile photo");
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
+
   return (
-    <div className="settings-card">
-      <h3>Profile</h3>
-      <p>Keep your student profile and account details up to date.</p>
-      <div className="profile-line">
-        <span className="large-avatar">JD</span>
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
         <div>
-          <strong>{name}</strong>
-          <small>{email}</small>
+          <h3>Profile</h3>
+          <p>Used to personalise tips and insights</p>
         </div>
-        <button
-          className="ghost-btn"
-          type="button"
-          onClick={() => document.getElementById("profile-name")?.focus()}
-        >
-          Edit details
-        </button>
       </div>
-      <div className="form-grid">
-        <label>
-          Full name
+
+      {error && <div className="settings-profile-error">{error}</div>}
+
+      <div className="settings-profile-header">
+        <div className="large-avatar settings-avatar">
+          {photo ? <img src={photo} alt="Profile" /> : initials}
+        </div>
+        <div className="profile-summary">
+          <strong>
+            {profileLoading ? "Loading profile..." : name || "Your name"}
+          </strong>
+          <small>{email || "your@email.com"}</small>
+        </div>
+        <label
+          className={`ghost-btn settings-photo-btn ${photoLoading ? "disabled" : ""}`}
+        >
+          {photoLoading ? "Uploading..." : "Change photo"}
           <input
-            id="profile-name"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            disabled={photoLoading || profileLoading}
+            onChange={handlePhotoChange}
+          />
+        </label>
+        {photo && !photoLoading && (
+          <button
+            className="text-link settings-remove-photo"
+            type="button"
+            onClick={handleRemovePhoto}
+          >
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="settings-form-grid-v2">
+        <label>
+          <span>Full name</span>
+          <input
             value={name}
             onChange={(e) => setName(e.target.value)}
+            placeholder="Your full name"
+            disabled={profileLoading || saving}
           />
         </label>
         <label>
-          Email
+          <span>Email</span>
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            readOnly
+            disabled={profileLoading}
+            placeholder="you@university.edu"
           />
+          <small className="field-hint">
+            <Icon name="check" size={11} /> Verified
+          </small>
         </label>
         <label>
-          School
-          <input value="Aptech" readOnly />
-        </label>
-        <label>
-          Study level
-          <select defaultValue="Year 2">
+          <span>Academic year</span>
+          <select
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            disabled={profileLoading || saving}
+          >
             <option>Year 1</option>
             <option>Year 2</option>
             <option>Year 3</option>
+            <option>Year 4</option>
           </select>
         </label>
-      </div>
-    </div>
-  );
-}
-function SettingsPreferences() {
-  const [currency, setCurrency] = useState("USD · $");
-  const [week, setWeek] = useState("Monday");
-  return (
-    <div className="settings-card">
-      <h3>Money preferences</h3>
-      <p>Choose how CampusCoin displays and summarizes your finances.</p>
-      <div className="pref-grid">
         <label>
-          <strong>Currency</strong>
+          <span>Currency</span>
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
+            disabled={profileLoading || saving}
           >
-            <option>USD · $</option>
             <option>NGN · ₦</option>
+            <option>USD · $</option>
             <option>GBP · £</option>
           </select>
         </label>
+      </div>
+
+      {saving && (
+        <div className="settings-profile-saving">Saving profile...</div>
+      )}
+    </div>
+  );
+}
+
+function SettingsGoals() {
+  const [allowance, setAllowance] = useState("600");
+  const [savings, setSavings] = useState("300");
+
+  return (
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
         <div>
-          <strong>Monthly budget</strong>
-          <span>{formatMoney(870)}</span>
+          <h3>Money goals</h3>
+          <p>Baselines for budgets, tips and forecasts</p>
         </div>
+      </div>
+      <div className="settings-form-grid-v2 goals-grid">
         <label>
-          <strong>Week starts</strong>
-          <select value={week} onChange={(e) => setWeek(e.target.value)}>
-            <option>Monday</option>
-            <option>Sunday</option>
-          </select>
+          <span>Monthly allowance baseline</span>
+          <div className="money-input">
+            <span>$</span>
+            <input
+              inputMode="decimal"
+              value={allowance}
+              onChange={(e) =>
+                setAllowance(e.target.value.replace(/[^0-9.]/g, ""))
+              }
+            />
+          </div>
+          <small className="field-hint">
+            <Icon name="info" size={11} /> Your usual monthly allowance
+          </small>
         </label>
+        <label>
+          <span>Monthly savings goal</span>
+          <div className="money-input">
+            <span>$</span>
+            <input
+              inputMode="decimal"
+              value={savings}
+              onChange={(e) =>
+                setSavings(e.target.value.replace(/[^0-9.]/g, ""))
+              }
+            />
+          </div>
+          <small className="field-hint">
+            <Icon name="info" size={11} /> On track: $350 projected for
+            September
+          </small>
+        </label>
+      </div>
+    </div>
+  );
+}
+
+// function SettingsBudgetPreferences({ showToast }) {
+//   const [defaultPage, setDefaultPage] = useState("Dashboard");
+//   const [weekStarts, setWeekStarts] = useState("Monday");
+//   const [alertThreshold, setAlertThreshold] = useState("80%");
+//   const [forecast, setForecast] = useState(true);
+
+//   return (
+//     <div className="settings-card settings-card-v2">
+//       <div className="settings-card-heading">
+//         <div>
+//           <h3>Budget preferences</h3>
+//           <p>Choose how CampusCoin plans, tracks and presents your money.</p>
+//         </div>
+//       </div>
+//       <div className="settings-preferences-grid">
+//         <label className="settings-preference-field">
+//           <span>Default start page</span>
+//           <select
+//             value={defaultPage}
+//             onChange={(e) => {
+//               setDefaultPage(e.target.value);
+//               showToast(`Default page set to ${e.target.value}`);
+//             }}
+//           >
+//             <option>Dashboard</option>
+//             <option>Transactions</option>
+//             <option>Budgets</option>
+//             <option>Reports</option>
+//           </select>
+//           <small>Open CampusCoin where you need it most.</small>
+//         </label>
+//         <label className="settings-preference-field">
+//           <span>Week starts</span>
+//           <select
+//             value={weekStarts}
+//             onChange={(e) => {
+//               setWeekStarts(e.target.value);
+//               showToast(`Week starts on ${e.target.value}`);
+//             }}
+//           >
+//             <option>Sunday</option>
+//             <option>Monday</option>
+//             <option>Tuesd</option>
+//           </select>
+//           <small>Used for weekly spending summaries and reports.</small>
+//         </label>
+//         <label className="settings-preference-field">
+//           <span>Budget alert threshold</span>
+//           <select
+//             value={alertThreshold}
+//             onChange={(e) => {
+//               setAlertThreshold(e.target.value);
+//               showToast(`Budget alerts now start at ${e.target.value}`);
+//             }}
+//           >
+//             <option>70%</option>
+//             <option>80%</option>
+//             <option>90%</option>
+//             <option>100%</option>
+//           </select>
+//           <small>Get notified before a category reaches its limit.</small>
+//         </label>
+//         <div className="settings-preference-field settings-preference-toggle">
+//           <div>
+//             <span>Spending forecasts</span>
+//             <small>
+//               Use recent transactions to estimate your end-of-month balance.
+//             </small>
+//           </div>
+//           <button
+//             type="button"
+//             aria-pressed={forecast}
+//             className={`cc-switch ${forecast ? "on" : ""}`}
+//             onClick={() => {
+//               setForecast((v) => !v);
+//               showToast(
+//                 forecast
+//                   ? "Spending forecasts disabled"
+//                   : "Spending forecasts enabled",
+//               );
+//             }}
+//           >
+//             <i />
+//           </button>
+//         </div>
+//       </div>
+//     </div>
+//   );
+// }
+
+function SettingsNotificationsV2() {
+  const [values, setValues] = useState([true, true, true]);
+  const items = [
+    ["Budget alerts", "Notify me when a category is close to its limit."],
+    [
+      "Weekly summary",
+      "Send a weekly overview of spending and remaining budget.",
+    ],
+    ["AI insights", "Show new insights when a useful pattern is detected."],
+  ];
+  return (
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
         <div>
-          <strong>Default view</strong>
-          <span>Dashboard</span>
+          <h3>Notifications</h3>
+          <p>Choose which updates CampusCoin should send you.</p>
         </div>
       </div>
-    </div>
-  );
-}
-function SettingsNotifications() {
-  const [a, setA] = useState([false, false, true]);
-  return (
-    <div className="settings-card">
-      <h3>Notifications</h3>
-      <p>Choose when CampusCoin should send you useful reminders.</p>
-      <div className="notification-settings-row">
-        <span>
-          <strong>Budget alerts</strong>
-          <small>Notify me when a category is close to its limit.</small>
-        </span>
-        <button
-          className={a[0] ? "on" : ""}
-          onClick={() => setA((v) => v.map((x, i) => (i === 0 ? !x : x)))}
-        >
-          <i />
-        </button>
-      </div>
-      <div className="notification-settings-row">
-        <span>
-          <strong>Weekly summary</strong>
-          <small>
-            Send a weekly overview of spending and remaining budget.
-          </small>
-        </span>
-        <button
-          className={a[1] ? "on" : ""}
-          onClick={() => setA((v) => v.map((x, i) => (i === 1 ? !x : x)))}
-        >
-          <i />
-        </button>
-      </div>
-      <div className="notification-settings-row">
-        <span>
-          <strong>AI insights</strong>
-          <small>Show new insights when a useful pattern is detected.</small>
-        </span>
-        <button
-          className={a[2] ? "on" : ""}
-          onClick={() => setA((v) => v.map((x, i) => (i === 2 ? !x : x)))}
-        >
-          <i />
-        </button>
+      <div className="settings-option-list">
+        {items.map(([label, description], i) => (
+          <div className="settings-option-row" key={label}>
+            <div>
+              <strong>{label}</strong>
+              <small>{description}</small>
+            </div>
+            <button
+              type="button"
+              aria-pressed={values[i]}
+              className={`cc-switch ${values[i] ? "on" : ""}`}
+              onClick={() =>
+                setValues((v) => v.map((x, j) => (j === i ? !x : x)))
+              }
+            >
+              <i />
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
-function SettingsSecurity({ twoFA, setTwoFA, onPassword }) {
+
+function SettingsSecurityV2({ onPassword, showToast }) {
+  const [sessions, setSessions] = useState(true);
   return (
-    <div className="settings-card">
-      <h3>Security</h3>
-      <p>Keep your CampusCoin account protected.</p>
-      <div className="security-row">
-        <span>
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
+        <div>
+          <h3>Security</h3>
+          <p>Password and active sessions</p>
+        </div>
+      </div>
+      <div className="security-v2-row">
+        <div>
           <strong>Password</strong>
-          <small>Last changed 28 days ago.</small>
-        </span>
+          <small>Last changed 3 months ago</small>
+        </div>
         <button className="tool-btn" type="button" onClick={onPassword}>
           Change password
         </button>
       </div>
-      <div className="security-row">
-        <span>
-          <strong>Two-factor authentication</strong>
-          <small>Protect your account with an additional sign-in step.</small>
-        </span>
+      <div className="security-v2-row">
+        <div>
+          <strong>Active sessions</strong>
+          <small>Chrome on Windows · iPhone app</small>
+        </div>
         <button
+          className="tool-btn"
           type="button"
-          className={twoFA ? "on" : ""}
-          onClick={() => setTwoFA((v) => !v)}
+          onClick={() => {
+            setSessions(false);
+            showToast("Other sessions signed out");
+          }}
+          disabled={!sessions}
         >
-          <i />
+          {sessions
+            ? "Sign out other devices"
+            : "All other sessions signed out"}
         </button>
-        <b className="security-status">{twoFA ? "Enabled" : "Not enabled"}</b>
+      </div>
+      <div className="security-tip">
+        <Icon name="shield" size={15} />
+        <span>
+          Keep your password private and sign out of devices you no longer use.
+        </span>
       </div>
     </div>
   );
 }
-function PasswordForm({ onClose, onSave }) {
-  const [current, setCurrent] = useState(""),
-    [next, setNext] = useState(""),
-    [confirm, setConfirm] = useState("");
-  const valid = next.length >= 8 && next === confirm && current.length > 0;
+
+function SettingsDataPrivacy({ showToast }) {
+  const [analytics, setAnalytics] = useState(true);
   return (
-    <form
-      className="cc-form"
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (valid) onSave();
-      }}
-    >
-      <label>
-        Current password
-        <input
-          type="password"
-          value={current}
-          onChange={(e) => setCurrent(e.target.value)}
-          required
-        />
-      </label>
-      <label>
-        New password
-        <input
-          type="password"
-          minLength="8"
-          value={next}
-          onChange={(e) => setNext(e.target.value)}
-          required
-        />
-        <small>Use at least 8 characters.</small>
-      </label>
-      <label>
-        Confirm new password
-        <input
-          type="password"
-          value={confirm}
-          onChange={(e) => setConfirm(e.target.value)}
-          required
-        />
-      </label>
-      {next && confirm && next !== confirm && (
-        <span className="form-error">Passwords do not match.</span>
-      )}
-      <div className="modal-actions">
-        <button type="button" className="ghost-btn" onClick={onClose}>
-          Cancel
-        </button>
-        <button className="tool-primary" type="submit" disabled={!valid}>
-          Update password
+    <div className="settings-card settings-card-v2">
+      <div className="settings-card-heading">
+        <div>
+          <h3>Data & privacy</h3>
+          <p>Control how CampusCoin uses your account data.</p>
+        </div>
+      </div>
+      <div className="privacy-row">
+        <div>
+          <strong>Personalised insights</strong>
+          <small>
+            Use your transaction patterns to tailor budgeting suggestions.
+          </small>
+        </div>
+        <button
+          type="button"
+          aria-pressed={analytics}
+          className={`cc-switch ${analytics ? "on" : ""}`}
+          onClick={() => {
+            setAnalytics((v) => !v);
+            showToast(
+              analytics
+                ? "Personalised insights disabled"
+                : "Personalised insights enabled",
+            );
+          }}
+        >
+          <i />
         </button>
       </div>
-    </form>
+      <div className="privacy-actions">
+        <button
+          className="ghost-btn"
+          type="button"
+          onClick={() => showToast("Your data export request has been started")}
+        >
+          Request data export
+        </button>
+        <button
+          className="text-link danger-link"
+          type="button"
+          onClick={() => showToast("Account deletion requires confirmation")}
+        >
+          Delete account
+        </button>
+      </div>
+    </div>
   );
+}
+
+function SettingsProfile() {
+  return <SettingsProfileV2 />;
+}
+// function SettingsPreferences() {
+//   return <SettingsBudgetPreferences showToast={() => {}} />;
+// }
+function SettingsNotifications() {
+  return <SettingsNotificationsV2 />;
+}
+function SettingsSecurity({ onPassword }) {
+  return <SettingsSecurityV2 onPassword={onPassword} showToast={() => {}} />;
 }
 
 const pageMap = {
