@@ -3910,3 +3910,263 @@
     padding: 0 10px;
   }
 }
+
+.csv-import-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  align-items: start;
+}
+
+.csv-main-card {
+  padding: 24px;
+}
+
+.csv-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.csv-card-header h2 {
+  margin: 0 0 5px;
+  font-size: 18px;
+}
+
+.csv-card-header p,
+.csv-preview-header p {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.65;
+}
+
+.csv-dropzone {
+  min-height: 260px;
+  border: 1px dashed currentColor;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 30px;
+  text-align: center;
+  opacity: 0.7;
+  transition: 0.2s ease;
+}
+
+.csv-dropzone:hover,
+.csv-dropzone.drag-active {
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.csv-dropzone h3 {
+  margin: 14px 0 6px;
+  font-size: 16px;
+}
+
+.csv-dropzone p {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.csv-dropzone small {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.csv-upload-icon,
+.csv-file-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(127, 127, 127, 0.1);
+}
+
+.csv-file-card {
+  min-height: 78px;
+  border: 1px solid rgba(127, 127, 127, 0.18);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.csv-file-card > div:nth-child(2) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.csv-file-card b {
+  font-size: 13px;
+}
+
+.csv-file-card small {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.csv-file-card > button {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+}
+
+.csv-status {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.csv-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.csv-summary > div {
+  border: 1px solid rgba(127, 127, 127, 0.15);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.csv-summary span {
+  font-size: 10px;
+  opacity: 0.6;
+}
+
+.csv-summary b {
+  font-size: 17px;
+}
+
+.csv-preview-header {
+  margin: 24px 0 12px;
+}
+
+.csv-preview-header h3 {
+  margin: 0 0 5px;
+  font-size: 15px;
+}
+
+.csv-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid rgba(127, 127, 127, 0.15);
+  border-radius: 12px;
+}
+
+.csv-table-wrapper table {
+  min-width: 800px;
+}
+
+.csv-valid {
+  font-size: 11px;
+}
+
+.csv-invalid {
+  font-size: 11px;
+}
+
+.csv-import-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.csv-help-card {
+  padding: 18px;
+}
+
+.csv-help-card h3 {
+  margin: 0 0 5px;
+  font-size: 14px;
+}
+
+.csv-help-card > small {
+  font-size: 11px;
+  line-height: 1.5;
+  opacity: 0.65;
+}
+
+.csv-column-list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.csv-column-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 11px;
+}
+
+.csv-column-list b {
+  font-family: monospace;
+}
+
+.csv-column-list span {
+  opacity: 0.65;
+  text-align: right;
+}
+
+.csv-rules {
+  margin: 14px 0 0;
+  padding-left: 17px;
+}
+
+.csv-rules li {
+  margin-bottom: 9px;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+  .csv-import-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 650px) {
+  .csv-card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .csv-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .csv-import-footer {
+    flex-direction: column;
+  }
+
+  .csv-import-footer button {
+    width: 100%;
+  }
+}
+
+.dashboard-app .modal-form-error {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff1f1;
+  color: #b42318;
+  font-size: 12px;
+  line-height: 1.4;
+}

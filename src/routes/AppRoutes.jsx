@@ -21,6 +21,7 @@ import AdminConsolePage from '../pages/AdminConsolePage'
 
 import PrivacyPage from '../pages/PrivacyPage'
 import TermsPage from '../pages/TermsPage'
+import ImportCSVPage from "../pages/ImportCSVPage";
 
 import {
   isAdminAuthenticated,
@@ -128,7 +129,7 @@ export const routes = {
       <OnboardingPage />
     </RequireOnboardingAccess>
   ),
-
+  
   '/forgot-password': ForgotPasswordPage,
   '/check-inbox': CheckInboxPage,
   '/reset-password': ResetPasswordPage,
@@ -212,10 +213,10 @@ export const routes = {
   ),
 
   '/import-csv': () => (
-    <RequireStudent>
-      <MoneyToolsPage type="/import-csv" />
-    </RequireStudent>
-  ),
+  <RequireStudent>
+    <ImportCSVPage />
+  </RequireStudent>
+),
 
   '/review-categories': () => (
     <RequireStudent>
