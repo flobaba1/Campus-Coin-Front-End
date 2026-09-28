@@ -3,16 +3,19 @@ import { navigate } from "../routes/AppRoutes";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
 import { clearStudentSession, getStudentSession } from "../utils";
+import ThemeToggle from "../components/ThemeToggle";
+import { formatMoney, getCurrencyInfo } from "../utils/currency";
 
 import { getProfile, loadProfilePhoto } from "../api/profileApi";
 import { getTransactions, createTransaction } from "../api/transactionApi";
 import { getCategories } from "../api/categoryApi";
+import { getBudgetsForMonth } from "../api/budgetApi";
 
 import "../styles/dashboard.css";
 
 const DEMO_NOTIFICATIONS = [
   [
-    "Your September insight is ready",
+    "Your latest insight is ready",
     "Your spending data has been updated",
     "sparkle",
     "Today",
@@ -28,7 +31,7 @@ const DEMO_NOTIFICATIONS = [
 function money(n) {
   const value = Number(n || 0);
 
-  return `${value < 0 ? "−" : "+"}$${Math.abs(value).toFixed(2)}`;
+  return `${value < 0 ? "−" : "+"}${formatMoney(Math.abs(value))}`;
 }
 
 function toneIcon(tone, icon) {
@@ -101,8 +104,6 @@ function DashboardShell({
   notificationOpen,
   setNotificationOpen,
   page = "Dashboard",
-  search,
-  setSearch,
 }) {
   const nav = [
     ["Dashboard", "grid", "/dashboard"],
@@ -122,6 +123,44 @@ function DashboardShell({
     ["Import CSV", "upload", "/import-csv"],
     ["Settings", "settings", "/settings"],
   ];
+
+  const studentSession = getStudentSession();
+  const userFullName =
+    studentSession?.name ||
+    studentSession?.fullName ||
+    "CampusCoin User";
+
+  const userInitials =
+    userFullName
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join("") || "CU";
+
+  const [resolvedDark, setResolvedDark] = useState(
+    document.documentElement.dataset.theme === "dark"
+  );
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setResolvedDark(
+        document.documentElement.dataset.theme === "dark"
+      );
+    };
+
+    window.addEventListener(
+      "campuscoin-theme-change",
+      handleThemeChange
+    );
+
+    return () =>
+      window.removeEventListener(
+        "campuscoin-theme-change",
+        handleThemeChange
+      );
+  }, []);
 
   const signOut = () => {
     clearStudentSession();
@@ -210,11 +249,14 @@ function DashboardShell({
   );
 
   return (
-    <div className={`dashboard-app ${dark ? "dark" : ""}`}>
+    <div className={`dashboard-app ${resolvedDark ? "dark" : ""}`}>
       <aside className="dash-sidebar">
-        <button className="dash-brand" onClick={() => navigate("/dashboard")}>
+        <button
+          className="dash-brand"
+          type="button"
+          onClick={() => navigate("/dashboard")}
+        >
           <Logo />
-          <span className="brand-dot" />
         </button>
 
         <div className="side-label">MENU</div>
@@ -225,11 +267,10 @@ function DashboardShell({
               key={label}
               className={`side-link ${page === label ? "active" : ""}`}
               onClick={() => navigate(path)}
+              type="button"
             >
               <Icon name={icon} size={18} />
               <span>{label}</span>
-
-              {label === "Budgets" && <b>3</b>}
             </button>
           ))}
         </nav>
@@ -241,10 +282,10 @@ function DashboardShell({
             className={`side-link ${page === label ? "active" : ""}`}
             key={label}
             onClick={() => navigate(path)}
+            type="button"
           >
             <Icon name={icon} size={18} />
             <span>{label}</span>
-
             {label === "AI Insights" && <b className="new">New</b>}
           </button>
         ))}
@@ -256,6 +297,7 @@ function DashboardShell({
             className={`side-link ${page === label ? "active" : ""}`}
             key={label}
             onClick={() => navigate(path)}
+            type="button"
           >
             <Icon name={icon} size={18} />
             <span>{label}</span>
@@ -266,27 +308,27 @@ function DashboardShell({
 
         <div className="budget-mini">
           <div>
-            <span>September spending</span>
+            <span>Current month spending</span>
             <strong>Live</strong>
           </div>
-
           <em>Updated</em>
-
           <div className="mini-track">
             <i />
           </div>
-
           <small>Based on your transactions</small>
         </div>
 
-        <button className="profile-mini" onClick={signOut} title="Sign out">
-          {renderAvatar("avatar")}
-
+        <button
+          className="profile-mini"
+          type="button"
+          onClick={signOut}
+          title="Sign out"
+        >
+          <span className="avatar">{userInitials}</span>
           <span>
-            <strong>{profileName}</strong>
+            <strong>{userFullName}</strong>
             <small>Sign out</small>
           </span>
-
           <Icon name="logout" size={16} />
         </button>
       </aside>
@@ -300,20 +342,14 @@ function DashboardShell({
           </div>
 
           <div className="top-actions">
-            <button className="top-btn">A</button>
-            <button className="top-btn">A</button>
-
-            <button
-              className="top-btn"
-              onClick={() => setDark((value) => !value)}
-            >
-              <Icon name={dark ? "sun" : "moon"} size={17} />
-            </button>
+            <ThemeToggle />
 
             <div className="notify-wrap">
               <button
                 className={`top-btn ${notificationOpen ? "selected" : ""}`}
+                type="button"
                 onClick={() => setNotificationOpen((value) => !value)}
+                aria-label="Notifications"
               >
                 <Icon name="bell" size={17} />
                 <i />
@@ -323,6 +359,14 @@ function DashboardShell({
             </div>
 
             {renderAvatar("top-avatar")}
+            <button
+              className="top-avatar"
+              type="button"
+              onClick={() => navigate("/settings")}
+              aria-label="Open settings"
+            >
+              {userInitials}
+            </button>
           </div>
         </header>
 
@@ -379,7 +423,23 @@ function DashboardPage() {
 
   const initialSaved = initialState === "saved";
 
-  const [dark, setDark] = useState(params.get("theme") === "dark");
+  const studentSession = getStudentSession();
+  const userFullName =
+    studentSession?.name ||
+    studentSession?.fullName ||
+    "CampusCoin User";
+
+  const userInitials = userFullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("") || "CU";
+
+  const [dark, setDark] = useState(
+    document.documentElement.dataset.theme === "dark"
+  );
 
   const [notificationOpen, setNotificationOpen] = useState(
     params.get("state") === "notifications",
@@ -397,7 +457,11 @@ function DashboardPage() {
 
   const [categories, setCategories] = useState([]);
 
-  const [loading, setLoading] = useState(true);
+  const [budgets, setBudgets] =
+    useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
 
   const [error, setError] = useState("");
 
@@ -410,6 +474,31 @@ function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
+    const handleThemeChange = (event) => {
+      const preference = event.detail?.preference;
+      const resolved =
+        preference === "dark"
+          ? "dark"
+          : preference === "light"
+            ? "light"
+            : document.documentElement.dataset.theme;
+
+      setDark(resolved === "dark");
+    };
+
+    window.addEventListener(
+      "campuscoin-theme-change",
+      handleThemeChange
+    );
+
+    return () =>
+      window.removeEventListener(
+        "campuscoin-theme-change",
+        handleThemeChange
+      );
+  }, []);
+
+  useEffect(() => {
     loadDashboardData();
   }, [refreshKey]);
 
@@ -418,14 +507,36 @@ function DashboardPage() {
       setLoading(true);
       setError("");
 
-      const [transactionData, categoryData] = await Promise.all([
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+
+      const [
+        transactionData,
+        categoryData,
+        budgetData,
+      ] = await Promise.all([
         getTransactions(),
         getCategories(),
+        getBudgetsForMonth(
+          currentYear,
+          currentMonth
+        ),
       ]);
 
       setTransactions(Array.isArray(transactionData) ? transactionData : []);
 
-      setCategories(Array.isArray(categoryData) ? categoryData : []);
+      setCategories(
+        Array.isArray(categoryData)
+          ? categoryData
+          : []
+      );
+
+      setBudgets(
+        Array.isArray(budgetData)
+          ? budgetData
+          : []
+      );
     } catch (err) {
       console.error("Failed to load dashboard data:", err);
 
@@ -435,44 +546,81 @@ function DashboardPage() {
     }
   }
 
-  /*
-   * September transactions
-   */
-  const septemberTransactions = useMemo(() => {
-    return transactions.filter(
-      (transaction) =>
-        transaction.date >= "2026-09-01" && transaction.date <= "2026-09-30",
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth() + 1;
+
+  const monthName = currentDate.toLocaleDateString(
+    "en-US",
+    { month: "long" }
+  );
+
+  const monthLabel = `${monthName} ${currentYear}`;
+
+  const currentMonthTransactions =
+    useMemo(() => {
+      return transactions.filter((transaction) => {
+        if (!transaction.date) return false;
+
+        const date = new Date(`${transaction.date}T00:00:00`);
+
+        return (
+          date.getFullYear() === currentYear &&
+          date.getMonth() + 1 === currentMonth
+        );
+      });
+    }, [transactions, currentYear, currentMonth]);
+
+  const currentMonthIncome =
+    useMemo(() => {
+      return currentMonthTransactions
+        .filter(
+          (transaction) =>
+            transaction.type === "INCOME"
+        )
+        .reduce(
+          (total, transaction) =>
+            total + Number(transaction.amount || 0),
+          0
+        );
+    }, [currentMonthTransactions]);
+
+  const currentMonthExpenses =
+    useMemo(() => {
+      return currentMonthTransactions
+        .filter(
+          (transaction) =>
+            transaction.type === "EXPENSE"
+        )
+        .reduce(
+          (total, transaction) =>
+            total + Number(transaction.amount || 0),
+          0
+        );
+    }, [currentMonthTransactions]);
+
+  const currentMonthBalance =
+    currentMonthIncome - currentMonthExpenses;
+
+  const totalBudget =
+    budgets.reduce(
+      (total, budget) =>
+        total + Number(budget.amount || 0),
+      0
     );
-  }, [transactions]);
 
-  /*
-   * September income
-   */
-  const septemberIncome = useMemo(() => {
-    return septemberTransactions
-      .filter((transaction) => transaction.type === "INCOME")
-      .reduce(
-        (total, transaction) => total + Number(transaction.amount || 0),
-        0,
-      );
-  }, [septemberTransactions]);
+  const budgetPercentage =
+    totalBudget > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (currentMonthExpenses / totalBudget) * 100
+          )
+        )
+      : 0;
 
-  /*
-   * September expenses
-   */
-  const septemberExpenses = useMemo(() => {
-    return septemberTransactions
-      .filter((transaction) => transaction.type === "EXPENSE")
-      .reduce(
-        (total, transaction) => total + Number(transaction.amount || 0),
-        0,
-      );
-  }, [septemberTransactions]);
-
-  /*
-   * September balance
-   */
-  const septemberBalance = septemberIncome - septemberExpenses;
+  const budgetRemaining =
+    totalBudget - currentMonthExpenses;
 
   /*
    * Search recent transactions
@@ -494,28 +642,43 @@ function DashboardPage() {
   /*
    * Category spending
    */
-  const categorySpending = useMemo(() => {
-    const map = {};
+  const categorySpending =
+    useMemo(() => {
+      const map = {};
+
+      currentMonthTransactions
+        .filter(
+          (transaction) =>
+            transaction.type ===
+            "EXPENSE"
+        )
+        .forEach((transaction) => {
+          const category =
+            transaction.categoryName ||
+            "Other";
 
     septemberTransactions
       .filter((transaction) => transaction.type === "EXPENSE")
       .forEach((transaction) => {
         const category = transaction.categoryName || "Other";
 
-        if (!map[category]) {
-          map[category] = 0;
-        }
+          map[category] += Number(
+            transaction.amount || 0
+          );
+        });
 
-        map[category] += Number(transaction.amount || 0);
-      });
-
-    return Object.entries(map)
-      .map(([name, value]) => ({
-        name,
-        value,
-      }))
-      .sort((a, b) => b.value - a.value);
-  }, [septemberTransactions]);
+      return Object.entries(map)
+        .map(
+          ([name, value]) => ({
+            name,
+            value,
+          })
+        )
+        .sort(
+          (a, b) =>
+            b.value - a.value
+        );
+    }, [currentMonthTransactions]);
 
   const topCategory = categorySpending[0] || null;
 
@@ -525,22 +688,6 @@ function DashboardPage() {
    * Recent transactions
    */
   const recentTransactions = filteredTransactions.slice(0, 5);
-
-  /*
-   * Budget placeholder.
-   *
-   * Your backend currently does not expose
-   * a budget entity/API, so we don't pretend
-   * this value is real backend data yet.
-   */
-  const demoBudget = 870;
-
-  const budgetPercentage =
-    demoBudget > 0
-      ? Math.min(100, Math.round((septemberExpenses / demoBudget) * 100))
-      : 0;
-
-  const budgetRemaining = demoBudget - septemberExpenses;
 
   const saveTransaction = async (payload) => {
     try {
@@ -573,19 +720,30 @@ function DashboardPage() {
     <DashboardShell
       dark={dark}
       setDark={setDark}
-      notificationOpen={notificationOpen}
-      setNotificationOpen={setNotificationOpen}
-      search={search}
-      setSearch={setSearch}
+      notificationOpen={
+        notificationOpen
+      }
+      setNotificationOpen={
+        setNotificationOpen
+      }
+      userFullName={userFullName}
+      userInitials={userInitials}
     >
       <section className="dash-content">
         <div className="dash-heading">
           <div>
-            <label>SEPTEMBER 2026</label>
+            <label>
+              {monthLabel.toUpperCase()}
+            </label>
 
-            <h1>Good morning, CampusCoin</h1>
+            <h1>
+              Good morning, {userFullName}
+            </h1>
 
-            <p>Here's how your September money is moving.</p>
+            <p>
+              Here's how your {monthName}
+              money is moving.
+            </p>
           </div>
 
           <div className="heading-actions">
@@ -633,40 +791,78 @@ function DashboardPage() {
 
         <div className="dashboard-grid">
           <BalanceCard
-            income={septemberIncome}
-            spent={septemberExpenses}
-            balance={septemberBalance}
+            income={currentMonthIncome}
+            spent={currentMonthExpenses}
+            balance={currentMonthBalance}
+            monthName={monthName}
           />
 
           <BudgetCard
-            spent={septemberExpenses}
-            budget={demoBudget}
-            percentage={budgetPercentage}
-            remaining={budgetRemaining}
+            spent={
+              currentMonthExpenses
+            }
+            budget={totalBudget}
+            percentage={
+              budgetPercentage
+            }
+            remaining={
+              budgetRemaining
+            }
+            monthName={monthName}
           />
 
           <TopCategory
-            topCategory={topCategory}
-            runnerUpCategory={runnerUpCategory}
-            totalSpent={septemberExpenses}
+            topCategory={
+              topCategory
+            }
+            runnerUpCategory={
+              runnerUpCategory
+            }
+            totalSpent={
+              currentMonthExpenses
+            }
+            monthName={monthName}
           />
 
-          <SpendingCard spent={septemberExpenses} loading={loading} />
+          <SpendingCard
+            spent={
+              currentMonthExpenses
+            }
+            budget={totalBudget}
+            monthName={monthName}
+            transactions={currentMonthTransactions}
+            loading={loading}
+          />
 
           <div className="right-stack">
             <InsightCard
               loading={loading}
-              transactionCount={septemberTransactions.length}
-              onRead={() => navigate("/ai-insights")}
+              transactionCount={
+                currentMonthTransactions.length
+              }
+              monthName={monthName}
+              onRead={() =>
+                navigate(
+                  "/ai-insights"
+                )
+              }
             />
 
             <SavingTips onViewAll={() => navigate("/saving-tips")} />
           </div>
 
           <CategoryBudgets
-            categorySpending={categorySpending}
-            categories={categories}
-            onManage={() => navigate("/budgets")}
+            categorySpending={
+              categorySpending
+            }
+            categories={
+              categories
+            }
+            budgets={budgets}
+            monthName={monthName}
+            onManage={() =>
+              navigate("/budgets")
+            }
           />
 
           <RecentTransactions
@@ -706,28 +902,34 @@ function DashboardPage() {
   );
 }
 
-function BalanceCard({ income, spent, balance }) {
-  const formattedBalance = Number(balance || 0).toFixed(2);
+function BalanceCard({
+  income,
+  spent,
+  balance,
+  monthName,
+}) {
+  const formattedBalance =
+    Number(balance || 0).toFixed(2);
 
   const [whole, cents] = formattedBalance.split(".");
 
   return (
     <div className="balance-card">
       <div className="balance-top">
-        <span>SEPTEMBER BALANCE</span>
+        <span>
+          {monthName.toUpperCase()} BALANCE
+        </span>
 
-        <Icon name="eye" size={18} />
       </div>
 
       <div className="balance-amount">
-        <strong>
-          {balance < 0 ? "−" : ""}${Math.abs(Number(whole))}
-        </strong>
-
-        <em>.{cents}</em>
+        <strong>{formatMoney(balance)}</strong>
       </div>
 
-      <p>Income minus expenses, September 1 to 30</p>
+      <p>
+        Income minus expenses,
+        {monthName}
+      </p>
 
       <div className="balance-stats">
         <div>
@@ -735,7 +937,9 @@ function BalanceCard({ income, spent, balance }) {
 
           <span>
             Income
-            <b>${income.toFixed(2)}</b>
+            <b>
+              {formatMoney(income)}
+            </b>
           </span>
         </div>
 
@@ -744,7 +948,9 @@ function BalanceCard({ income, spent, balance }) {
 
           <span>
             Expenses
-            <b>${spent.toFixed(2)}</b>
+            <b>
+              {formatMoney(spent)}
+            </b>
           </span>
         </div>
       </div>
@@ -752,14 +958,22 @@ function BalanceCard({ income, spent, balance }) {
   );
 }
 
-function BudgetCard({ spent, budget, percentage, remaining }) {
+function BudgetCard({
+  spent,
+  budget,
+  percentage,
+  remaining,
+  monthName,
+}) {
   return (
     <div className="dash-card budget-card">
       <div className="card-title">
         <div>
           <strong>Budget vs actual</strong>
 
-          <small>September 1 to 30</small>
+          <small>
+            {monthName}
+          </small>
         </div>
 
         <Icon name="more" size={18} />
@@ -780,29 +994,41 @@ function BudgetCard({ spent, budget, percentage, remaining }) {
         <div>
           <span>
             Spent
-            <b>${spent.toFixed(2)}</b>
+            <b>
+              {formatMoney(spent)}
+            </b>
           </span>
 
           <span>
             Budget
-            <b>${budget.toFixed(2)}</b>
+            <b>
+              {formatMoney(budget)}
+            </b>
           </span>
 
           <span>
             Remaining
-            <b className="green-text">${Math.max(0, remaining).toFixed(2)}</b>
+            <b className="green-text">
+              {formatMoney(Math.max(0, remaining))}
+            </b>
           </span>
         </div>
       </div>
 
       <div className="days-left">
-        ◷ &nbsp;September spending · live transaction data
+        ◷ &nbsp;{monthName} spending
+        · live transaction data
       </div>
     </div>
   );
 }
 
-function TopCategory({ topCategory, runnerUpCategory, totalSpent }) {
+function TopCategory({
+  topCategory,
+  runnerUpCategory,
+  totalSpent,
+  monthName,
+}) {
   if (!topCategory) {
     return (
       <div className="dash-card top-category">
@@ -848,7 +1074,8 @@ function TopCategory({ topCategory, runnerUpCategory, totalSpent }) {
           <strong>{topCategory.name}</strong>
 
           <span>
-            ${topCategory.value.toFixed(2)} · {percentage}% of spend
+            {formatMoney(topCategory.value)}{" "}
+            · {percentage}% of spend
           </span>
         </div>
       </div>
@@ -865,30 +1092,104 @@ function TopCategory({ topCategory, runnerUpCategory, totalSpent }) {
         Runner-up{" "}
         <b>
           {runnerUpCategory
-            ? `${runnerUpCategory.name} · $${runnerUpCategory.value.toFixed(2)}`
+            ? `${runnerUpCategory.name} · ${formatMoney(runnerUpCategory.value)}`
             : "—"}
         </b>
       </small>
 
-      <p>Based on your September expense records.</p>
+      <p>
+        Based on your {monthName}
+        expense records.
+      </p>
     </div>
   );
 }
 
-function SpendingCard({ spent, loading }) {
+function SpendingCard({
+  spent,
+  budget,
+  monthName,
+  transactions = [],
+  loading,
+}) {
+  const [view, setView] = useState("month");
+
+  const weekTransactions = useMemo(() => {
+    const now = new Date();
+    const start = new Date(now);
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - 6);
+
+    return transactions.filter((transaction) => {
+      if (!transaction.date) return false;
+
+      const date = new Date(`${transaction.date}T00:00:00`);
+      return date >= start && date <= now;
+    });
+  }, [transactions]);
+
+  const weekSpent = weekTransactions
+    .filter(
+      (transaction) =>
+        transaction.type === "EXPENSE"
+    )
+    .reduce(
+      (total, transaction) =>
+        total + Number(transaction.amount || 0),
+      0
+    );
+
+  const activeSpent =
+    view === "week" ? weekSpent : spent;
+
+  const activeBudget =
+    view === "week" && budget > 0
+      ? budget / 4.345
+      : budget;
+
+  const percentage =
+    activeBudget > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (activeSpent / activeBudget) * 100
+          )
+        )
+      : 0;
+
+  const viewLabel =
+    view === "week"
+      ? "Last 7 days"
+      : monthName;
+
   return (
     <div className="dash-card spending-card">
       <div className="card-title">
         <div>
           <strong>Spending pace</strong>
 
-          <small>Cumulative spend, September against your budget</small>
+          <small>
+            Cumulative spend, {viewLabel} against your
+            budget
+          </small>
         </div>
 
-        <div className="seg">
-          <button className="active">Month</button>
+        <div className="seg" role="tablist" aria-label="Spending pace period">
+          <button
+            type="button"
+            className={view === "month" ? "active" : ""}
+            onClick={() => setView("month")}
+          >
+            Month
+          </button>
 
-          <button>Week</button>
+          <button
+            type="button"
+            className={view === "week" ? "active" : ""}
+            onClick={() => setView("week")}
+          >
+            Week
+          </button>
         </div>
       </div>
 
@@ -912,15 +1213,23 @@ function SpendingCard({ spent, loading }) {
       ) : (
         <>
           <div className="spend-total">
-            <strong>${spent.toFixed(2)}</strong>
+            <strong>{formatMoney(activeSpent)}</strong>
 
-            <span>Live September spending</span>
+            <span>
+              Live {viewLabel.toLowerCase()} spending
+            </span>
           </div>
 
           <div className="fake-chart">
-            <div className="budget-line">Budget $870</div>
+            <div className="budget-line">
+              Budget {formatMoney(activeBudget)}
+            </div>
 
-            <svg viewBox="0 0 520 190" preserveAspectRatio="none">
+            <svg
+              viewBox="0 0 520 190"
+              preserveAspectRatio="none"
+              aria-label={`${viewLabel} spending chart`}
+            >
               <defs>
                 <linearGradient id="fillg" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0" stopColor="#9de1c8" stopOpacity=".65" />
@@ -930,12 +1239,20 @@ function SpendingCard({ spent, loading }) {
               </defs>
 
               <path
-                d="M0 140 C65 112 120 120 180 105 S270 100 320 75 S420 65 520 30 L520 190 L0 190Z"
+                d={
+                  view === "week"
+                    ? "M0 145 C75 135 105 120 170 130 S260 105 320 110 S420 75 520 55 L520 190 L0 190Z"
+                    : "M0 140 C65 112 120 120 180 105 S270 100 320 75 S420 65 520 30 L520 190 L0 190Z"
+                }
                 fill="url(#fillg)"
               />
 
               <path
-                d="M0 140 C65 112 120 120 180 105 S270 100 320 75 S420 65 520 30"
+                d={
+                  view === "week"
+                    ? "M0 145 C75 135 105 120 170 130 S260 105 320 110 S420 75 520 55"
+                    : "M0 140 C65 112 120 120 180 105 S270 100 320 75 S420 65 520 30"
+                }
                 fill="none"
                 stroke="#008b62"
                 strokeWidth="2.5"
@@ -943,7 +1260,7 @@ function SpendingCard({ spent, loading }) {
 
               <circle
                 cx="520"
-                cy="30"
+                cy={view === "week" ? "55" : "30"}
                 r="4"
                 fill="#fff"
                 stroke="#008b62"
@@ -952,27 +1269,33 @@ function SpendingCard({ spent, loading }) {
             </svg>
 
             <div className="chart-labels">
-              <span>$0</span>
-              <span>$300</span>
-              <span>$600</span>
-              <span>$900</span>
+              <span>{formatMoney(0)}</span>
+              <span>{formatMoney(activeBudget * 0.33)}</span>
+              <span>{formatMoney(activeBudget * 0.66)}</span>
+              <span>{formatMoney(activeBudget)}</span>
             </div>
           </div>
 
           <div className="spend-stats">
             <span>
               Transactions
-              <b>{spent > 0 ? "Active" : "None"}</b>
+              <b>
+                {view === "week"
+                  ? weekTransactions.length
+                  : transactions.length}
+              </b>
             </span>
 
             <span>
-              September spend
-              <b>${spent.toFixed(2)}</b>
+              {view === "week"
+                ? "7-day spend"
+                : `${monthName} spend`}
+              <b>{formatMoney(activeSpent)}</b>
             </span>
 
             <span>
-              Data source
-              <b>Transactions</b>
+              Budget used
+              <b>{percentage}%</b>
             </span>
           </div>
         </>
@@ -981,13 +1304,20 @@ function SpendingCard({ spent, loading }) {
   );
 }
 
-function InsightCard({ loading, transactionCount, onRead }) {
+function InsightCard({
+  loading,
+  transactionCount,
+  monthName,
+  onRead,
+}) {
   return (
     <div className="insight-card">
       <div className="insight-title">
         {toneIcon("mint", "sparkle")}
 
-        <strong>September insight</strong>
+        <strong>
+          {monthName} insight
+        </strong>
 
         <Icon name="bookmark" size={16} />
       </div>
@@ -1003,9 +1333,14 @@ function InsightCard({ loading, transactionCount, onRead }) {
       ) : (
         <>
           <p>
-            Your dashboard is using {transactionCount} September transaction
-            {transactionCount === 1 ? "" : "s"} to calculate your current
-            spending picture.
+            Your dashboard is using{" "}
+            {transactionCount}{" "}
+            {monthName} transaction
+            {transactionCount === 1
+              ? ""
+              : "s"}{" "}
+            to calculate your
+            current spending picture.
           </p>
 
           <button type="button" onClick={onRead}>
@@ -1069,90 +1404,140 @@ function SavingTips({ onViewAll }) {
   );
 }
 
-function CategoryBudgets({ categorySpending, categories, onManage }) {
-  /*
-   * We only display categories that
-   * actually have expense records.
-   *
-   * Budget values are not yet coming
-   * from a backend budget API.
-   */
-  const expenseCategories = categories.filter(
-    (category) => category.type === "EXPENSE",
-  );
+function CategoryBudgets({
+  categorySpending,
+  categories,
+  budgets,
+  monthName,
+  onManage,
+}) {
+  const expenseCategories =
+    categories.filter(
+      (category) =>
+        category.type === "EXPENSE"
+    );
+
+  const budgetRows = budgets
+    .map((budget) => {
+      const category =
+        expenseCategories.find(
+          (item) =>
+            item.categoryId ===
+            budget.categoryId
+        );
+
+      if (!category) return null;
+
+      const spending =
+        Number(budget.spent || 0);
+
+      const budgetAmount =
+        Number(budget.amount || 0);
+
+      const percentage =
+        budgetAmount > 0
+          ? Math.min(
+              100,
+              (spending / budgetAmount) *
+                100
+            )
+          : 0;
+
+      return {
+        budget,
+        category,
+        spending,
+        budgetAmount,
+        percentage,
+      };
+    })
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        b.spending - a.spending
+    );
 
   return (
     <div className="dash-card category-budgets">
       <div className="card-title">
         <div>
-          <strong>Category budgets</strong>
+          <strong>
+            Category budgets
+          </strong>
 
-          <small>Real-time consumption, September</small>
+          <small>
+            Real-time consumption, {monthName}
+          </small>
         </div>
 
-        <button onClick={onManage}>Manage</button>
+        <button onClick={onManage}>
+          Manage
+        </button>
       </div>
 
-      {expenseCategories
-        .filter((category) =>
-          categorySpending.some((item) => item.name === category.name),
-        )
+      {budgetRows
         .slice(0, 5)
-        .map((category) => {
-          const spending =
-            categorySpending.find((item) => item.name === category.name)
-              ?.value || 0;
+        .map((row) => (
+          <div
+            className="budget-row"
+            key={row.budget.budgetId}
+          >
+            {toneIcon(
+              toneForCategory(
+                row.category.name
+              ),
+              iconForCategory(
+                row.category.name
+              )
+            )}
 
-          /*
-           * Temporary presentation
-           * budget because the Budget
-           * backend module isn't built yet.
-           */
-          const budget = 100;
+            <div className="budget-row-main">
+              <div>
+                <strong>
+                  {row.category.name}
+                </strong>
 
-          const percentage = Math.min(100, (spending / budget) * 100);
-
-          return (
-            <div className="budget-row" key={category.categoryId}>
-              {toneIcon(
-                toneForCategory(category.name),
-                iconForCategory(category.name),
-              )}
-
-              <div className="budget-row-main">
-                <div>
-                  <strong>{category.name}</strong>
-
-                  <span>
-                    ${spending.toFixed(2)} / ${budget.toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="progress">
-                  <i
-                    style={{
-                      width: `${percentage}%`,
-                    }}
-                    className={percentage >= 100 ? "over" : ""}
-                  />
-                </div>
-
-                <small>{Math.round(percentage)}%</small>
+                <span>
+                  {formatMoney(
+                    row.spending
+                  )}{" "}
+                  /{" "}
+                  {formatMoney(
+                    row.budgetAmount
+                  )}
+                </span>
               </div>
-            </div>
-          );
-        })}
 
-      {expenseCategories.filter((category) =>
-        categorySpending.some((item) => item.name === category.name),
-      ).length === 0 && (
+              <div className="progress">
+                <i
+                  style={{
+                    width: `${row.percentage}%`,
+                  }}
+                  className={
+                    row.percentage >= 100
+                      ? "over"
+                      : ""
+                  }
+                />
+              </div>
+
+              <small>
+                {Math.round(
+                  row.percentage
+                )}%
+              </small>
+            </div>
+          </div>
+        ))}
+
+      {budgetRows.length === 0 && (
         <div
           style={{
             padding: "20px 0",
             opacity: 0.65,
           }}
         >
-          No September expenses yet.
+          No budgets set for {monthName} yet.
         </div>
       )}
     </div>
@@ -1404,7 +1789,7 @@ function TransactionModal({
         <label>
           Amount
           <div className="amount-input">
-            <span>$</span>
+            <span>{getCurrencyInfo().symbol}</span>
 
             <input
               inputMode="decimal"
@@ -1448,30 +1833,7 @@ function TransactionModal({
               <small>Based on your description</small>
             </div>
 
-            <button
-              type="button"
-              onClick={() => {
-                const academics = availableCategories.find(
-                  (item) => item.name === "Academics",
-                );
 
-                if (academics) {
-                  setCategoryId(academics.categoryId);
-                }
-              }}
-            >
-              Use
-            </button>
-          </div>
-        )}
-
-        <div className="category-select">
-          <div className="label-row">
-            <label>Category</label>
-
-            <button type="button" onClick={() => navigate("/categories")}>
-              Manage categories
-            </button>
           </div>
 
           <div className="chips">

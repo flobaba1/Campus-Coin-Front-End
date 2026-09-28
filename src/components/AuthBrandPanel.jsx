@@ -1,3 +1,4 @@
+import { formatMoney } from "../utils/currency";
 import Logo from './Logo'
 import Icon from './Icon'
 import { navigate } from '../routes/AppRoutes'
@@ -17,10 +18,10 @@ function AuthBrandPanel({ eyebrow = 'Student finance, simplified', title = 'Know
         <div className="auth-preview-transaction">
           <div className="auth-preview-icon"><Icon name="food" size={19} /></div>
           <div><b>Campus Cafe</b><span><Icon name="sparkles" size={12} /> AI sorted this into Food</span></div>
-          <strong>−$8.50</strong>
+          <strong>−{formatMoney(8.50)}</strong>
         </div>
         <div className="auth-preview-budget">
-          <div><span>Food budget</span><b>$214.60 of $250.00</b></div>
+          <div><span>Food budget</span><b>{formatMoney(214.60)} of {formatMoney(250)}</b></div>
           <i><em /></i>
         </div>
       </div>

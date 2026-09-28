@@ -4170,3 +4170,83 @@
   font-size: 12px;
   line-height: 1.4;
 }
+
+/* Dashboard fixes: keep the full spending pace content visible. */
+.dashboard-app .spending-card {
+  height: auto;
+  min-height: 0;
+  align-self: start;
+  overflow: visible;
+  box-sizing: border-box;
+  padding-bottom: 24px;
+}
+
+.dashboard-app .spending-card .card-title,
+.dashboard-app .spending-card .spend-total,
+.dashboard-app .spending-card .fake-chart,
+.dashboard-app .spending-card .spend-stats {
+  min-width: 0;
+}
+
+/* Use the same global theme component as the landing navbar. */
+.dashboard-app .top-actions .theme-toggle-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-app .top-actions .theme-toggle {
+  height: 40px;
+  min-width: 40px;
+}
+
+@media (max-width: 760px) {
+  .dashboard-app .spending-card {
+    height: auto;
+    min-height: 0;
+    align-self: start;
+    overflow: visible;
+    padding-bottom: 18px;
+  }
+
+  .dashboard-app .top-actions .theme-toggle {
+    width: 40px;
+    padding: 0 9px;
+  }
+}
+
+/* Keep the currency prefix and monthly-budget input side by side. */
+.dashboard-app .new-category-card .budget-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.dashboard-app .new-category-card .budget-input span {
+  flex: 0 0 auto;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  color: var(--db-muted);
+  font-size: 14px;
+  line-height: 1;
+}
+
+.dashboard-app .new-category-card .budget-input input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+/* CampusCoin logo is intentionally clean: no decorative green dot. */
+.dashboard-app .brand-dot {
+  display: none !important;
+}

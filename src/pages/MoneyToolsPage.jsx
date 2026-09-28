@@ -2,7 +2,9 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import { navigate } from "../routes/AppRoutes";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
-import { clearStudentSession } from "../utils";
+import { clearStudentSession, getStudentSession } from "../utils";
+import ThemeToggle from "../components/ThemeToggle";
+import { formatMoney } from "../utils/currency";
 import "../styles/dashboard.css";
 import "../styles/money-tools.css";
 import {
@@ -93,13 +95,13 @@ const alerts = [
   ],
   [
     "Subscriptions is over budget",
-    "$25.98 spent against a $20.00 budget.",
+    `${formatMoney(25.98)} spent against a ${formatMoney(20)} budget.`,
     "tv",
     "Over",
   ],
   [
     "Food is approaching its limit",
-    "$214.60 spent · $35.40 remaining.",
+    `${formatMoney(214.60)} spent · ${formatMoney(35.40)} remaining.`,
     "food",
     "86%",
   ],
@@ -109,35 +111,35 @@ const tips = [
   {
     title: "Cut one food delivery this week",
     text: "Skipping one delivery can keep your Food budget below its monthly target.",
-    amount: "$18.40",
+    amount: formatMoney(18.40),
     tone: "amber",
     icon: "food",
   },
   {
     title: "Use your student transport option",
     text: "Choose your lower-cost route for the next few library trips.",
-    amount: "$6.20",
+    amount: formatMoney(6.20),
     tone: "blue",
     icon: "bus",
   },
   {
     title: "Pause unused subscriptions",
     text: "Review recurring services before the next billing cycle.",
-    amount: "$5.99",
+    amount: formatMoney(5.99),
     tone: "pink",
     icon: "tv",
   },
   {
     title: "Set aside your next income",
     text: "Move a small amount into savings when your next payment arrives.",
-    amount: "$20.00",
+    amount: formatMoney(20),
     tone: "teal",
     icon: "coins",
   },
   {
     title: "Plan academics spending",
     text: "Keep printing and lecture-note costs inside the remaining budget.",
-    amount: "$35.80",
+    amount: formatMoney(35.80),
     tone: "peach",
     icon: "grad",
   },
@@ -171,20 +173,20 @@ const bookmarks = [
 ];
 
 const reviewRows = [
-  ["Sep 23", "Printing, lecture notes", "$4.50", "Academics", "91%"],
-  ["Sep 22", "Ride to library", "$6.20", "Transport", "96%"],
-  ["Sep 20", "Chop & Go delivery", "$18.40", "Food", "94%"],
-  ["Sep 18", "Cinema night", "$14.00", "Entertainment", "88%"],
-  ["Sep 17", "Campus Cafe", "$8.50", "Food", "97%"],
-  ["Sep 16", "Monthly data", "$12.00", "Subscriptions", "79%"],
-  ["Sep 14", "Textbook rental", "$32.00", "Academics", "93%"],
-  ["Sep 12", "Bus pass", "$20.00", "Transport", "95%"],
-  ["Sep 09", "Misc purchase", "$9.20", "Miscellaneous", "68%"],
-  ["Sep 04", "Spotify", "$5.99", "Subscriptions", "81%"],
+  ["Sep 23", "Printing, lecture notes", formatMoney(4.50), "Academics", "91%"],
+  ["Sep 22", "Ride to library", formatMoney(6.20), "Transport", "96%"],
+  ["Sep 20", "Chop & Go delivery", formatMoney(18.40), "Food", "94%"],
+  ["Sep 18", "Cinema night", formatMoney(14), "Entertainment", "88%"],
+  ["Sep 17", "Campus Cafe", formatMoney(8.50), "Food", "97%"],
+  ["Sep 16", "Monthly data", formatMoney(12), "Subscriptions", "79%"],
+  ["Sep 14", "Textbook rental", formatMoney(32), "Academics", "93%"],
+  ["Sep 12", "Bus pass", formatMoney(20), "Transport", "95%"],
+  ["Sep 09", "Misc purchase", formatMoney(9.20), "Miscellaneous", "68%"],
+  ["Sep 04", "Spotify", formatMoney(5.99), "Subscriptions", "81%"],
 ];
 
 function money(v) {
-  return `$${v.toFixed(2)}`;
+  return formatMoney(v);
 }
 function useToast() {
   const [toast, setToast] = useState("");
@@ -385,8 +387,43 @@ function ToolsShell({
 }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const [mobileSearch, setMobileSearch] = useState(false);
+  const [resolvedDark, setResolvedDark] = useState(
+    document.documentElement.dataset.theme === "dark"
+  );
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      setResolvedDark(
+        document.documentElement.dataset.theme === "dark"
+      );
+    };
+
+    window.addEventListener(
+      "campuscoin-theme-change",
+      handleThemeChange
+    );
+
+    return () =>
+      window.removeEventListener(
+        "campuscoin-theme-change",
+        handleThemeChange
+      );
+  }, []);
+
+  const studentSession = getStudentSession();
+  const userFullName =
+    studentSession?.name ||
+    studentSession?.fullName ||
+    "CampusCoin User";
+
+  const userInitials =
+    userFullName
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0].toUpperCase())
+      .join("") || "CU";
 
   // Shared authenticated profile used by the top avatar and sidebar.
   // Settings updates dispatch "campuscoin:profile-updated" so this shell
@@ -486,15 +523,10 @@ function ToolsShell({
     navigate("/");
   };
 
-  const submitSearch = (e) => {
-    e.preventDefault();
-    const q = search.trim();
-    if (!q) return;
-    navigate(`/transactions?search=${encodeURIComponent(q)}`);
-  };
+
 
   return (
-    <div className={`dashboard-app money-tools-app ${dark ? "dark" : ""}`}>
+    <div className={`dashboard-app money-tools-app ${resolvedDark ? "dark" : ""}`}>
       <aside className="dash-sidebar">
         <button
           className="dash-brand"
@@ -502,7 +534,6 @@ function ToolsShell({
           onClick={() => navigate("/dashboard")}
         >
           <Logo />
-          <span className="brand-dot" />
         </button>
         <div className="side-label">MENU</div>
         <nav>
@@ -515,7 +546,6 @@ function ToolsShell({
             >
               <Icon name={icon} size={18} />
               <span>{label}</span>
-              {label === "Budgets" && <b>3</b>}
             </button>
           ))}
         </nav>
@@ -547,14 +577,19 @@ function ToolsShell({
         <div className="side-spacer" />
         <div className="budget-mini">
           <div>
-            <span>Budget left · Sep</span>
-            <strong>85% used</strong>
+            <span>Current month spending</span>
+            <strong>Live</strong>
           </div>
-          <em>$127.20</em>
+
+          <em>Updated</em>
+
           <div className="mini-track">
             <i />
           </div>
-          <small>8 days left · $15.90/day</small>
+
+          <small>
+            Based on your transactions
+          </small>
         </div>
         <button
           className="profile-mini"
@@ -594,47 +629,26 @@ function ToolsShell({
             <strong>{page}</strong>
           </div>
           <div className="top-actions">
-            <form className="global-search" onSubmit={submitSearch}>
-              <Icon name="search" size={15} />
-              <input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search transactions..."
-                aria-label="Search transactions"
-              />
-              <kbd>⌘K</kbd>
-            </form>
-            <button
-              className="mobile-search-trigger"
-              type="button"
-              onClick={() => setMobileSearch((v) => !v)}
-              aria-label="Search"
-            >
-              <Icon name="search" size={17} />
-            </button>
-            <button className="top-btn top-language-btn" type="button">
-              A
-            </button>
-            <button className="top-btn top-language-btn" type="button">
-              A
-            </button>
-            <button
-              className="top-btn"
-              type="button"
-              onClick={() => setDark((v) => !v)}
-              aria-label="Toggle theme"
-            >
-              <Icon name={dark ? "sun" : "moon"} size={17} />
-            </button>
-            <button
-              className={`top-btn ${notificationOpen ? "selected" : ""}`}
-              type="button"
-              onClick={() => setNotificationOpen((v) => !v)}
-              aria-label="Notifications"
-            >
-              <Icon name="bell" size={17} />
-              <i />
-            </button>
+            <ThemeToggle />
+
+            <div className="notify-wrap">
+              <button
+                className={`top-btn ${notificationOpen ? "selected" : ""}`}
+                type="button"
+                onClick={() => setNotificationOpen((v) => !v)}
+                aria-label="Notifications"
+              >
+                <Icon name="bell" size={17} />
+                <i />
+              </button>
+
+              {notificationOpen && (
+                <MiniNotifications
+                  onClose={() => setNotificationOpen(false)}
+                />
+              )}
+            </div>
+
             <button
               className="top-avatar"
               type="button"
@@ -660,26 +674,8 @@ function ToolsShell({
             </button>
           </div>
         </header>
-        {mobileSearch && (
-          <form className="mobile-search-panel" onSubmit={submitSearch}>
-            <Icon name="search" size={16} />
-            <input
-              autoFocus
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search transactions..."
-              aria-label="Search transactions"
-            />
-            <button type="button" onClick={() => setMobileSearch(false)}>
-              <Icon name="close" size={16} />
-            </button>
-          </form>
-        )}
         {children}
       </main>
-      {notificationOpen && (
-        <MiniNotifications onClose={() => setNotificationOpen(false)} />
-      )}
       <MobileToolsNav
         page={page}
         onAdd={() => setQuickAddOpen(true)}
@@ -1285,7 +1281,12 @@ function BudgetCategory({ budget, progress, onEdit }) {
       </div>
 
       {progress && (
-        <div className={`mini-progress ${used >= 100 ? "danger" : ""}`}>
+        <div
+          className={`mini-progress ${used >= 100
+              ? "danger"
+              : ""
+            }`}
+        >
           <i
             style={{
               width: `${used}%`,
@@ -1514,9 +1515,10 @@ function BudgetAutomation({ alertCount = 0 }) {
 
         <span>
           {alertCount > 0
-            ? `CampusCoin found ${alertCount} budget alert${
-                alertCount === 1 ? "" : "s"
-              } for this month.`
+            ? `CampusCoin found ${alertCount} budget alert${alertCount === 1
+              ? ""
+              : "s"
+            } for this month.`
             : "No budget alerts for this month."}
         </span>
       </div>
@@ -1791,7 +1793,9 @@ function ReportsPage() {
         transaction.date || "",
         transaction.description || "",
         transaction.type || "",
-        transaction.categoryName || transaction.category?.name || "",
+        transaction.categoryName ||
+        transaction.category?.name ||
+        "",
         transaction.amount || 0,
       ]);
 
@@ -2135,7 +2139,10 @@ function DailySpendReport({ dailySpending, maxDailySpend, view }) {
             style={{
               height:
                 value > 0
-                  ? `${Math.max((value / maxDailySpend) * 100, 5)}%`
+                  ? `${Math.max(
+                    (value / maxDailySpend) * 100,
+                    5
+                  )}%`
                   : "3%",
             }}
             title={`${money(value)}`}
@@ -2374,7 +2381,7 @@ function AIInsightsPage() {
               {!dismissed.includes("food") && (
                 <Opportunity
                   title="Food delivery"
-                  value="−$18.40"
+                  value={`−${formatMoney(18.40)}`}
                   text="One fewer delivery this week keeps Food comfortably inside budget."
                   tone="amber"
                   icon="food"
@@ -2385,7 +2392,7 @@ function AIInsightsPage() {
               {!dismissed.includes("subs") && (
                 <Opportunity
                   title="Subscriptions"
-                  value="−$5.99"
+                  value={`−${formatMoney(5.99)}`}
                   text="Review one recurring service before the next billing cycle."
                   tone="pink"
                   icon="tv"
@@ -2411,10 +2418,10 @@ function AIInsightsPage() {
           <aside className="insight-side">
             <h3>Highlights</h3>
             {[
-              ["Spent", "$742.80"],
+              ["Spent", formatMoney(742.80)],
               ["Biggest category", "Hostel/Rent"],
-              ["Food", "$214.60"],
-              ["Remaining", "$127.20"],
+              ["Food", formatMoney(214.60)],
+              ["Remaining", formatMoney(127.20)],
             ].map(([a, b]) => (
               <div key={a}>
                 <span>{a}</span>
@@ -2423,7 +2430,7 @@ function AIInsightsPage() {
             ))}
             <div className="side-tip">
               <strong>Keep going</strong>
-              <p>You have 8 days left and about $15.90/day available.</p>
+              <p>You have 8 days left and about {formatMoney(15.90)}/day available.</p>
             </div>
           </aside>
         </div>
@@ -2501,7 +2508,7 @@ function SavingTipsPage() {
           <div className="saving-score">
             <Icon name="zap" size={16} />
             <span>Potential monthly savings</span>
-            <strong>$61.00</strong>
+            <strong>{formatMoney(61)}</strong>
           </div>
           <Metric label="Tips ready" value={String(visible.length)} />
           <Metric label="Saved" value={String(saved.filter(Boolean).length)} />

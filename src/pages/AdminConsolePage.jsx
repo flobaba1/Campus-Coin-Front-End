@@ -2,19 +2,24 @@ import { useEffect, useState } from 'react'
 import { navigate } from '../routes/AppRoutes'
 import Icon from '../components/Icon'
 import Logo from '../components/Logo'
+import {
+  createAdminCategory,
+  deleteAdminCategory,
+  activateAdminUser,
+  getAdminCategoryAnalytics,
+  getAdminCategories,
+  getAdminDailyActiveStudents,
+  getAdminDailyTransactions,
+  getAdminNotifications,
+  getAdminUsers,
+  createAdminNotification,
+  deleteAdminNotification,
+  suspendAdminUser,
+  updateAdminNotification,
+  updateAdminCategory,
+} from '../api/adminApi'
 import { clearAdminSession, getAdminSession, isAdminAuthenticated } from '../utils'
 import '../styles/admin.css'
-
-const adminUsers = [
-  ['Amaka Davis', 'amaka.davis@campus.edu', 'Sep 23, 2026', 'Year 2', 'Active'],
-  ['Chinedu Okafor', 'chinedu.okafor@campus.edu', 'Sep 22, 2026', 'Year 3', 'Active'],
-  ['Maya Williams', 'maya.williams@campus.edu', 'Sep 20, 2026', 'Year 1', 'Active'],
-  ['Daniel Cole', 'daniel.cole@campus.edu', 'Sep 19, 2026', 'Year 4', 'Suspended'],
-  ['Fatima Bello', 'fatima.bello@campus.edu', 'Sep 18, 2026', 'Year 2', 'Active'],
-  ['Samuel Adeyemi', 'samuel.adeyemi@campus.edu', 'Sep 17, 2026', 'Year 3', 'Active'],
-  ['Grace Mensah', 'grace.mensah@campus.edu', 'Sep 16, 2026', 'Year 1', 'Active'],
-  ['David Clark', 'david.clark@campus.edu', 'Sep 14, 2026', 'Year 2', 'Active'],
-]
 
 const defaultCategories = [
   ['Food', '18,492 entries', 'food', 'amber'],
@@ -34,13 +39,6 @@ const defaultIncomeCategories = [
   ['Gift', 'Family and gifts', 'gift', 'peach'],
   ['Refund', 'Refunds and reversals', 'refresh', 'teal'],
   ['Other income', 'Other sources', 'folder', 'slate'],
-]
-
-const announcements = [
-  ['September finance tips', 'Help students review spending before month end.', 'Published', true],
-  ['Tips: food delivery', 'A short guide to keeping Food budgets on track.', 'Published', true],
-  ['AI insight notice', 'Explain how advisory AI insights are generated.', 'Published', true],
-  ['CSV import update', 'A small reminder about supported import columns.', 'Draft', false],
 ]
 
 function AdminShell({ page, children }) {
@@ -170,12 +168,135 @@ function FilterDropdown({ label, value, options, icon, onChange }) {
 }
 
 function OverviewPage() {
+  const [categoryAnalytics, setCategoryAnalytics] = useState([])
+  const [categoryAnalyticsLoading, setCategoryAnalyticsLoading] = useState(true)
+  const [categoryAnalyticsError, setCategoryAnalyticsError] = useState('')
+  const [dailyActivity, setDailyActivity] = useState([])
+  const [dailyActivityLoading, setDailyActivityLoading] = useState(true)
+  const [dailyActivityError, setDailyActivityError] = useState('')
+  const [dailyTransactions, setDailyTransactions] = useState([])
+  const [dailyTransactionsLoading, setDailyTransactionsLoading] = useState(true)
+  const [dailyTransactionsError, setDailyTransactionsError] = useState('')
+  const [activeStudentCount, setActiveStudentCount] = useState(null)
+  const [activeAccountCount, setActiveAccountCount] = useState(null)
+  const [accountCount, setAccountCount] = useState(null)
+  const [activeStudentsError, setActiveStudentsError] = useState(false)
+
+  useEffect(() => {
+    async function fetchCategoryAnalytics() {
+      try {
+        const response = await getAdminCategoryAnalytics(30)
+        const entries = Array.isArray(response) ? response : []
+        setCategoryAnalytics(entries.filter(entry =>
+          entry?.categoryName && Number.isFinite(Number(entry.transactionCount)) && Number.isFinite(Number(entry.percentage))
+        ))
+        setCategoryAnalyticsError('')
+      } catch (error) {
+        console.error('Unable to load category analytics:', error)
+        setCategoryAnalyticsError(error.message || 'Unable to load category analytics.')
+      } finally {
+        setCategoryAnalyticsLoading(false)
+      }
+    }
+
+    fetchCategoryAnalytics()
+  }, [])
+
+  useEffect(() => {
+    async function fetchActiveStudents() {
+      try {
+        const response = await getAdminUsers()
+        const users = Array.isArray(response) ? response : response?.users
+        const accountUsers = Array.isArray(users) ? users : []
+        const isActive = user => {
+          const status = String(user.status || user.accountStatus || user.userStatus || '').toUpperCase()
+          const enabled = user.enabled ?? user.active ?? user.isActive
+          return status ? status === 'ACTIVE' : enabled !== false
+        }
+        const activeUsers = accountUsers.filter(isActive)
+        const activeStudents = activeUsers.filter(user => {
+          const role = String(user.role || user.userRole || '').toUpperCase()
+          return !role || role === 'STUDENT'
+        })
+
+        setActiveStudentCount(activeStudents.length)
+        setActiveAccountCount(activeUsers.length)
+        setAccountCount(accountUsers.length)
+      } catch (error) {
+        console.error('Unable to load active students for overview:', error)
+        setActiveStudentsError(true)
+      }
+    }
+
+    fetchActiveStudents()
+  }, [])
+
+  useEffect(() => {
+    async function fetchDailyActivity() {
+      try {
+        const response = await getAdminDailyActiveStudents(30)
+        const entries = Array.isArray(response) ? response : []
+        setDailyActivity(entries.filter(entry =>
+          entry?.date && Number.isFinite(Number(entry.count))
+        ))
+        setDailyActivityError('')
+      } catch (error) {
+        console.error('Unable to load daily active-student analytics:', error)
+        setDailyActivityError(error.message || 'Unable to load active-student analytics.')
+      } finally {
+        setDailyActivityLoading(false)
+      }
+    }
+
+    fetchDailyActivity()
+  }, [])
+
+  useEffect(() => {
+    async function fetchDailyTransactions() {
+      try {
+        const response = await getAdminDailyTransactions(14)
+        const entries = Array.isArray(response) ? response : []
+        setDailyTransactions(entries.filter(entry =>
+          entry?.date && Number.isFinite(Number(entry.count))
+        ))
+        setDailyTransactionsError('')
+      } catch (error) {
+        console.error('Unable to load daily transaction analytics:', error)
+        setDailyTransactionsError(error.message || 'Unable to load transaction analytics.')
+      } finally {
+        setDailyTransactionsLoading(false)
+      }
+    }
+
+    fetchDailyTransactions()
+  }, [])
+
+  const activityAxisStep = Math.max(1, Math.ceil(Math.max(...dailyActivity.map(entry => Number(entry.count)), 0) / 4))
+  const activityAxisMax = activityAxisStep * 4
+  const activityPoints = dailyActivity.map((entry, index) => {
+    const x = dailyActivity.length === 1 ? 310 : index * 620 / (dailyActivity.length - 1)
+    const y = 205 - Number(entry.count) / activityAxisMax * 170
+    return { x, y, date: entry.date }
+  })
+  const activityLinePath = activityPoints.map((point, index) =>
+    `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`
+  ).join(' ')
+  const activityAreaPath = activityPoints.length
+    ? `M 0 205 ${activityPoints.map(point => `L ${point.x} ${point.y}`).join(' ')} L 620 205 Z`
+    : ''
+  const activityDateTicks = [...new Set([0, Math.round((dailyActivity.length - 1) / 3), Math.round((dailyActivity.length - 1) * 2 / 3), dailyActivity.length - 1])]
+    .filter(index => dailyActivity[index])
+  const dailyTransactionMaximum = Math.max(...dailyTransactions.map(entry => Number(entry.count)), 0)
+  const dailyTransactionTotal = dailyTransactions.reduce((total, entry) => total + Number(entry.count), 0)
+  const transactionDateTicks = [...new Set([0, Math.round((dailyTransactions.length - 1) / 2), dailyTransactions.length - 1])]
+    .filter(index => dailyTransactions[index])
+
   return <AdminShell page="Overview"><AdminFrame eyebrow="ADMIN · OVERVIEW" title="Usage overview" description="System-wide activity across all student accounts. Figures exclude disabled users." actions={<><MonthSelector /><button className="admin-primary"><Icon name="download" size={14}/> Export CSV</button></>}>
-    <div className="admin-stat-grid"><Stat label="Active students" value="14,208" note="+6.4% vs Aug"/><Stat label="Active accounts" value="9,842" note="69.3% of students" tone="green"/><Stat label="Transactions" value="507,615" note="+12.8% vs Aug"/><Stat label="AI suggestions accepted" value="91%" note="of reviewed suggestions" tone="green"/></div>
+    <div className="admin-stat-grid"><Stat label="Active students" value={activeStudentCount === null ? '—' : activeStudentCount.toLocaleString()} note={activeStudentsError ? 'Unable to load count' : activeStudentCount === null ? 'Loading from accounts…' : 'Active student accounts'} /><Stat label="Active accounts" value={activeAccountCount === null ? '—' : activeAccountCount.toLocaleString()} note={activeStudentsError ? 'Unable to load count' : accountCount === null ? 'Loading from accounts…' : `${accountCount ? Math.round((activeAccountCount / accountCount) * 100) : 0}% of all accounts`} tone="green"/><Stat label="Transactions" value="507,615" note="+12.8% vs Aug"/><Stat label="AI suggestions accepted" value="91%" note="of reviewed suggestions" tone="green"/></div>
     <div className="admin-overview-grid">
-      <div className="admin-panel usage-panel"><div className="panel-head"><div><strong>Active students</strong><small>Daily active students · September</small></div><button>Last 30 days⌄</button></div><div className="area-chart"><div className="chart-y"><span>16k</span><span>12k</span><span>8k</span><span>4k</span><span>0</span></div><svg viewBox="0 0 620 210" preserveAspectRatio="none"><defs><linearGradient id="adminArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#107f55" stopOpacity=".25"/><stop offset="1" stopColor="#107f55" stopOpacity=".03"/></linearGradient></defs><path d="M0 150 C65 128 100 135 150 126 S250 140 300 126 S380 128 430 105 S510 78 620 44 L620 205 L0 205Z" fill="url(#adminArea)"/><path d="M0 150 C65 128 100 135 150 126 S250 140 300 126 S380 128 430 105 S510 78 620 44" fill="none" stroke="#107f55" strokeWidth="2"/></svg><div className="chart-x"><span>Sep 1</span><span>Sep 8</span><span>Sep 15</span><span>Sep 23</span></div></div></div>
-      <div className="admin-panel category-panel"><div className="panel-head"><div><strong>Most-used categories</strong><small>Share of all transactions</small></div><button>View all</button></div>{[['Food','36%','amber'],['Transport','19%','blue'],['Academics','14%','teal'],['Hostel/Rent','12%','purple'],['Subscriptions','9%','pink'],['Entertainment','6%','peach']].map(([x,p,t])=><div className="category-bar" key={x}><span>{x}</span><div><i className={t} style={{width:p}}/></div><b>{p}</b></div>)}</div>
-      <div className="admin-panel transaction-chart"><div className="panel-head"><div><strong>Transactions per day</strong><small>Last 14 days</small></div><span>507,615 total</span></div><div className="bar-chart">{[32,46,55,49,63,78,58,71,84,91,72,87,68,77].map((h,i)=><i key={i} style={{height:`${h}%`}}/> )}</div><div className="chart-x"><span>Sep 10</span><span>Sep 17</span><span>Sep 23</span></div></div>
+      <div className="admin-panel usage-panel"><div className="panel-head"><div><strong>Active students</strong><small>Daily active students · Last 30 days</small></div></div>{dailyActivityLoading ? <div className="admin-empty-state">Loading activity…</div> : dailyActivityError ? <div className="admin-empty-state" role="alert">{dailyActivityError}</div> : activityPoints.length ? <div className="area-chart"><div className="chart-y">{[4, 3, 2, 1, 0].map(step=><span key={step}>{(activityAxisStep * step).toLocaleString()}</span>)}</div><svg viewBox="0 0 620 210" preserveAspectRatio="none" role="img" aria-label="Daily active students over the last 30 days"><defs><linearGradient id="adminArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#107f55" stopOpacity=".25"/><stop offset="1" stopColor="#107f55" stopOpacity=".03"/></linearGradient></defs><path d={activityAreaPath} fill="url(#adminArea)"/><path d={activityLinePath} fill="none" stroke="#107f55" strokeWidth="2"/></svg><div className="chart-x">{activityDateTicks.map(index=><span key={dailyActivity[index].date}>{new Date(`${dailyActivity[index].date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>)}</div></div> : <div className="admin-empty-state">No daily activity data available.</div>}</div>
+      <div className="admin-panel category-panel"><div className="panel-head"><div><strong>Most-used categories</strong><small>Share of transactions · Last 30 days</small></div><button type="button" onClick={() => navigate('/admin/categories')}>View all</button></div>{categoryAnalyticsLoading ? <div className="admin-empty-state">Loading category analytics…</div> : categoryAnalyticsError ? <div className="admin-empty-state" role="alert">{categoryAnalyticsError}</div> : categoryAnalytics.length ? categoryAnalytics.slice(0, 6).map(category=>{const percentage=Math.min(100,Math.max(0,Number(category.percentage))); const count=Number(category.transactionCount); const categoryName=category.categoryName; const tone=getCategoryTone(categoryName); return <div className="category-bar" key={categoryName} title={`${count.toLocaleString()} transactions`}><span>{categoryName}</span><div><i className={tone} style={{width:`${percentage}%`}}/></div><b>{percentage.toLocaleString(undefined,{maximumFractionDigits:1})}%</b></div>}) : <div className="admin-empty-state">No category transaction data available.</div>}</div>
+      <div className="admin-panel transaction-chart"><div className="panel-head"><div><strong>Transactions per day</strong><small>Last 14 days</small></div><span>{dailyTransactionsLoading ? 'Loading…' : dailyTransactionsError ? 'Unavailable' : `${dailyTransactionTotal.toLocaleString()} total`}</span></div>{dailyTransactionsLoading ? <div className="admin-empty-state">Loading transactions…</div> : dailyTransactionsError ? <div className="admin-empty-state" role="alert">{dailyTransactionsError}</div> : dailyTransactions.length ? <><div className="bar-chart">{dailyTransactions.map(entry=>{const count=Number(entry.count); const height=dailyTransactionMaximum ? count / dailyTransactionMaximum * 100 : 0; return <i key={entry.date} title={`${new Date(`${entry.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count.toLocaleString()} transactions`} aria-label={`${entry.date}: ${count} transactions`} style={{height:`${height}%`}}/>})}</div><div className="chart-x">{transactionDateTicks.map(index=><span key={dailyTransactions[index].date}>{new Date(`${dailyTransactions[index].date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>)}</div></> : <div className="admin-empty-state">No transaction data available.</div>}</div>
       <div className="admin-panel activity-panel"><div className="panel-head"><div><strong>Recent activity</strong><small>Latest admin events</small></div><button>View audit log</button></div>{['Admin edited Food category','AI policy updated for September','New announcement published','User account suspended'].map((x,i)=><div className="activity-row" key={x}><span className={`activity-dot d${i}`}/><div><strong>{x}</strong><small>{['2 minutes ago','18 minutes ago','1 hour ago','3 hours ago'][i]}</small></div></div>)}</div>
     </div>
   </AdminFrame></AdminShell>
@@ -183,17 +304,53 @@ function OverviewPage() {
 
 function UsersPage() {
   const [query, setQuery] = useState('')
-  const [users, setUsers] = useState(adminUsers)
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [selected, setSelected] = useState(null)
-  const [deletingUser, setDeletingUser] = useState(null)
-  const [editing, setEditing] = useState(null)
-  const [menuUser, setMenuUser] = useState(null)
+  const [suspendingUser, setSuspendingUser] = useState(false)
+  const [activatingUser, setActivatingUser] = useState(null)
+  const [suspendError, setSuspendError] = useState('')
   const [notice, setNotice] = useState('')
   const [statusFilter, setStatusFilter] = useState('All statuses')
   const [yearFilter, setYearFilter] = useState('Year 1–4')
 
   const statusOptions = ['All statuses', 'Active', 'Suspended', 'Pending']
   const yearOptions = ['Year 1–4', 'Year 1', 'Year 2', 'Year 3', 'Year 4']
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const response = await getAdminUsers()
+        const data = Array.isArray(response) ? response : response?.users
+        const rows = Array.isArray(data) ? data.map((user, index) => {
+          const statusValue = String(user.status || user.accountStatus || user.userStatus || '').toUpperCase()
+          const enabled = user.enabled ?? user.active ?? user.isActive
+          const status = statusValue
+            ? statusValue.includes('SUSPEND') || statusValue.includes('DISABLE')
+              ? 'Suspended'
+              : statusValue.charAt(0) + statusValue.slice(1).toLowerCase()
+            : enabled === false ? 'Suspended' : 'Active'
+          const createdAt = user.createdAt || user.created_at
+          const joined = createdAt && !Number.isNaN(new Date(createdAt).getTime())
+            ? new Date(createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : '—'
+          const name = user.name || user.fullName || [user.firstName, user.lastName].filter(Boolean).join(' ') || user.email || 'Unnamed user'
+          const year = user.academicYear || user.profile?.academicYear || user.yearOfStudy || user.year || '—'
+
+          return [name, user.email || '', joined, year, status, user.userId || user.id || user.email || index]
+        }) : []
+
+        setUsers(rows)
+        setLoadError('')
+      } catch (error) {
+        setLoadError(error.message || 'Unable to load users from the backend.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUsers()
+  }, [])
 
   const filtered = users.filter(u => {
     const matchesQuery = `${u[0]} ${u[1]}`.toLowerCase().includes(query.toLowerCase())
@@ -202,108 +359,402 @@ function UsersPage() {
     return matchesQuery && matchesStatus && matchesYear
   })
 
-  function saveUser(updatedUser) {
-    setUsers(current => current.map(user => user[1] === updatedUser[1] ? updatedUser : user))
-    setEditing(null)
-    setNotice(`${updatedUser[0]}'s account was updated.`)
+  async function activateAccount(user) {
+    setActivatingUser(user[5])
+    setLoadError('')
+    try {
+      await activateAdminUser(user[5])
+      setUsers(current => current.map(item =>
+        item[5] === user[5] ? [...item.slice(0, 4), 'Active', item[5]] : item
+      ))
+      setNotice(`${user[0]}'s account is now active.`)
+    } catch (error) {
+      setLoadError(error.message || 'Unable to activate this user.')
+    } finally {
+      setActivatingUser(null)
+    }
   }
 
-  function activateAccount(user) {
-    setMenuUser(null)
-    setUsers(current => current.map(item => item[1] === user[1] ? [...item.slice(0, 4), 'Active'] : item))
-    setNotice(`${user[0]}'s account is now active.`)
-  }
+  async function suspendUser() {
+    if (!selected) return
 
-  function deleteUser() {
-    if (!deletingUser) return
-    setUsers(current => current.filter(user => user[1] !== deletingUser[1]))
-    setNotice(`${deletingUser[0]}'s account was deleted.`)
-    setDeletingUser(null)
-    setMenuUser(null)
+    const userToSuspend = selected
+    setSuspendingUser(true)
+    setSuspendError('')
+    try {
+      await suspendAdminUser(userToSuspend[5])
+      setUsers(current => current.map(user =>
+        user[5] === userToSuspend[5]
+          ? [...user.slice(0, 4), 'Suspended', user[5]]
+          : user
+      ))
+      setSelected(null)
+      setLoadError('')
+      setNotice(`${userToSuspend[0]}'s account was suspended.`)
+    } catch (error) {
+      setSuspendError(error.message || 'Unable to suspend this user.')
+    } finally {
+      setSuspendingUser(false)
+    }
   }
 
   return <AdminShell page="Users"><AdminFrame eyebrow="ADMIN · USERS" title="User accounts" description="View, edit or disable student accounts. Transaction details stay private to each student." actions={<button className="admin-primary"><Icon name="download" size={14}/> Export list</button>}>
     <div className="admin-table-toolbar"><div className="admin-local-search"><Icon name="search" size={14}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search users..."/></div><div className="admin-filter-group"><FilterDropdown label="All statuses" value={statusFilter} options={statusOptions} icon="filter" onChange={setStatusFilter}/><FilterDropdown label="Year 1–4" value={yearFilter} options={yearOptions} onChange={setYearFilter}/></div></div>
     {notice && <div className="admin-action-notice" role="status"><Icon name="check" size={15}/><span>{notice}</span><button onClick={()=>setNotice('')} aria-label="Dismiss notification"><Icon name="close" size={13}/></button></div>}
-    <div className="admin-panel user-table"><div className="user-head"><span>User</span><span>Last active</span><span>Academic year</span><span>Status</span><span>Actions</span></div>{filtered.map(u=><div className="user-row" key={u[1]}><div className="user-cell"><span className="user-mini-avatar">{u[0].split(' ').map(x=>x[0]).join('').slice(0,2)}</span><span><strong>{u[0]}</strong><small>{u[1]}</small></span></div><span>{u[2]}</span><span>{u[3]}</span><b className={`status ${u[4].toLowerCase()}`}>{u[4]}</b><div className="row-actions"><button title="Edit account" onClick={()=>setEditing(u)}><Icon name="edit" size={14}/></button><button title="Disable account" onClick={()=>{setMenuUser(null); setSelected(u)}}><Icon name="ban" size={14}/></button><div className="row-menu-wrap"><button title="More actions" onClick={()=>setMenuUser(menuUser === u[1] ? null : u[1])}><Icon name="moreVertical" size={15}/></button>{menuUser === u[1] && <div className="row-menu">{u[4] === 'Suspended' && <button onClick={()=>activateAccount(u)}>Activate account</button>}<button className="danger-text" onClick={()=>{setMenuUser(null); setDeletingUser(u)}}>Delete user</button></div>}</div></div></div>)}</div>
+    {loadError && <div className="admin-action-notice" role="alert"><Icon name="info" size={15}/><span>{loadError}</span></div>}
+    <div className="admin-panel user-table"><div className="user-head"><span>User</span><span>Joined</span><span>Academic year</span><span>Status</span><span>Actions</span></div>{loading ? <div className="admin-empty-state">Loading users…</div> : filtered.length ? filtered.map(u=><div className="user-row" key={u[5]}><div className="user-cell"><span className="user-mini-avatar">{u[0].split(' ').map(x=>x[0]).join('').slice(0,2)}</span><span><strong>{u[0]}</strong><small>{u[1]}</small></span></div><span>{u[2]}</span><span>{u[3]}</span><b className={`status ${u[4].toLowerCase()}`}>{u[4]}</b><div className="row-actions">{u[4] === 'Suspended' && <button title="Activate account" aria-label={`Activate ${u[0]}`} onClick={()=>activateAccount(u)} disabled={activatingUser === u[5]}><Icon name="circlecheck" size={14}/></button>}{u[4] !== 'Suspended' && u[4] !== 'Deactivated' && <button title="Suspend account" aria-label={`Suspend ${u[0]}`} onClick={()=>{setSuspendError(''); setSelected(u)}}><Icon name="ban" size={14}/></button>}</div></div>) : <div className="admin-empty-state">{loadError ? 'Users could not be loaded.' : 'No users match your filters.'}</div>}</div>
     <div className="admin-table-footer"><div><button>‹</button><b>1</b><button>2</button><button>3</button><button>›</button></div></div>
     <div className="admin-info-banner"><Icon name="lock" size={15}/><span>Admins can see account details and activity counts, never individual transactions or notes. Every action here is written to the audit log.</span></div>
-    {editing && <EditUserModal user={editing} onClose={()=>setEditing(null)} onSave={saveUser}/>} 
-    {selected && <DisableModal user={selected} onClose={()=>setSelected(null)}/>} 
-    {deletingUser && <DeleteUserModal user={deletingUser} onClose={()=>setDeletingUser(null)} onConfirm={deleteUser}/>} 
+    {selected && <DisableModal user={selected} onClose={()=>setSelected(null)} onConfirm={suspendUser} submitting={suspendingUser} error={suspendError}/>} 
   </AdminFrame></AdminShell>
 }
 
-function DeleteUserModal({ user, onClose, onConfirm }) {
-  return <div className="admin-modal-backdrop"><div className="disable-modal"><div className="modal-warning"><Icon name="trash" size={20}/></div><h2>Delete {user[0]}?</h2><p>This permanently removes the student account and its access. This action cannot be undone.</p><div className="disable-actions"><button onClick={onClose}>Cancel</button><button className="danger-btn" onClick={onConfirm}><Icon name="trash" size={14}/> Delete user</button></div></div></div>
-}
-
-function EditUserModal({ user, onClose, onSave }) {
-  const [name, email, lastActive, initialYear, initialStatus] = user
-  const [form, setForm] = useState({ name, email, year: initialYear, status: initialStatus })
-  function submit(e) {
-    e.preventDefault()
-    if (!form.name.trim() || !form.email.trim()) return
-    onSave([form.name.trim(), form.email.trim(), lastActive, form.year, form.status])
-  }
-  return <div className="admin-modal-backdrop"><form className="disable-modal edit-user-modal" onSubmit={submit}><div className="modal-warning"><Icon name="edit" size={20}/></div><h2>Edit account</h2><label>Full name<input value={form.name} onChange={e=>setForm({...form, name:e.target.value})}/></label><label>Email address<input type="email" value={form.email} onChange={e=>setForm({...form, email:e.target.value})}/></label><div className="edit-user-fields"><label>Academic year<select value={form.year} onChange={e=>setForm({...form, year:e.target.value})}>{['Year 1','Year 2','Year 3','Year 4'].map(year=><option key={year}>{year}</option>)}</select></label><label>Status<select value={form.status} onChange={e=>setForm({...form, status:e.target.value})}>{['Active','Suspended','Pending'].map(status=><option key={status}>{status}</option>)}</select></label></div><div className="disable-actions"><button type="button" onClick={onClose}>Cancel</button><button className="admin-primary edit-save-button" type="submit">Save changes</button></div></form></div>
-}
-
-function DisableModal({ user, onClose }) {
-  return <div className="admin-modal-backdrop"><div className="disable-modal"><div className="modal-warning"><Icon name="ban" size={20}/></div><h2>Disable {user[0]}?</h2><p>They will be signed out and unable to sign in until an admin enables the account again. Their data is kept, not deleted.</p><label>Reason <small>(saved to audit log)</small><input defaultValue="Requested by student via support ticket #4821"/></label><div className="disable-actions"><button onClick={onClose}>Cancel</button><button className="danger-btn" onClick={onClose}><Icon name="ban" size={14}/> Disable account</button></div></div></div>
+function DisableModal({ user, onClose, onConfirm, submitting, error }) {
+  return <div className="admin-modal-backdrop"><div className="disable-modal"><div className="modal-warning"><Icon name="ban" size={20}/></div><h2>Suspend {user[0]}?</h2><p>This user will be unable to access their account until it is reactivated.</p>{error && <div className="admin-action-notice" role="alert"><Icon name="info" size={15}/><span>{error}</span></div>}<div className="disable-actions"><button type="button" onClick={onClose} disabled={submitting}>Cancel</button><button className="danger-btn" type="button" onClick={onConfirm} disabled={submitting}><Icon name="ban" size={14}/> {submitting ? 'Suspending…' : 'Suspend account'}</button></div></div></div>
 }
 
 function CategoriesAdminPage() {
-  const [categories, setCategories] = useState(() => defaultCategories.map(category => [...category, true]))
-  const [incomeCategories, setIncomeCategories] = useState(() => defaultIncomeCategories.map(category => [...category, true]))
+  const [categories, setCategories] = useState([])
   const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState(null)
   const [deleting, setDeleting] = useState(null)
   const [name, setName] = useState('')
-  function addCategory(e) { e.preventDefault(); if (!name.trim()) return; setCategories(v => [...v, [name.trim(), '0 entries', 'tag', 'mint', true]]); setName(''); setAdding(false) }
-  function toggleCategory(setter, categoryName) { setter(current => current.map(category => category[0] === categoryName ? [...category.slice(0, 4), !category[4]] : category)) }
-  function deleteCategory() {
-    if (!deleting) return
-    const setter = deleting.type === 'Expense' ? setCategories : setIncomeCategories
-    setter(current => current.filter(category => category[0] !== deleting.category[0]))
-    setDeleting(null)
+  const [newType, setNewType] = useState('EXPENSE')
+  const [editName, setEditName] = useState('')
+  const [editType, setEditType] = useState('EXPENSE')
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+
+  const getCategoryId = category => category?.categoryId || category?.id || category?.category_id
+
+  async function loadCategories() {
+    try {
+      setLoading(true)
+      const data = await getAdminCategories()
+      setCategories(Array.isArray(data) ? data : [])
+      setError('')
+    } catch (err) {
+      setError(err.message || 'Unable to load categories from the backend.')
+    } finally {
+      setLoading(false)
+    }
   }
+
+  useEffect(() => {
+    loadCategories()
+  }, [])
+
+  const expenseCategories = categories.filter(category => String(category.type).toUpperCase() === 'EXPENSE')
+  const incomeCategories = categories.filter(category => String(category.type).toUpperCase() === 'INCOME')
+
+  async function addCategory(e) {
+    e.preventDefault()
+
+    if (!name.trim()) return
+
+    try {
+      setSubmitting(true)
+      const payload = {
+        name: name.trim(),
+        type: newType.toUpperCase(),
+      }
+
+      const created = await createAdminCategory(payload)
+      setCategories(current => [created, ...current])
+      setName('')
+      setNewType('EXPENSE')
+      setAdding(false)
+      setError('')
+    } catch (err) {
+      setError(err.message || 'Unable to create category.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function saveEditedCategory(e) {
+    e.preventDefault()
+
+    if (!editing) return
+
+    try {
+      setSubmitting(true)
+      const categoryId = getCategoryId(editing)
+      const payload = {
+        name: editName.trim(),
+        type: editType.toUpperCase(),
+      }
+
+      const updated = await updateAdminCategory(categoryId, payload)
+      setCategories(current =>
+        current.map(category => (getCategoryId(category) === categoryId ? { ...category, ...updated } : category))
+      )
+      setEditing(null)
+      setEditName('')
+      setEditType('EXPENSE')
+      setError('')
+    } catch (err) {
+      setError(err.message || 'Unable to update category.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function removeCategory() {
+    if (!deleting) return
+
+    try {
+      setSubmitting(true)
+      const categoryId = getCategoryId(deleting)
+      await deleteAdminCategory(categoryId)
+      setCategories(current => current.filter(category => getCategoryId(category) !== categoryId))
+      setDeleting(null)
+      setError('')
+    } catch (err) {
+      setError(err.message || 'Unable to delete category.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return <AdminShell page="Default Categories"><AdminFrame eyebrow="ADMIN · TAXONOMY" title="Default categories" description="Available to every student. Changes apply to new entries; past entries keep their category." actions={<button className="admin-primary" onClick={()=>setAdding(true)}><Icon name="plus" size={14}/> Add category</button>}>
-    <div className="category-admin-grid"><div className="admin-panel category-admin-card"><div className="panel-head"><div><strong>Expense</strong><small>8 default categories</small></div></div>{categories.slice(0,6).map(c=><AdminCategoryRow key={c[0]} c={c} onToggle={()=>toggleCategory(setCategories, c[0])} onDelete={()=>setDeleting({type:'Expense', category:c})}/>)}</div><div className="admin-panel category-admin-card"><div className="panel-head"><div><strong>Income</strong><small>6 default categories</small></div></div>{incomeCategories.map(c=><AdminCategoryRow key={c[0]} c={c} onToggle={()=>toggleCategory(setIncomeCategories, c[0])} onDelete={()=>setDeleting({type:'Income', category:c})}/>)}</div></div>
+    {error && <div className="admin-action-notice" role="alert"><Icon name="info" size={15}/><span>{error}</span><button onClick={()=>setError('')} aria-label="Dismiss error"><Icon name="close" size={13}/></button></div>}
+
+    {loading ? (
+      <div className="admin-panel"><div className="panel-head"><div><strong>Loading categories…</strong><small>Please wait</small></div></div></div>
+    ) : (
+      <div className="category-admin-grid">
+        <div className="admin-panel category-admin-card">
+          <div className="panel-head"><div><strong>Expense</strong><small>{expenseCategories.length} default categories</small></div></div>
+          {expenseCategories.length ? expenseCategories.map(category => <AdminCategoryRow key={getCategoryId(category)} c={category} onEdit={()=>{ setEditing(category); setEditName(category.name); setEditType(String(category.type).toUpperCase()) }} onDelete={()=>setDeleting(category)} />) : <div className="admin-empty-state">No expense categories yet.</div>}
+        </div>
+
+        <div className="admin-panel category-admin-card">
+          <div className="panel-head"><div><strong>Income</strong><small>{incomeCategories.length} default categories</small></div></div>
+          {incomeCategories.length ? incomeCategories.map(category => <AdminCategoryRow key={getCategoryId(category)} c={category} onEdit={()=>{ setEditing(category); setEditName(category.name); setEditType(String(category.type).toUpperCase()) }} onDelete={()=>setDeleting(category)} />) : <div className="admin-empty-state">No income categories yet.</div>}
+        </div>
+      </div>
+    )}
+
     <div className="admin-info-banner category-delete-note"><Icon name="info" size={15}/><span><strong>Deleting a default category</strong><small>Entries using it move to Miscellaneous or Other Income. Students are told in-app. Consider hiding it instead.</small></span></div>
-    {adding&&<div className="admin-inline-modal"><form onSubmit={addCategory}><div><strong>New default category</strong><button type="button" onClick={()=>setAdding(false)} aria-label="Close add category"><Icon name="close" size={15}/></button></div><label>Category name<input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Campus events"/></label><label>Type<select><option>Expense</option><option>Income</option></select></label><div><button className="admin-primary" type="submit">Create category</button></div></form></div>}
-    {deleting && <DeleteCategoryModal category={deleting.category} type={deleting.type} onClose={()=>setDeleting(null)} onConfirm={deleteCategory}/>} 
+
+    {adding && <div className="admin-inline-modal"><form onSubmit={addCategory}><div><strong>New default category</strong><button type="button" onClick={()=>setAdding(false)} aria-label="Close add category"><Icon name="close" size={15}/></button></div><label>Category name<input autoFocus value={name} onChange={e=>setName(e.target.value)} placeholder="e.g. Campus events"/></label><label>Type<select value={newType} onChange={e=>setNewType(e.target.value)}><option value="EXPENSE">Expense</option><option value="INCOME">Income</option></select></label><div><button className="admin-primary" type="submit" disabled={submitting}>{submitting ? 'Creating…' : 'Create category'}</button></div></form></div>}
+
+    {editing && <div className="admin-inline-modal"><form onSubmit={saveEditedCategory}><div><strong>Edit category</strong><button type="button" onClick={()=>setEditing(null)} aria-label="Close edit category"><Icon name="close" size={15}/></button></div><label>Category name<input autoFocus value={editName} onChange={e=>setEditName(e.target.value)} placeholder="Category name"/></label><label>Type<select value={editType} onChange={e=>setEditType(e.target.value)}><option value="EXPENSE">Expense</option><option value="INCOME">Income</option></select></label><div><button className="admin-primary" type="submit" disabled={submitting}>{submitting ? 'Saving…' : 'Save changes'}</button></div></form></div>}
+
+    {deleting && <DeleteCategoryModal category={deleting} type={String(deleting.type).toUpperCase() === 'EXPENSE' ? 'Expense' : 'Income'} onClose={()=>setDeleting(null)} onConfirm={removeCategory}/>} 
   </AdminFrame></AdminShell>
 }
-function AdminCategoryRow({c, onToggle, onDelete}) { const visible = c[4] !== false; return <div className="admin-category-row"><span className={`admin-cat-icon ${c[3]}`}><Icon name={c[2]} size={15}/></span><span><strong>{c[0]}</strong><small>{c[1]}</small></span><b className={visible ? '' : 'category-hidden'}>{visible ? 'Visible' : 'Hidden'}</b><button title={visible ? 'Hide category' : 'Show category'} onClick={onToggle}><Icon name="edit" size={13}/></button><button className="danger-icon" title="Delete category" onClick={onDelete}><Icon name="trash" size={13}/></button></div> }
+
+function getCategoryIcon(name, type) {
+  const normalized = String(name || '').toLowerCase()
+  const categoryType = String(type || '').toLowerCase()
+
+  if (normalized.includes('food')) return 'food'
+  if (normalized.includes('transport')) return 'bus'
+  if (normalized.includes('entertain')) return 'ticket'
+  if (normalized.includes('school') || normalized.includes('education') || normalized.includes('academ')) return 'grad'
+  if (normalized.includes('bill') || normalized.includes('utility') || normalized.includes('rent') || normalized.includes('hostel')) return 'home'
+  if (normalized.includes('subscription') || normalized.includes('media')) return 'tv'
+  if (normalized.includes('allowance') || normalized.includes('freelance') || normalized.includes('part-time') || normalized.includes('gift') || normalized.includes('income')) return 'coins'
+  if (normalized.includes('scholar')) return 'grad'
+  if (normalized.includes('refund')) return 'refresh'
+  if (normalized.includes('misc') || normalized.includes('other')) return 'folder'
+  if (normalized.includes('health')) return 'activity'
+  if (normalized.includes('saving')) return 'wallet'
+  if (normalized.includes('shopping')) return 'bag'
+
+  return categoryType === 'income' ? 'coins' : 'tag'
+}
+
+function getCategoryTone(name, type) {
+  const normalized = String(name || '').toLowerCase()
+
+  if (normalized.includes('food')) return 'amber'
+  if (normalized.includes('transport')) return 'blue'
+  if (normalized.includes('rent') || normalized.includes('hostel')) return 'purple'
+  if (normalized.includes('school') || normalized.includes('education') || normalized.includes('academ')) return 'teal'
+  if (normalized.includes('subscription') || normalized.includes('media')) return 'pink'
+  if (normalized.includes('entertain')) return 'peach'
+  if (normalized.includes('health') || normalized.includes('saving')) return 'mint'
+  if (normalized.includes('misc') || normalized.includes('other')) return 'slate'
+  if (normalized.includes('allowance') || normalized.includes('freelance') || normalized.includes('part-time') || normalized.includes('gift') || normalized.includes('scholar') || normalized.includes('income')) return 'mint'
+
+  return String(type || '').toLowerCase() === 'income' ? 'mint' : 'slate'
+}
+
+function AdminCategoryRow({ c, onEdit, onDelete }) {
+  const isDefault = Boolean(c.defaultCategory)
+  const categoryName = c.name || 'Unnamed category'
+  const tone = getCategoryTone(categoryName, c.type)
+
+  return <div className="admin-category-row"><span className={`admin-cat-icon ${tone}`}><Icon name={getCategoryIcon(categoryName, c.type)} size={15}/></span><span><strong>{categoryName}</strong><small>{isDefault ? 'Default category' : 'Custom category'}</small></span><b className={isDefault ? '' : 'category-hidden'}>{isDefault ? 'Default' : 'Custom'}</b><button title="Edit category" onClick={onEdit}><Icon name="edit" size={13}/></button><button className="danger-icon" title="Delete category" onClick={onDelete}><Icon name="trash" size={13}/></button></div>
+}
 
 function DeleteCategoryModal({ category, type, onClose, onConfirm }) {
   const destination = type === 'Expense' ? 'Miscellaneous' : 'Other Income'
-  return <div className="admin-modal-backdrop"><div className="disable-modal delete-category-modal"><div className="modal-warning"><Icon name="trash" size={20}/></div><h2>Delete {category[0]}?</h2><p>Entries using this category will move to {destination}. Students will be told in-app. This category cannot be restored.</p><div className="disable-actions"><button onClick={onClose}>Cancel</button><button className="danger-btn" onClick={onConfirm}><Icon name="trash" size={14}/> Delete category</button></div></div></div>
+  const categoryName = category?.name || category?.categoryName || 'this category'
+
+  return <div className="admin-modal-backdrop"><div className="disable-modal delete-category-modal"><div className="modal-warning"><Icon name="trash" size={20}/></div><h2>Delete {categoryName}?</h2><p>Entries using it move to {destination}. Students are told in-app. Consider hiding it instead.</p><div className="disable-actions"><button onClick={onClose}>Cancel</button><button className="danger-btn" onClick={onConfirm}><Icon name="trash" size={14}/> Delete category</button></div></div></div>
+}
+
+function getDefaultNotificationExpiry() {
+  const date = new Date()
+  date.setDate(date.getDate() + 7)
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 }
 
 function AnnouncementsPage() {
-  const [items, setItems] = useState(announcements)
+  const [items, setItems] = useState([])
+  const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
+  const [editingId, setEditingId] = useState(null)
   const [previewing, setPreviewing] = useState(false)
-  const [title, setTitle] = useState('September spending tip')
-  const [message, setMessage] = useState('Your Food budget is getting close to its September limit. Review recent delivery spending and consider a weekly cap.')
+  const [deleting, setDeleting] = useState(null)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [title, setTitle] = useState('')
+  const [message, setMessage] = useState('')
   const [category, setCategory] = useState('Food')
+  const [validUntil, setValidUntil] = useState(getDefaultNotificationExpiry)
+  const [type, setType] = useState('GENERAL')
+  const [status, setStatus] = useState('UNREAD')
+  const [recipientId, setRecipientId] = useState('')
+  const [placement, setPlacement] = useState('Saving tips')
   const categoryOptions = ['Food', 'Transport', 'Academics', 'Campus news']
   const categoryIcon = { Food: 'food', Transport: 'bus', Academics: 'grad', 'Campus news': 'bulb' }
-  const [templateFilter, setTemplateFilter] = useState('All templates')
-  const templateFilterOptions = ['All templates', 'Saving tips', 'Campus announcements', 'Drafts']
-  const visibleItems = items.filter((item, index) => {
-    if (templateFilter === 'All templates') return true
-    if (templateFilter === 'Drafts') return !item[3]
-    if (templateFilter === 'Saving tips') return index < 3
-    return index >= 3
+  const [templateFilter, setTemplateFilter] = useState('All notifications')
+  const templateFilterOptions = ['All notifications', 'Saving tips', 'Campus announcements']
+
+  useEffect(() => {
+    async function loadNotifications() {
+      try {
+        const response = await getAdminNotifications()
+        const notifications = Array.isArray(response) ? response : []
+        setItems(notifications.sort((first, second) =>
+          new Date(second.createdAt || 0) - new Date(first.createdAt || 0)
+        ))
+      } catch (fetchError) {
+        setError(fetchError.message || 'Unable to load notifications.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadNotifications()
+  }, [])
+
+  const visibleItems = items.filter(item => {
+    if (templateFilter === 'All notifications') return true
+    if (templateFilter === 'Saving tips') return String(item.placement || '').toLowerCase().includes('saving')
+    if (templateFilter === 'Campus announcements') return String(item.category || '').toLowerCase().includes('campus')
+    return item.validUntil && new Date(item.validUntil) < new Date()
   })
-  function startNewAnnouncement() { setTitle(''); setMessage(''); setCategory('Food'); setEditing(true) }
-  function saveTemplate() { if (!title.trim() || !message.trim()) return; setItems(current => [...current, [title.trim(), message.trim(), 'Draft', false, category]]); window.dispatchEvent(new CustomEvent('admin-announcement-added', { detail: { title: title.trim() } })); setEditing(false) }
+
+  function startNewAnnouncement() {
+    setEditingId(null)
+    setTitle('')
+    setMessage('')
+    setCategory('')
+    setValidUntil(getDefaultNotificationExpiry())
+    setType('GENERAL')
+    setStatus('UNREAD')
+    setRecipientId('')
+    setPlacement('Saving tips')
+    setError('')
+    setEditing(true)
+  }
+
+  function editNotification(notification) {
+    setEditingId(notification.notificationId)
+    setTitle(notification.title || '')
+    setMessage(notification.message || '')
+    setCategory(notification.category || '')
+    setValidUntil(notification.validUntil?.slice(0, 16) || getDefaultNotificationExpiry())
+    setType(notification.type || 'GENERAL')
+    setStatus(notification.status || 'UNREAD')
+    setRecipientId(notification.recipientId || '')
+    setPlacement(notification.placement || 'Saving tips')
+    setError('')
+    setEditing(true)
+  }
+
+  async function saveTemplate() {
+    if (!title.trim() || !message.trim() || !validUntil || !placement.trim()) {
+      setError('Title, message, expiration date, and placement are required.')
+      return
+    }
+    if (new Date(validUntil) <= new Date()) {
+      setError('Expiration date must be in the future.')
+      return
+    }
+
+    const payload = {
+      title: title.trim(),
+      message: message.trim(),
+      validUntil,
+      type,
+      placement: placement.trim(),
+      category: category || null,
+      status,
+      recipientId: recipientId.trim() || null,
+    }
+
+    setSubmitting(true)
+    setError('')
+    try {
+      if (editingId) {
+        const updated = await updateAdminNotification(editingId, payload)
+        setItems(current => current.map(item => item.notificationId === editingId ? updated : item))
+        setNotice('Notification updated.')
+      } else {
+        const created = await createAdminNotification(payload)
+        setItems(current => [created, ...current])
+        window.dispatchEvent(new CustomEvent('admin-announcement-added', { detail: { title: created.title } }))
+        setNotice('Notification created.')
+      }
+      setEditing(false)
+      setEditingId(null)
+      setTitle('')
+      setMessage('')
+      setCategory('')
+      setValidUntil(getDefaultNotificationExpiry())
+      setType('GENERAL')
+      setStatus('UNREAD')
+      setRecipientId('')
+      setPlacement('Saving tips')
+    } catch (saveError) {
+      setError(saveError.message || 'Unable to save notification.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function removeNotification() {
+    if (!deleting) return
+    setSubmitting(true)
+    setError('')
+    try {
+      await deleteAdminNotification(deleting.notificationId)
+      setItems(current => current.filter(item => item.notificationId !== deleting.notificationId))
+      setNotice('Notification deleted.')
+      setDeleting(null)
+    } catch (deleteError) {
+      setError(deleteError.message || 'Unable to delete notification.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return <AdminShell page="Tips & Announcements"><AdminFrame eyebrow="ADMIN · CONTENT" title="Tips & announcements" description="Templates for the saving-tips engine and campus-wide messages." actions={<><button className="admin-btn" onClick={()=>setPreviewing(true)}>Preview</button><button className="admin-primary" onClick={startNewAnnouncement}><Icon name="plus" size={14}/> New announcement</button></>}>
-    <div className="announcement-layout"><div className="admin-panel announcement-list"><div className="panel-head"><div><strong>Tip templates</strong><small>{visibleItems.length} of {items.length} content items</small></div><FilterDropdown label="All templates" value={templateFilter} options={templateFilterOptions} icon="filter" onChange={setTemplateFilter}/></div>{visibleItems.map(a=>{ const index = items.indexOf(a); const itemCategory = a[4] || (index < 2 ? 'Food' : index === 2 ? 'Academics' : 'Campus news'); return <div className="announcement-row" key={a[0]}><div className="announcement-icon"><Icon name={categoryIcon[itemCategory]} size={15}/></div><div><strong>{a[0]}</strong><small>{a[1]}</small></div><span className={`publish-status ${a[3]?'published':'draft'}`}>{a[2]}</span><button className={`switch ${a[3]?'on':''}`} onClick={()=>setItems(v=>v.map((x,j)=>j===index?[x[0],x[1],x[3]?'Draft':'Published',!x[3],x[4]]:x))}><i/></button><button onClick={()=>setEditing(true)}><Icon name="edit" size={14}/></button></div>})}</div>
-      <div className="admin-panel announcement-editor"><div className="panel-head"><div><strong>{editing?'New template':'Edit template'}</strong><small>Student-facing content</small></div><span>Live preview</span></div><label>Title<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. September spending tip"/></label><label>Message<textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="Write the message students will see..."/></label><div className="editor-grid"><label>Category<select value={category} onChange={e=>setCategory(e.target.value)}>{categoryOptions.map(option=><option key={option}>{option}</option>)}</select></label><label>Audience<select defaultValue="All students"><option>All students</option><option>Year 1</option><option>Year 2</option></select></label></div><label>Language<select defaultValue="English"><option>English</option></select></label><label>Placement<select defaultValue="Saving tips"><option>Saving tips</option><option>Dashboard insight</option><option>Notification</option></select></label><div className="editor-preview"><span><Icon name={categoryIcon[category]} size={12}/> {category.toUpperCase()}</span><strong>{title || 'Your announcement title'}</strong><p>{message || 'Your message will appear here.'}</p></div><button className="admin-primary" onClick={saveTemplate}>Save template</button></div></div>
-      {previewing && <div className="admin-modal-backdrop"><div className="disable-modal announcement-preview-modal"><div className="panel-head"><div><strong>Student preview</strong><small>How this message appears to students</small></div><button type="button" onClick={()=>setPreviewing(false)} aria-label="Close preview"><Icon name="close" size={15}/></button></div><div className="editor-preview"><span><Icon name={categoryIcon[category]} size={12}/> {category.toUpperCase()}</span><strong>{title || 'Your announcement title'}</strong><p>{message || 'Your message will appear here.'}</p></div><div className="disable-actions"><button onClick={()=>setPreviewing(false)}>Close preview</button></div></div></div>}
+    {notice && <div className="admin-action-notice" role="status"><Icon name="check" size={15}/><span>{notice}</span><button onClick={()=>setNotice('')} aria-label="Dismiss notification"><Icon name="close" size={13}/></button></div>}
+    {error && <div className="admin-action-notice" role="alert"><Icon name="info" size={15}/><span>{error}</span><button onClick={()=>setError('')} aria-label="Dismiss error"><Icon name="close" size={13}/></button></div>}
+    <div className="announcement-layout"><div className="admin-panel announcement-list"><div className="panel-head"><div><strong>Notifications</strong><small>{loading ? 'Loading notifications…' : `${visibleItems.length} of ${items.length} notifications`}</small></div><FilterDropdown label="All notifications" value={templateFilter} options={templateFilterOptions} icon="filter" onChange={setTemplateFilter}/></div>{loading ? <div className="admin-empty-state">Loading notifications…</div> : visibleItems.length ? visibleItems.map(item=>{const itemCategory=item.category || ''; const notificationType=String(item.type || 'GENERAL').toLowerCase(); const notificationTypeLabel=notificationType === 'user' ? 'User' : notificationType === 'admin' ? 'Admin' : 'General'; const placement=String(item.placement || 'Notification'); const placementClass=placement.toLowerCase().replace(/[^a-z0-9]+/g,'-'); const expirationDate=item.validUntil ? new Date(item.validUntil) : null; const expired=expirationDate && expirationDate < new Date(); const expirationText=expirationDate ? `${expired ? 'Expired' : 'Expires'} ${expirationDate.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}` : 'No expiration'; return <div className="announcement-row" key={item.notificationId}><div className="announcement-icon"><Icon name={categoryIcon[itemCategory] || 'bulb'} size={15}/></div><div className="announcement-copy"><div className="notification-meta"><span className={`notification-type ${notificationType}`}>{notificationTypeLabel}</span><span className={`notification-placement ${placementClass}`}>{placement}</span><span className={`notification-expiry ${expired ? 'expired' : 'valid'}`}>{expirationText}</span></div><strong>{item.title}</strong><small>{item.message}</small></div><span className={`notification-status ${String(item.status || 'NA').toLowerCase()}`}>{item.status || 'NA'}</span><button title="Edit notification" aria-label={`Edit ${item.title}`} onClick={()=>editNotification(item)}><Icon name="edit" size={14}/></button><button title="Delete notification" aria-label={`Delete ${item.title}`} onClick={()=>setDeleting(item)}><Icon name="trash" size={14}/></button></div>}) : <div className="admin-empty-state">No notifications match this filter.</div>}</div>
+      <div className="admin-panel announcement-editor"><div className="panel-head"><div><strong>{editing ? editingId ? 'Edit notification' : 'New notification' : 'Notification editor'}</strong><small>Student-facing content</small></div><span>Live preview</span></div><label>Title<input value={title} onChange={e=>setTitle(e.target.value)} maxLength={255} placeholder="e.g. September spending tip"/></label><label>Message<textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="Write the message students will see..."/></label><div className="editor-grid"><label>Type<select value={type} onChange={e=>setType(e.target.value)}><option value="GENERAL">General</option><option value="USER">User</option><option value="ADMIN">Admin</option></select></label><label>Status<select value={status} onChange={e=>setStatus(e.target.value)}><option value="UNREAD">Unread</option><option value="READ">Read</option><option value="NA">Not applicable</option></select></label></div><div className="editor-grid"><label>Category<select value={category} onChange={e=>setCategory(e.target.value)}><option value="">No category</option>{categoryOptions.map(option=><option key={option}>{option}</option>)}</select></label><label>Placement<select value={placement} onChange={e=>setPlacement(e.target.value)}><option>Saving tips</option><option>Dashboard insight</option><option>Notification</option></select></label></div><label>Valid until<input type="datetime-local" value={validUntil} onChange={e=>setValidUntil(e.target.value)}/></label><label>Recipient ID <small>(optional; leave blank for all recipients)</small><input value={recipientId} onChange={e=>setRecipientId(e.target.value)} maxLength={36} placeholder="Recipient UUID"/></label><div className="editor-preview"><span><Icon name={categoryIcon[category] || 'bulb'} size={12}/> {(category || type).toUpperCase()}</span><strong>{title || 'Your announcement title'}</strong><p>{message || 'Your message will appear here.'}</p></div><button className="admin-primary" onClick={saveTemplate} disabled={submitting}>{submitting ? 'Saving…' : editingId ? 'Save changes' : 'Create notification'}</button>{editing && <button className="admin-btn" type="button" onClick={()=>{setEditing(false);setEditingId(null);setError('')}} disabled={submitting}>Cancel editing</button>}</div></div>
+      {previewing && <div className="admin-modal-backdrop"><div className="disable-modal announcement-preview-modal"><div className="panel-head"><div><strong>Student preview</strong><small>How this message appears to students</small></div><button type="button" onClick={()=>setPreviewing(false)} aria-label="Close preview"><Icon name="close" size={15}/></button></div><div className="editor-preview"><span><Icon name={categoryIcon[category] || 'bulb'} size={12}/> {(category || type).toUpperCase()}</span><strong>{title || 'Your announcement title'}</strong><p>{message || 'Your message will appear here.'}</p></div><div className="disable-actions"><button onClick={()=>setPreviewing(false)}>Close preview</button></div></div></div>}
+      {deleting && <div className="admin-modal-backdrop"><div className="disable-modal"><div className="modal-warning"><Icon name="trash" size={20}/></div><h2>Delete notification?</h2><p>This permanently deletes “{deleting.title}”. This action cannot be undone.</p><div className="disable-actions"><button type="button" onClick={()=>setDeleting(null)} disabled={submitting}>Cancel</button><button className="danger-btn" type="button" onClick={removeNotification} disabled={submitting}><Icon name="trash" size={14}/>{submitting ? ' Deleting…' : ' Delete notification'}</button></div></div></div>}
   </AdminFrame></AdminShell>
 }
 

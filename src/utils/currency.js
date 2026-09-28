@@ -123,12 +123,15 @@ export function getCurrencyForCountry(countryCode) {
 export function detectCurrencyCode() {
   const saved = storageGet(typeof localStorage !== 'undefined' ? localStorage : null, 'campuscoin.currency').toUpperCase()
   if (saved && isCurrencySupported(saved)) return saved
-  const region = regionFromLocale()
-  const currency = REGION_TO_CURRENCY[region]
-  if (currency && isCurrencySupported(currency)) return currency
+  // Prefer the device timezone because browser locale can remain en-US
+  // even when the user is physically using the app in Nigeria.
   const tzRegion = regionFromTimezone()
   const tzCurrency = REGION_TO_CURRENCY[tzRegion]
   if (tzCurrency && isCurrencySupported(tzCurrency)) return tzCurrency
+
+  const region = regionFromLocale()
+  const currency = REGION_TO_CURRENCY[region]
+  if (currency && isCurrencySupported(currency)) return currency
   return 'USD'
 }
 

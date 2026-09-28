@@ -3,24 +3,36 @@ export const AUTH_KEYS = {
   admin: 'campuscoin.admin.auth',
 }
 
+function normalizeSessionResponse(response = {}) {
+  const token =
+    response.token ||
+    response.accessToken ||
+    response.jwt ||
+    response.access_token ||
+    response.Authorization ||
+    response.authToken ||
+    null
+
+  const user = response.user || response.data || {}
+
+  return {
+    token,
+    ...user,
+  }
+}
+
 export function setStudentSession(response) {
   localStorage.setItem(
     AUTH_KEYS.student,
-    JSON.stringify({
-      token: response.token,
-      ...response.user,
-    })
+    JSON.stringify(normalizeSessionResponse(response))
   )
 }
 
 export function setAdminSession(response) {
-    localStorage.setItem(
-        AUTH_KEYS.admin,
-        JSON.stringify({
-            token: response.token,
-            ...response.user,
-        })
-    )
+  localStorage.setItem(
+    AUTH_KEYS.admin,
+    JSON.stringify(normalizeSessionResponse(response))
+  )
 }
 
 export function clearStudentSession() {
