@@ -2,8 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { navigate } from "../routes/AppRoutes";
 import Icon from "../components/Icon";
 import Logo from "../components/Logo";
-import { clearStudentSession } from "../utils";
+import { clearStudentSession, getStudentSession } from "../utils";
 
+import { getProfile, loadProfilePhoto } from "../api/profileApi";
 import { getTransactions, createTransaction } from "../api/transactionApi";
 import { getCategories } from "../api/categoryApi";
 
@@ -27,9 +28,7 @@ const DEMO_NOTIFICATIONS = [
 function money(n) {
   const value = Number(n || 0);
 
-  return `${value < 0 ? "−" : "+"}$${Math.abs(
-    value
-  ).toFixed(2)}`;
+  return `${value < 0 ? "−" : "+"}$${Math.abs(value).toFixed(2)}`;
 }
 
 function toneIcon(tone, icon) {
@@ -60,8 +59,7 @@ function toneForCategory(categoryName = "") {
 
   if (name.includes("food")) return "amber";
   if (name.includes("transport")) return "blue";
-  if (name.includes("hostel") || name.includes("rent"))
-    return "purple";
+  if (name.includes("hostel") || name.includes("rent")) return "purple";
   if (name.includes("academic")) return "teal";
   if (name.includes("subscription")) return "pink";
   if (name.includes("entertainment")) return "peach";
@@ -81,8 +79,7 @@ function iconForCategory(categoryName = "") {
 
   if (name.includes("food")) return "food";
   if (name.includes("transport")) return "bus";
-  if (name.includes("hostel") || name.includes("rent"))
-    return "home";
+  if (name.includes("hostel") || name.includes("rent")) return "home";
   if (name.includes("academic")) return "grad";
   if (name.includes("subscription")) return "tv";
   if (name.includes("entertainment")) return "ticket";
@@ -131,13 +128,91 @@ function DashboardShell({
     navigate("/");
   };
 
+  // Shared profile data for every dashboard page.
+  // The Settings page persists the profile/photo through profileApi,
+  // so the dashboard shell reads the same backend source.
+  const [profileName, setProfileName] = useState(
+    getStudentSession()?.name || "CampusCoin User",
+  );
+  const [profilePhoto, setProfilePhoto] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    let loadedPhoto = null;
+
+    async function loadShellProfile() {
+      try {
+        const profile = await getProfile();
+
+        if (!mounted) return;
+
+        setProfileName(
+          profile?.name || getStudentSession()?.name || "CampusCoin User",
+        );
+
+        if (profile?.profilePhotoAvailable) {
+          loadedPhoto = await loadProfilePhoto();
+
+          if (mounted) {
+            setProfilePhoto(loadedPhoto);
+          }
+        }
+      } catch (err) {
+        // Keep the dashboard usable if the profile request fails.
+        // The session name is still available as a fallback.
+        console.error("Failed to load dashboard profile:", err);
+
+        if (mounted) {
+          setProfileName(getStudentSession()?.name || "CampusCoin User");
+          setProfilePhoto(null);
+        }
+      }
+    }
+
+    loadShellProfile();
+
+    return () => {
+      mounted = false;
+
+      if (loadedPhoto?.startsWith("blob:")) {
+        URL.revokeObjectURL(loadedPhoto);
+      }
+    };
+  }, []);
+
+  const profileInitials = (profileName || "CampusCoin")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+
+  const renderAvatar = (className) => (
+    <span className={className}>
+      {profilePhoto ? (
+        <img
+          src={profilePhoto}
+          alt={`${profileName} profile`}
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            borderRadius: "50%",
+            display: "block",
+          }}
+          onError={() => setProfilePhoto(null)}
+        />
+      ) : (
+        profileInitials || "CC"
+      )}
+    </span>
+  );
+
   return (
     <div className={`dashboard-app ${dark ? "dark" : ""}`}>
       <aside className="dash-sidebar">
-        <button
-          className="dash-brand"
-          onClick={() => navigate("/dashboard")}
-        >
+        <button className="dash-brand" onClick={() => navigate("/dashboard")}>
           <Logo />
           <span className="brand-dot" />
         </button>
@@ -148,9 +223,7 @@ function DashboardShell({
           {nav.map(([label, icon, path]) => (
             <button
               key={label}
-              className={`side-link ${
-                page === label ? "active" : ""
-              }`}
+              className={`side-link ${page === label ? "active" : ""}`}
               onClick={() => navigate(path)}
             >
               <Icon name={icon} size={18} />
@@ -161,36 +234,26 @@ function DashboardShell({
           ))}
         </nav>
 
-        <div className="side-label smart">
-          SMART MONEY
-        </div>
+        <div className="side-label smart">SMART MONEY</div>
 
         {smart.map(([label, icon, path]) => (
           <button
-            className={`side-link ${
-              page === label ? "active" : ""
-            }`}
+            className={`side-link ${page === label ? "active" : ""}`}
             key={label}
             onClick={() => navigate(path)}
           >
             <Icon name={icon} size={18} />
             <span>{label}</span>
 
-            {label === "AI Insights" && (
-              <b className="new">New</b>
-            )}
+            {label === "AI Insights" && <b className="new">New</b>}
           </button>
         ))}
 
-        <div className="side-label smart">
-          ACCOUNT
-        </div>
+        <div className="side-label smart">ACCOUNT</div>
 
         {account.map(([label, icon, path]) => (
           <button
-            className={`side-link ${
-              page === label ? "active" : ""
-            }`}
+            className={`side-link ${page === label ? "active" : ""}`}
             key={label}
             onClick={() => navigate(path)}
           >
@@ -213,20 +276,14 @@ function DashboardShell({
             <i />
           </div>
 
-          <small>
-            Based on your transactions
-          </small>
+          <small>Based on your transactions</small>
         </div>
 
-        <button
-          className="profile-mini"
-          onClick={signOut}
-          title="Sign out"
-        >
-          <span className="avatar">JD</span>
+        <button className="profile-mini" onClick={signOut} title="Sign out">
+          {renderAvatar("avatar")}
 
           <span>
-            <strong>CampusCoin User</strong>
+            <strong>{profileName}</strong>
             <small>Sign out</small>
           </span>
 
@@ -248,41 +305,24 @@ function DashboardShell({
 
             <button
               className="top-btn"
-              onClick={() =>
-                setDark((value) => !value)
-              }
+              onClick={() => setDark((value) => !value)}
             >
-              <Icon
-                name={dark ? "sun" : "moon"}
-                size={17}
-              />
+              <Icon name={dark ? "sun" : "moon"} size={17} />
             </button>
 
             <div className="notify-wrap">
               <button
-                className={`top-btn ${
-                  notificationOpen
-                    ? "selected"
-                    : ""
-                }`}
-                onClick={() =>
-                  setNotificationOpen(
-                    (value) => !value
-                  )
-                }
+                className={`top-btn ${notificationOpen ? "selected" : ""}`}
+                onClick={() => setNotificationOpen((value) => !value)}
               >
                 <Icon name="bell" size={17} />
                 <i />
               </button>
 
-              {notificationOpen && (
-                <NotificationPanel />
-              )}
+              {notificationOpen && <NotificationPanel />}
             </div>
 
-            <span className="top-avatar">
-              JD
-            </span>
+            {renderAvatar("top-avatar")}
           </div>
         </header>
 
@@ -299,47 +339,29 @@ function NotificationPanel() {
         <strong>Notifications</strong>
         <b>2 new</b>
 
-        <button>
-          Mark all read
-        </button>
+        <button>Mark all read</button>
       </div>
 
-      {DEMO_NOTIFICATIONS.map(
-        (notification, index) => (
-          <div
-            className="notif-item"
-            key={index}
-          >
-            {toneIcon(
-              ["mint", "blue"][index],
-              notification[2]
-            )}
+      {DEMO_NOTIFICATIONS.map((notification, index) => (
+        <div className="notif-item" key={index}>
+          {toneIcon(["mint", "blue"][index], notification[2])}
 
-            <div>
-              <strong>
-                {notification[0]}
-              </strong>
+          <div>
+            <strong>{notification[0]}</strong>
 
-              <p>
-                {notification[1]}
-              </p>
+            <p>{notification[1]}</p>
 
-              <small>
-                {notification[3]}
-              </small>
-            </div>
-
-            <i />
+            <small>{notification[3]}</small>
           </div>
-        )
-      )}
+
+          <i />
+        </div>
+      ))}
 
       <button
         type="button"
         className="notif-settings"
-        onClick={() =>
-          navigate("/settings")
-        }
+        onClick={() => navigate("/settings")}
       >
         Notification settings
       </button>
@@ -348,64 +370,44 @@ function NotificationPanel() {
 }
 
 function DashboardPage() {
-  const params = new URLSearchParams(
-    window.location.search
-  );
+  const params = new URLSearchParams(window.location.search);
 
   const initialAdd = params.get("add");
   const initialState = params.get("state");
 
-  const initialAi =
-    initialState === "ai" ||
-    params.get("ai") === "1";
+  const initialAi = initialState === "ai" || params.get("ai") === "1";
 
-  const initialSaved =
-    initialState === "saved";
+  const initialSaved = initialState === "saved";
 
-  const [dark, setDark] = useState(
-    params.get("theme") === "dark"
+  const [dark, setDark] = useState(params.get("theme") === "dark");
+
+  const [notificationOpen, setNotificationOpen] = useState(
+    params.get("state") === "notifications",
   );
-
-  const [notificationOpen, setNotificationOpen] =
-    useState(
-      params.get("state") ===
-        "notifications"
-    );
 
   const [modal, setModal] = useState(
-    initialAdd ||
-      (initialAi ? "expense" : null)
+    initialAdd || (initialAi ? "expense" : null),
   );
 
-  const [toast, setToast] =
-    useState(initialSaved);
+  const [toast, setToast] = useState(initialSaved);
 
-  const [search, setSearch] =
-    useState("");
+  const [search, setSearch] = useState("");
 
-  const [transactions, setTransactions] =
-    useState([]);
+  const [transactions, setTransactions] = useState([]);
 
-  const [categories, setCategories] =
-    useState([]);
+  const [categories, setCategories] = useState([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
-  const [expense, setExpense] =
-    useState(initialAi ? 4.5 : 0);
+  const [expense, setExpense] = useState(initialAi ? 4.5 : 0);
 
-  const [income, setIncome] =
-    useState(600);
+  const [income, setIncome] = useState(600);
 
-  const [saved, setSaved] =
-    useState(initialSaved);
+  const [saved, setSaved] = useState(initialSaved);
 
-  const [refreshKey, setRefreshKey] =
-    useState(0);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     loadDashboardData();
@@ -416,35 +418,18 @@ function DashboardPage() {
       setLoading(true);
       setError("");
 
-      const [
-        transactionData,
-        categoryData,
-      ] = await Promise.all([
+      const [transactionData, categoryData] = await Promise.all([
         getTransactions(),
         getCategories(),
       ]);
 
-      setTransactions(
-        Array.isArray(transactionData)
-          ? transactionData
-          : []
-      );
+      setTransactions(Array.isArray(transactionData) ? transactionData : []);
 
-      setCategories(
-        Array.isArray(categoryData)
-          ? categoryData
-          : []
-      );
+      setCategories(Array.isArray(categoryData) ? categoryData : []);
     } catch (err) {
-      console.error(
-        "Failed to load dashboard data:",
-        err
-      );
+      console.error("Failed to load dashboard data:", err);
 
-      setError(
-        err.message ||
-          "Failed to load dashboard data."
-      );
+      setError(err.message || "Failed to load dashboard data.");
     } finally {
       setLoading(false);
     }
@@ -453,140 +438,93 @@ function DashboardPage() {
   /*
    * September transactions
    */
-  const septemberTransactions =
-    useMemo(() => {
-      return transactions.filter(
-        (transaction) =>
-          transaction.date >=
-            "2026-09-01" &&
-          transaction.date <=
-            "2026-09-30"
-      );
-    }, [transactions]);
+  const septemberTransactions = useMemo(() => {
+    return transactions.filter(
+      (transaction) =>
+        transaction.date >= "2026-09-01" && transaction.date <= "2026-09-30",
+    );
+  }, [transactions]);
 
   /*
    * September income
    */
-  const septemberIncome =
-    useMemo(() => {
-      return septemberTransactions
-        .filter(
-          (transaction) =>
-            transaction.type ===
-            "INCOME"
-        )
-        .reduce(
-          (total, transaction) =>
-            total +
-            Number(
-              transaction.amount || 0
-            ),
-          0
-        );
-    }, [septemberTransactions]);
+  const septemberIncome = useMemo(() => {
+    return septemberTransactions
+      .filter((transaction) => transaction.type === "INCOME")
+      .reduce(
+        (total, transaction) => total + Number(transaction.amount || 0),
+        0,
+      );
+  }, [septemberTransactions]);
 
   /*
    * September expenses
    */
-  const septemberExpenses =
-    useMemo(() => {
-      return septemberTransactions
-        .filter(
-          (transaction) =>
-            transaction.type ===
-            "EXPENSE"
-        )
-        .reduce(
-          (total, transaction) =>
-            total +
-            Number(
-              transaction.amount || 0
-            ),
-          0
-        );
-    }, [septemberTransactions]);
+  const septemberExpenses = useMemo(() => {
+    return septemberTransactions
+      .filter((transaction) => transaction.type === "EXPENSE")
+      .reduce(
+        (total, transaction) => total + Number(transaction.amount || 0),
+        0,
+      );
+  }, [septemberTransactions]);
 
   /*
    * September balance
    */
-  const septemberBalance =
-    septemberIncome -
-    septemberExpenses;
+  const septemberBalance = septemberIncome - septemberExpenses;
 
   /*
    * Search recent transactions
    */
-  const filteredTransactions =
-    useMemo(() => {
-      const query =
-        search.trim().toLowerCase();
+  const filteredTransactions = useMemo(() => {
+    const query = search.trim().toLowerCase();
 
-      if (!query) {
-        return transactions;
-      }
+    if (!query) {
+      return transactions;
+    }
 
-      return transactions.filter(
-        (transaction) =>
-          transaction.description
-            ?.toLowerCase()
-            .includes(query) ||
-          transaction.categoryName
-            ?.toLowerCase()
-            .includes(query)
-      );
-    }, [transactions, search]);
+    return transactions.filter(
+      (transaction) =>
+        transaction.description?.toLowerCase().includes(query) ||
+        transaction.categoryName?.toLowerCase().includes(query),
+    );
+  }, [transactions, search]);
 
   /*
    * Category spending
    */
-  const categorySpending =
-    useMemo(() => {
-      const map = {};
+  const categorySpending = useMemo(() => {
+    const map = {};
 
-      septemberTransactions
-        .filter(
-          (transaction) =>
-            transaction.type ===
-            "EXPENSE"
-        )
-        .forEach((transaction) => {
-          const category =
-            transaction.categoryName ||
-            "Other";
+    septemberTransactions
+      .filter((transaction) => transaction.type === "EXPENSE")
+      .forEach((transaction) => {
+        const category = transaction.categoryName || "Other";
 
-          if (!map[category]) {
-            map[category] = 0;
-          }
+        if (!map[category]) {
+          map[category] = 0;
+        }
 
-          map[category] += Number(
-            transaction.amount || 0
-          );
-        });
+        map[category] += Number(transaction.amount || 0);
+      });
 
-      return Object.entries(map)
-        .map(
-          ([name, value]) => ({
-            name,
-            value,
-          })
-        )
-        .sort(
-          (a, b) =>
-            b.value - a.value
-        );
-    }, [septemberTransactions]);
+    return Object.entries(map)
+      .map(([name, value]) => ({
+        name,
+        value,
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [septemberTransactions]);
 
-  const topCategory =
-    categorySpending[0] || null;
+  const topCategory = categorySpending[0] || null;
 
-  const runnerUpCategory =
-    categorySpending[1] || null;
+  const runnerUpCategory = categorySpending[1] || null;
 
   /*
    * Recent transactions
    */
-  const recentTransactions =
-    filteredTransactions.slice(0, 5);
+  const recentTransactions = filteredTransactions.slice(0, 5);
 
   /*
    * Budget placeholder.
@@ -599,51 +537,32 @@ function DashboardPage() {
 
   const budgetPercentage =
     demoBudget > 0
-      ? Math.min(
-          100,
-          Math.round(
-            (septemberExpenses /
-              demoBudget) *
-              100
-          )
-        )
+      ? Math.min(100, Math.round((septemberExpenses / demoBudget) * 100))
       : 0;
 
-  const budgetRemaining =
-    demoBudget -
-    septemberExpenses;
+  const budgetRemaining = demoBudget - septemberExpenses;
 
   const saveTransaction = async (payload) => {
-  try {
-    setError("");
+    try {
+      setError("");
 
-    const createdTransaction =
-      await createTransaction(payload);
+      const createdTransaction = await createTransaction(payload);
 
-    setTransactions((current) => [
-      createdTransaction,
-      ...current,
-    ]);
+      setTransactions((current) => [createdTransaction, ...current]);
 
-    setSaved(true);
-    setToast(true);
-    setModal(null);
+      setSaved(true);
+      setToast(true);
+      setModal(null);
 
-    setTimeout(() => {
-      setToast(false);
-    }, 3500);
-  } catch (err) {
-    console.error(
-      "Failed to create dashboard transaction:",
-      err
-    );
+      setTimeout(() => {
+        setToast(false);
+      }, 3500);
+    } catch (err) {
+      console.error("Failed to create dashboard transaction:", err);
 
-    setError(
-      err.message ||
-        "Failed to save transaction."
-    );
-  }
-};
+      setError(err.message || "Failed to save transaction.");
+    }
+  };
 
   const openTransaction = (type) => {
     setModal(type);
@@ -654,73 +573,43 @@ function DashboardPage() {
     <DashboardShell
       dark={dark}
       setDark={setDark}
-      notificationOpen={
-        notificationOpen
-      }
-      setNotificationOpen={
-        setNotificationOpen
-      }
+      notificationOpen={notificationOpen}
+      setNotificationOpen={setNotificationOpen}
       search={search}
       setSearch={setSearch}
     >
       <section className="dash-content">
         <div className="dash-heading">
           <div>
-            <label>
-              SEPTEMBER 2026
-            </label>
+            <label>SEPTEMBER 2026</label>
 
-            <h1>
-              Good morning, CampusCoin
-            </h1>
+            <h1>Good morning, CampusCoin</h1>
 
-            <p>
-              Here's how your September
-              money is moving.
-            </p>
+            <p>Here's how your September money is moving.</p>
           </div>
 
           <div className="heading-actions">
             <button
               className="outline-btn"
-              onClick={() =>
-                navigate("/import-csv")
-              }
+              onClick={() => navigate("/import-csv")}
             >
-              <Icon
-                name="upload"
-                size={15}
-              />
+              <Icon name="upload" size={15} />
               Import CSV
             </button>
 
             <button
               className="income-btn"
-              onClick={() =>
-                openTransaction(
-                  "income"
-                )
-              }
+              onClick={() => openTransaction("income")}
             >
-              <Icon
-                name="arrowup"
-                size={15}
-              />
+              <Icon name="arrowup" size={15} />
               Add income
             </button>
 
             <button
               className="primary-btn"
-              onClick={() =>
-                openTransaction(
-                  "expense"
-                )
-              }
+              onClick={() => openTransaction("expense")}
             >
-              <Icon
-                name="plus"
-                size={16}
-              />
+              <Icon name="plus" size={16} />
               Add expense
             </button>
           </div>
@@ -732,22 +621,12 @@ function DashboardPage() {
               <span>⚠</span>
 
               <div>
-                <b>
-                  Dashboard data issue
-                </b>
+                <b>Dashboard data issue</b>
 
-                <small>
-                  {error}
-                </small>
+                <small>{error}</small>
               </div>
 
-              <button
-                onClick={
-                  loadDashboardData
-                }
-              >
-                Retry
-              </button>
+              <button onClick={loadDashboardData}>Retry</button>
             </div>
           </div>
         )}
@@ -760,75 +639,38 @@ function DashboardPage() {
           />
 
           <BudgetCard
-            spent={
-              septemberExpenses
-            }
+            spent={septemberExpenses}
             budget={demoBudget}
-            percentage={
-              budgetPercentage
-            }
-            remaining={
-              budgetRemaining
-            }
+            percentage={budgetPercentage}
+            remaining={budgetRemaining}
           />
 
           <TopCategory
-            topCategory={
-              topCategory
-            }
-            runnerUpCategory={
-              runnerUpCategory
-            }
-            totalSpent={
-              septemberExpenses
-            }
+            topCategory={topCategory}
+            runnerUpCategory={runnerUpCategory}
+            totalSpent={septemberExpenses}
           />
 
-          <SpendingCard
-            spent={
-              septemberExpenses
-            }
-            loading={loading}
-          />
+          <SpendingCard spent={septemberExpenses} loading={loading} />
 
           <div className="right-stack">
             <InsightCard
               loading={loading}
-              transactionCount={
-                septemberTransactions.length
-              }
-              onRead={() =>
-                navigate(
-                  "/ai-insights"
-                )
-              }
+              transactionCount={septemberTransactions.length}
+              onRead={() => navigate("/ai-insights")}
             />
 
-            <SavingTips
-              onViewAll={() =>
-                navigate(
-                  "/saving-tips"
-                )
-              }
-            />
+            <SavingTips onViewAll={() => navigate("/saving-tips")} />
           </div>
 
           <CategoryBudgets
-            categorySpending={
-              categorySpending
-            }
-            categories={
-              categories
-            }
-            onManage={() =>
-              navigate("/budgets")
-            }
+            categorySpending={categorySpending}
+            categories={categories}
+            onManage={() => navigate("/budgets")}
           />
 
           <RecentTransactions
-            transactions={
-              recentTransactions
-            }
+            transactions={recentTransactions}
             loading={loading}
           />
         </div>
@@ -836,30 +678,15 @@ function DashboardPage() {
 
       {modal && (
         <TransactionModal
-  type={modal}
-  ai={
-    modal === "expense" &&
-    initialAi
-  }
-  amount={
-    modal === "income"
-      ? income
-      : expense
-  }
-  setAmount={
-    modal === "income"
-      ? setIncome
-      : setExpense
-  }
-  categories={categories}
-  onSwitch={(nextType) =>
-    setModal(nextType)
-  }
-  onClose={() =>
-    setModal(null)
-  }
-  onSave={saveTransaction}
-/>
+          type={modal}
+          ai={modal === "expense" && initialAi}
+          amount={modal === "income" ? income : expense}
+          setAmount={modal === "income" ? setIncome : setExpense}
+          categories={categories}
+          onSwitch={(nextType) => setModal(nextType)}
+          onClose={() => setModal(null)}
+          onSave={saveTransaction}
+        />
       )}
 
       {toast && (
@@ -867,97 +694,57 @@ function DashboardPage() {
           <span>✓</span>
 
           <div>
-            <strong>
-              Transaction saved
-            </strong>
+            <strong>Transaction saved</strong>
 
-            <small>
-              Your dashboard has been
-              refreshed.
-            </small>
+            <small>Your dashboard has been refreshed.</small>
           </div>
 
-          <button
-            onClick={() =>
-              setToast(false)
-            }
-          >
-            Undo
-          </button>
+          <button onClick={() => setToast(false)}>Undo</button>
         </div>
       )}
     </DashboardShell>
   );
 }
 
-function BalanceCard({
-  income,
-  spent,
-  balance,
-}) {
-  const formattedBalance =
-    Number(balance || 0).toFixed(2);
+function BalanceCard({ income, spent, balance }) {
+  const formattedBalance = Number(balance || 0).toFixed(2);
 
-  const [whole, cents] =
-    formattedBalance.split(".");
+  const [whole, cents] = formattedBalance.split(".");
 
   return (
     <div className="balance-card">
       <div className="balance-top">
-        <span>
-          SEPTEMBER BALANCE
-        </span>
+        <span>SEPTEMBER BALANCE</span>
 
-        <Icon
-          name="eye"
-          size={18}
-        />
+        <Icon name="eye" size={18} />
       </div>
 
       <div className="balance-amount">
         <strong>
-          {balance < 0 ? "−" : ""}$
-          {Math.abs(
-            Number(whole)
-          )}
+          {balance < 0 ? "−" : ""}${Math.abs(Number(whole))}
         </strong>
 
-        <em>
-          .{cents}
-        </em>
+        <em>.{cents}</em>
       </div>
 
-      <p>
-        Income minus expenses,
-        September 1 to 30
-      </p>
+      <p>Income minus expenses, September 1 to 30</p>
 
       <div className="balance-stats">
         <div>
-          {toneIcon(
-            "blue",
-            "downleft"
-          )}
+          {toneIcon("blue", "downleft")}
 
           <span>
             Income
-            <b>
-              ${income.toFixed(2)}
-            </b>
+            <b>${income.toFixed(2)}</b>
           </span>
         </div>
 
         <div>
-          {toneIcon(
-            "blue",
-            "upright"
-          )}
+          {toneIcon("blue", "upright")}
 
           <span>
             Expenses
-            <b>
-              ${spent.toFixed(2)}
-            </b>
+            <b>${spent.toFixed(2)}</b>
           </span>
         </div>
       </div>
@@ -965,119 +752,73 @@ function BalanceCard({
   );
 }
 
-function BudgetCard({
-  spent,
-  budget,
-  percentage,
-  remaining,
-}) {
+function BudgetCard({ spent, budget, percentage, remaining }) {
   return (
     <div className="dash-card budget-card">
       <div className="card-title">
         <div>
-          <strong>
-            Budget vs actual
-          </strong>
+          <strong>Budget vs actual</strong>
 
-          <small>
-            September 1 to 30
-          </small>
+          <small>September 1 to 30</small>
         </div>
 
-        <Icon
-          name="more"
-          size={18}
-        />
+        <Icon name="more" size={18} />
       </div>
 
       <div className="budget-body">
         <div
           className="donut"
           style={{
-            "--p": `${
-              percentage * 3.6
-            }deg`,
+            "--p": `${percentage * 3.6}deg`,
           }}
         >
-          <b>
-            {percentage}%
-          </b>
+          <b>{percentage}%</b>
 
-          <small>
-            used
-          </small>
+          <small>used</small>
         </div>
 
         <div>
           <span>
             Spent
-            <b>
-              ${spent.toFixed(2)}
-            </b>
+            <b>${spent.toFixed(2)}</b>
           </span>
 
           <span>
             Budget
-            <b>
-              ${budget.toFixed(2)}
-            </b>
+            <b>${budget.toFixed(2)}</b>
           </span>
 
           <span>
             Remaining
-            <b className="green-text">
-              $
-              {Math.max(
-                0,
-                remaining
-              ).toFixed(2)}
-            </b>
+            <b className="green-text">${Math.max(0, remaining).toFixed(2)}</b>
           </span>
         </div>
       </div>
 
       <div className="days-left">
-        ◷ &nbsp;September spending
-        · live transaction data
+        ◷ &nbsp;September spending · live transaction data
       </div>
     </div>
   );
 }
 
-function TopCategory({
-  topCategory,
-  runnerUpCategory,
-  totalSpent,
-}) {
+function TopCategory({ topCategory, runnerUpCategory, totalSpent }) {
   if (!topCategory) {
     return (
       <div className="dash-card top-category">
         <div className="card-title">
-          <strong>
-            Top category
-          </strong>
+          <strong>Top category</strong>
 
-          <Icon
-            name="more"
-            size={18}
-          />
+          <Icon name="more" size={18} />
         </div>
 
         <div className="cat-highlight">
-          {toneIcon(
-            "slate",
-            "receipt"
-          )}
+          {toneIcon("slate", "receipt")}
 
           <div>
-            <strong>
-              No spending yet
-            </strong>
+            <strong>No spending yet</strong>
 
-            <span>
-              Add an expense to see
-              your top category.
-            </span>
+            <span>Add an expense to see your top category.</span>
           </div>
         </div>
       </div>
@@ -1086,47 +827,28 @@ function TopCategory({
 
   const percentage =
     totalSpent > 0
-      ? (
-          (topCategory.value /
-            totalSpent) *
-          100
-        ).toFixed(1)
+      ? ((topCategory.value / totalSpent) * 100).toFixed(1)
       : "0.0";
 
   return (
     <div className="dash-card top-category">
       <div className="card-title">
-        <strong>
-          Top category
-        </strong>
+        <strong>Top category</strong>
 
-        <Icon
-          name="more"
-          size={18}
-        />
+        <Icon name="more" size={18} />
       </div>
 
       <div className="cat-highlight">
         {toneIcon(
-          toneForCategory(
-            topCategory.name
-          ),
-          iconForCategory(
-            topCategory.name
-          )
+          toneForCategory(topCategory.name),
+          iconForCategory(topCategory.name),
         )}
 
         <div>
-          <strong>
-            {topCategory.name}
-          </strong>
+          <strong>{topCategory.name}</strong>
 
           <span>
-            $
-            {topCategory.value.toFixed(
-              2
-            )}{" "}
-            · {percentage}% of spend
+            ${topCategory.value.toFixed(2)} · {percentage}% of spend
           </span>
         </div>
       </div>
@@ -1134,10 +856,7 @@ function TopCategory({
       <div className="purple-track">
         <i
           style={{
-            width: `${Math.min(
-              100,
-              Number(percentage)
-            )}%`,
+            width: `${Math.min(100, Number(percentage))}%`,
           }}
         />
       </div>
@@ -1146,48 +865,30 @@ function TopCategory({
         Runner-up{" "}
         <b>
           {runnerUpCategory
-            ? `${runnerUpCategory.name} · $${runnerUpCategory.value.toFixed(
-                2
-              )}`
+            ? `${runnerUpCategory.name} · $${runnerUpCategory.value.toFixed(2)}`
             : "—"}
         </b>
       </small>
 
-      <p>
-        Based on your September
-        expense records.
-      </p>
+      <p>Based on your September expense records.</p>
     </div>
   );
 }
 
-function SpendingCard({
-  spent,
-  loading,
-}) {
+function SpendingCard({ spent, loading }) {
   return (
     <div className="dash-card spending-card">
       <div className="card-title">
         <div>
-          <strong>
-            Spending pace
-          </strong>
+          <strong>Spending pace</strong>
 
-          <small>
-            Cumulative spend,
-            September against your
-            budget
-          </small>
+          <small>Cumulative spend, September against your budget</small>
         </div>
 
         <div className="seg">
-          <button className="active">
-            Month
-          </button>
+          <button className="active">Month</button>
 
-          <button>
-            Week
-          </button>
+          <button>Week</button>
         </div>
       </div>
 
@@ -1211,44 +912,20 @@ function SpendingCard({
       ) : (
         <>
           <div className="spend-total">
-            <strong>
-              ${spent.toFixed(2)}
-            </strong>
+            <strong>${spent.toFixed(2)}</strong>
 
-            <span>
-              Live September
-              spending
-            </span>
+            <span>Live September spending</span>
           </div>
 
           <div className="fake-chart">
-            <div className="budget-line">
-              Budget $870
-            </div>
+            <div className="budget-line">Budget $870</div>
 
-            <svg
-              viewBox="0 0 520 190"
-              preserveAspectRatio="none"
-            >
+            <svg viewBox="0 0 520 190" preserveAspectRatio="none">
               <defs>
-                <linearGradient
-                  id="fillg"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop
-                    offset="0"
-                    stopColor="#9de1c8"
-                    stopOpacity=".65"
-                  />
+                <linearGradient id="fillg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0" stopColor="#9de1c8" stopOpacity=".65" />
 
-                  <stop
-                    offset="1"
-                    stopColor="#9de1c8"
-                    stopOpacity=".08"
-                  />
+                  <stop offset="1" stopColor="#9de1c8" stopOpacity=".08" />
                 </linearGradient>
               </defs>
 
@@ -1285,25 +962,17 @@ function SpendingCard({
           <div className="spend-stats">
             <span>
               Transactions
-              <b>
-                {spent > 0
-                  ? "Active"
-                  : "None"}
-              </b>
+              <b>{spent > 0 ? "Active" : "None"}</b>
             </span>
 
             <span>
               September spend
-              <b>
-                ${spent.toFixed(2)}
-              </b>
+              <b>${spent.toFixed(2)}</b>
             </span>
 
             <span>
               Data source
-              <b>
-                Transactions
-              </b>
+              <b>Transactions</b>
             </span>
           </div>
         </>
@@ -1312,27 +981,15 @@ function SpendingCard({
   );
 }
 
-function InsightCard({
-  loading,
-  transactionCount,
-  onRead,
-}) {
+function InsightCard({ loading, transactionCount, onRead }) {
   return (
     <div className="insight-card">
       <div className="insight-title">
-        {toneIcon(
-          "mint",
-          "sparkle"
-        )}
+        {toneIcon("mint", "sparkle")}
 
-        <strong>
-          September insight
-        </strong>
+        <strong>September insight</strong>
 
-        <Icon
-          name="bookmark"
-          size={16}
-        />
+        <Icon name="bookmark" size={16} />
       </div>
 
       {loading ? (
@@ -1341,66 +998,38 @@ function InsightCard({
           <div className="skeleton mid" />
           <div className="skeleton short" />
 
-          <p className="analysing">
-            ◔ Analysing transactions...
-          </p>
+          <p className="analysing">◔ Analysing transactions...</p>
         </>
       ) : (
         <>
           <p>
-            Your dashboard is using{" "}
-            {transactionCount}{" "}
-            September transaction
-            {transactionCount === 1
-              ? ""
-              : "s"}{" "}
-            to calculate your
-            current spending picture.
+            Your dashboard is using {transactionCount} September transaction
+            {transactionCount === 1 ? "" : "s"} to calculate your current
+            spending picture.
           </p>
 
-          <button
-            type="button"
-            onClick={onRead}
-          >
-            Read full insight{" "}
-            <Icon
-              name="arrow"
-              size={15}
-            />
+          <button type="button" onClick={onRead}>
+            Read full insight <Icon name="arrow" size={15} />
           </button>
 
-          <small>
-            AI suggestion · advisory
-            only
-          </small>
+          <small>AI suggestion · advisory only</small>
         </>
       )}
     </div>
   );
 }
 
-function SavingTips({
-  onViewAll,
-}) {
+function SavingTips({ onViewAll }) {
   return (
     <div className="dash-card tips-card">
       <div className="card-title">
         <div>
-          <strong>
-            Top saving tips
-          </strong>
+          <strong>Top saving tips</strong>
 
-          <small>
-            Ranked by potential
-            monthly savings
-          </small>
+          <small>Ranked by potential monthly savings</small>
         </div>
 
-        <button
-          onClick={onViewAll}
-        >
-          View all
-        </button>
+        <button onClick={onViewAll}>View all</button>
       </div>
 
       {[
@@ -1423,23 +1052,13 @@ function SavingTips({
           "Based on your transactions",
         ],
       ].map((item, index) => (
-        <div
-          className="tip-row"
-          key={index}
-        >
-          {toneIcon(
-            item[1],
-            item[0]
-          )}
+        <div className="tip-row" key={index}>
+          {toneIcon(item[1], item[0])}
 
           <div>
-            <strong>
-              {item[2]}
-            </strong>
+            <strong>{item[2]}</strong>
 
-            <small>
-              {item[3]}
-            </small>
+            <small>{item[3]}</small>
           </div>
 
           <button>♧</button>
@@ -1450,11 +1069,7 @@ function SavingTips({
   );
 }
 
-function CategoryBudgets({
-  categorySpending,
-  categories,
-  onManage,
-}) {
+function CategoryBudgets({ categorySpending, categories, onManage }) {
   /*
    * We only display categories that
    * actually have expense records.
@@ -1462,50 +1077,31 @@ function CategoryBudgets({
    * Budget values are not yet coming
    * from a backend budget API.
    */
-  const expenseCategories =
-    categories.filter(
-      (category) =>
-        category.type ===
-        "EXPENSE"
-    );
+  const expenseCategories = categories.filter(
+    (category) => category.type === "EXPENSE",
+  );
 
   return (
     <div className="dash-card category-budgets">
       <div className="card-title">
         <div>
-          <strong>
-            Category budgets
-          </strong>
+          <strong>Category budgets</strong>
 
-          <small>
-            Real-time consumption,
-            September
-          </small>
+          <small>Real-time consumption, September</small>
         </div>
 
-        <button
-          onClick={onManage}
-        >
-          Manage
-        </button>
+        <button onClick={onManage}>Manage</button>
       </div>
 
       {expenseCategories
         .filter((category) =>
-          categorySpending.some(
-            (item) =>
-              item.name ===
-              category.name
-          )
+          categorySpending.some((item) => item.name === category.name),
         )
         .slice(0, 5)
         .map((category) => {
           const spending =
-            categorySpending.find(
-              (item) =>
-                item.name ===
-                category.name
-            )?.value || 0;
+            categorySpending.find((item) => item.name === category.name)
+              ?.value || 0;
 
           /*
            * Temporary presentation
@@ -1514,44 +1110,21 @@ function CategoryBudgets({
            */
           const budget = 100;
 
-          const percentage =
-            Math.min(
-              100,
-              (spending / budget) *
-                100
-            );
+          const percentage = Math.min(100, (spending / budget) * 100);
 
           return (
-            <div
-              className="budget-row"
-              key={
-                category.categoryId
-              }
-            >
+            <div className="budget-row" key={category.categoryId}>
               {toneIcon(
-                toneForCategory(
-                  category.name
-                ),
-                iconForCategory(
-                  category.name
-                )
+                toneForCategory(category.name),
+                iconForCategory(category.name),
               )}
 
               <div className="budget-row-main">
                 <div>
-                  <strong>
-                    {category.name}
-                  </strong>
+                  <strong>{category.name}</strong>
 
                   <span>
-                    $
-                    {spending.toFixed(
-                      2
-                    )}{" "}
-                    / $
-                    {budget.toFixed(
-                      2
-                    )}
+                    ${spending.toFixed(2)} / ${budget.toFixed(2)}
                   </span>
                 </div>
 
@@ -1560,164 +1133,90 @@ function CategoryBudgets({
                     style={{
                       width: `${percentage}%`,
                     }}
-                    className={
-                      percentage >= 100
-                        ? "over"
-                        : ""
-                    }
+                    className={percentage >= 100 ? "over" : ""}
                   />
                 </div>
 
-                <small>
-                  {Math.round(
-                    percentage
-                  )}
-                  %
-                </small>
+                <small>{Math.round(percentage)}%</small>
               </div>
             </div>
           );
         })}
 
-      {expenseCategories.filter(
-        (category) =>
-          categorySpending.some(
-            (item) =>
-              item.name ===
-              category.name
-          )
+      {expenseCategories.filter((category) =>
+        categorySpending.some((item) => item.name === category.name),
       ).length === 0 && (
         <div
           style={{
-            padding:
-              "20px 0",
+            padding: "20px 0",
             opacity: 0.65,
           }}
         >
-          No September expenses
-          yet.
+          No September expenses yet.
         </div>
       )}
     </div>
   );
 }
 
-function RecentTransactions({
-  transactions,
-  loading,
-}) {
+function RecentTransactions({ transactions, loading }) {
   return (
     <div className="dash-card recent-card">
       <div className="card-title">
         <div>
-          <strong>
-            Recent transactions
-          </strong>
+          <strong>Recent transactions</strong>
 
-          <small>
-            Latest activity across
-            income and expenses
-          </small>
+          <small>Latest activity across income and expenses</small>
         </div>
 
-        <button
-          onClick={() =>
-            navigate(
-              "/transactions"
-            )
-          }
-        >
-          View all
-        </button>
+        <button onClick={() => navigate("/transactions")}>View all</button>
       </div>
 
       {loading ? (
         <div
           style={{
-            padding:
-              "20px 0",
+            padding: "20px 0",
           }}
         >
           Loading transactions...
         </div>
-      ) : transactions.length ===
-        0 ? (
+      ) : transactions.length === 0 ? (
         <div
           style={{
-            padding:
-              "20px 0",
+            padding: "20px 0",
             opacity: 0.65,
           }}
         >
           No transactions yet.
         </div>
       ) : (
-        transactions.map(
-          (transaction) => {
-            const tone =
-              toneForCategory(
-                transaction.categoryName
-              );
+        transactions.map((transaction) => {
+          const tone = toneForCategory(transaction.categoryName);
 
-            const icon =
-              iconForCategory(
-                transaction.categoryName
-              );
+          const icon = iconForCategory(transaction.categoryName);
 
-            const value =
-              Number(
-                transaction.amount ||
-                  0
-              );
+          const value = Number(transaction.amount || 0);
 
-            return (
-              <div
-                className="recent-row"
-                key={
-                  transaction.transactionId
-                }
-              >
-                {toneIcon(
-                  tone,
-                  icon
-                )}
+          return (
+            <div className="recent-row" key={transaction.transactionId}>
+              {toneIcon(tone, icon)}
 
-                <div>
-                  <strong>
-                    {transaction.description ||
-                      "Untitled transaction"}
-                  </strong>
+              <div>
+                <strong>
+                  {transaction.description || "Untitled transaction"}
+                </strong>
 
-                  <small>
-                    {
-                      transaction.categoryName
-                    }{" "}
-                    ·{" "}
-                    {formatDate(
-                      transaction.date
-                    )}
-                  </small>
-                </div>
-
-                <b
-                  className={
-                    transaction.type ===
-                    "INCOME"
-                      ? "positive"
-                      : ""
-                  }
-                >
-                  {money(
-                    transaction.type ===
-                      "INCOME"
-                      ? value
-                      : -value
-                  )}
-                </b>
+                <small>
+                  {transaction.categoryName} · {formatDate(transaction.date)}
+                </small>
               </div>
-            );
-          }
-        )
+
+              <b className={transaction.type === "INCOME" ? "positive" : ""}>
+                {money(transaction.type === "INCOME" ? value : -value)}
+              </b>
+            </div>
+          );
+        })
       )}
     </div>
   );
@@ -1735,147 +1234,82 @@ function TransactionModal({
 }) {
   const income = type === "income";
 
-  const [description, setDescription] =
-    useState(
-      ai
-        ? "Printing, lecture notes"
-        : ""
-    );
+  const [description, setDescription] = useState(
+    ai ? "Printing, lecture notes" : "",
+  );
 
-  const [categoryId, setCategoryId] =
-    useState("");
+  const [categoryId, setCategoryId] = useState("");
 
-  const [date, setDate] =
-    useState(
-      new Date()
-        .toISOString()
-        .split("T")[0]
-    );
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
 
-  const [repeat, setRepeat] =
-    useState(false);
+  const [repeat, setRepeat] = useState(false);
 
-  const [formError, setFormError] =
-    useState("");
+  const [formError, setFormError] = useState("");
 
-  const transactionType = income
-    ? "INCOME"
-    : "EXPENSE";
+  const transactionType = income ? "INCOME" : "EXPENSE";
 
-  const availableCategories =
-    categories.filter(
-      (category) =>
-        category.type ===
-        transactionType
-    );
+  const availableCategories = categories.filter(
+    (category) => category.type === transactionType,
+  );
 
   useEffect(() => {
-    const defaultCategory =
-      availableCategories.find(
-        (category) =>
-          category.name ===
-          (ai && !income
-            ? "Academics"
-            : "")
-      );
+    const defaultCategory = availableCategories.find(
+      (category) => category.name === (ai && !income ? "Academics" : ""),
+    );
 
     setCategoryId(
       defaultCategory
         ? defaultCategory.categoryId
-        : availableCategories[0]
-            ?.categoryId || ""
+        : availableCategories[0]?.categoryId || "",
     );
 
     if (ai && !income) {
-      setDescription(
-        "Printing, lecture notes"
-      );
+      setDescription("Printing, lecture notes");
     } else {
       setDescription("");
     }
 
     setFormError("");
-  }, [
-    type,
-    ai,
-    income,
-    categories,
-  ]);
+  }, [type, ai, income, categories]);
 
   useEffect(() => {
-    const handleKeyDown = (
-      event
-    ) => {
-      if (
-        event.key === "Escape"
-      ) {
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
         event.preventDefault();
         onClose();
       }
 
-      if (
-        event.key === "Enter" &&
-        event.target?.tagName !==
-          "TEXTAREA"
-      ) {
+      if (event.key === "Enter" && event.target?.tagName !== "TEXTAREA") {
         event.preventDefault();
         handleSave();
       }
     };
 
-    document.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
+    document.addEventListener("keydown", handleKeyDown);
 
-    const previousOverflow =
-      document.body.style
-        .overflow;
+    const previousOverflow = document.body.style.overflow;
 
-    document.body.style.overflow =
-      "hidden";
+    document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
+      document.removeEventListener("keydown", handleKeyDown);
 
-      document.body.style.overflow =
-        previousOverflow;
+      document.body.style.overflow = previousOverflow;
     };
-  }, [
-    onClose,
-    amount,
-    categoryId,
-    description,
-    date,
-  ]);
+  }, [onClose, amount, categoryId, description, date]);
 
-  const selectedCategory =
-    categories.find(
-      (category) =>
-        category.categoryId ===
-        categoryId
-    );
+  const selectedCategory = categories.find(
+    (category) => category.categoryId === categoryId,
+  );
 
-  const switchType = (
-    nextType
-  ) => {
-    if (
-      nextType !== type
-    ) {
+  const switchType = (nextType) => {
+    if (nextType !== type) {
       onSwitch(nextType);
     }
   };
 
-  const handleBackdropClick = (
-    event
-  ) => {
-    if (
-      event.target ===
-      event.currentTarget
-    ) {
+  const handleBackdropClick = (event) => {
+    if (event.target === event.currentTarget) {
       onClose();
     }
   };
@@ -1883,34 +1317,23 @@ function TransactionModal({
   const handleSave = () => {
     setFormError("");
 
-    if (
-      !amount ||
-      Number(amount) <= 0
-    ) {
-      setFormError(
-        "Please enter an amount greater than zero."
-      );
+    if (!amount || Number(amount) <= 0) {
+      setFormError("Please enter an amount greater than zero.");
       return;
     }
 
     if (!description.trim()) {
-      setFormError(
-        "Please enter a description."
-      );
+      setFormError("Please enter a description.");
       return;
     }
 
     if (!categoryId) {
-      setFormError(
-        "Please select a category."
-      );
+      setFormError("Please select a category.");
       return;
     }
 
     if (!date) {
-      setFormError(
-        "Please select a date."
-      );
+      setFormError("Please select a date.");
       return;
     }
 
@@ -1918,8 +1341,7 @@ function TransactionModal({
       categoryId,
       amount: Number(amount),
       type: transactionType,
-      description:
-        description.trim(),
+      description: description.trim(),
       date,
     });
   };
@@ -1928,35 +1350,22 @@ function TransactionModal({
     <div
       className="modal-backdrop"
       role="presentation"
-      onMouseDown={
-        handleBackdropClick
-      }
+      onMouseDown={handleBackdropClick}
     >
       <div
-        className={`transaction-modal ${
-          ai ? "ai-modal" : ""
-        }`}
+        className={`transaction-modal ${ai ? "ai-modal" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="transaction-modal-title"
-        onMouseDown={(event) =>
-          event.stopPropagation()
-        }
+        onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="modal-head">
           <div>
             <h2 id="transaction-modal-title">
-              Add{" "}
-              {income
-                ? "income"
-                : "expense"}
+              Add {income ? "income" : "expense"}
             </h2>
 
-            <p>
-              Log it in seconds.
-              Categories are suggested
-              as you type.
-            </p>
+            <p>Log it in seconds. Categories are suggested as you type.</p>
           </div>
 
           <button
@@ -1964,10 +1373,7 @@ function TransactionModal({
             onClick={onClose}
             aria-label="Close transaction form"
           >
-            <Icon
-              name="close"
-              size={18}
-            />
+            <Icon name="close" size={18} />
           </button>
         </div>
 
@@ -1978,34 +1384,18 @@ function TransactionModal({
         >
           <button
             type="button"
-            className={
-              !income
-                ? "active"
-                : ""
-            }
+            className={!income ? "active" : ""}
             aria-selected={!income}
-            onClick={() =>
-              switchType(
-                "expense"
-              )
-            }
+            onClick={() => switchType("expense")}
           >
             Expense
           </button>
 
           <button
             type="button"
-            className={
-              income
-                ? "active"
-                : ""
-            }
+            className={income ? "active" : ""}
             aria-selected={income}
-            onClick={() =>
-              switchType(
-                "income"
-              )
-            }
+            onClick={() => switchType("income")}
           >
             Income
           </button>
@@ -2013,52 +1403,31 @@ function TransactionModal({
 
         <label>
           Amount
-
           <div className="amount-input">
             <span>$</span>
 
             <input
               inputMode="decimal"
               aria-label={`${income ? "Income" : "Expense"} amount`}
-              value={
-                amount || ""
-              }
+              value={amount || ""}
               onChange={(event) => {
-                const value =
-                  event.target.value.replace(
-                    /[^0-9.]/g,
-                    ""
-                  );
+                const value = event.target.value.replace(/[^0-9.]/g, "");
 
-                setAmount(
-                  value === ""
-                    ? 0
-                    : Number(value)
-                );
+                setAmount(value === "" ? 0 : Number(value));
               }}
-              onFocus={(event) =>
-                event.target.select()
-              }
+              onFocus={(event) => event.target.select()}
             />
           </div>
         </label>
 
         <label>
           Description
-
           <div className="field-input">
-            <Icon
-              name="receipt"
-              size={16}
-            />
+            <Icon name="receipt" size={16} />
 
             <input
               value={description}
-              onChange={(event) =>
-                setDescription(
-                  event.target.value
-                )
-              }
+              onChange={(event) => setDescription(event.target.value)}
               placeholder={
                 income
                   ? "e.g. allowance, scholarship, freelance"
@@ -2069,101 +1438,55 @@ function TransactionModal({
           </div>
         </label>
 
-        {ai &&
-          !income &&
-          description.trim()
-            .length > 0 && (
-            <div className="ai-suggestion">
-              {toneIcon(
-                "mint",
-                "sparkle"
-              )}
+        {ai && !income && description.trim().length > 0 && (
+          <div className="ai-suggestion">
+            {toneIcon("mint", "sparkle")}
 
-              <div>
-                <strong>
-                  Suggested category:
-                  Academics
-                </strong>
+            <div>
+              <strong>Suggested category: Academics</strong>
 
-                <small>
-                  Based on your
-                  description
-                </small>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => {
-                  const academics =
-                    availableCategories.find(
-                      (item) =>
-                        item.name ===
-                        "Academics"
-                    );
-
-                  if (academics) {
-                    setCategoryId(
-                      academics.categoryId
-                    );
-                  }
-                }}
-              >
-                Use
-              </button>
+              <small>Based on your description</small>
             </div>
-          )}
-
-        <div className="category-select">
-          <div className="label-row">
-            <label>
-              Category
-            </label>
 
             <button
               type="button"
-              onClick={() =>
-                navigate(
-                  "/categories"
-                )
-              }
+              onClick={() => {
+                const academics = availableCategories.find(
+                  (item) => item.name === "Academics",
+                );
+
+                if (academics) {
+                  setCategoryId(academics.categoryId);
+                }
+              }}
             >
+              Use
+            </button>
+          </div>
+        )}
+
+        <div className="category-select">
+          <div className="label-row">
+            <label>Category</label>
+
+            <button type="button" onClick={() => navigate("/categories")}>
               Manage categories
             </button>
           </div>
 
           <div className="chips">
-            {availableCategories.map(
-              (item) => (
-                <button
-                  type="button"
-                  key={
-                    item.categoryId
-                  }
-                  className={
-                    categoryId ===
-                    item.categoryId
-                      ? "selected"
-                      : ""
-                  }
-                  onClick={() =>
-                    setCategoryId(
-                      item.categoryId
-                    )
-                  }
-                >
-                  {item.name}
-                </button>
-              )
-            )}
+            {availableCategories.map((item) => (
+              <button
+                type="button"
+                key={item.categoryId}
+                className={categoryId === item.categoryId ? "selected" : ""}
+                onClick={() => setCategoryId(item.categoryId)}
+              >
+                {item.name}
+              </button>
+            ))}
 
-            <button
-              type="button"
-              onClick={() =>
-                navigate(
-                  "/categories"
-                )
-              }
-            >
+            <button type="button" onClick={() => navigate("/categories")}>
               ＋ New
             </button>
           </div>
@@ -2172,53 +1495,28 @@ function TransactionModal({
         <div className="date-grid">
           <label>
             Date
-
             <div className="field-input">
-              <Icon
-                name="calendar"
-                size={16}
-              />
+              <Icon name="calendar" size={16} />
 
               <input
                 type="date"
                 value={date}
-                onChange={(event) =>
-                  setDate(
-                    event.target.value
-                  )
-                }
+                onChange={(event) => setDate(event.target.value)}
               />
             </div>
           </label>
 
           <label>
             Repeat
-
             <button
               type="button"
-              className={`repeat-field ${
-                repeat ? "on" : ""
-              }`}
-              onClick={() =>
-                setRepeat(
-                  (value) =>
-                    !value
-                )
-              }
-              aria-pressed={
-                repeat
-              }
+              className={`repeat-field ${repeat ? "on" : ""}`}
+              onClick={() => setRepeat((value) => !value)}
+              aria-pressed={repeat}
             >
-              <Icon
-                name="repeat"
-                size={16}
-              />
+              <Icon name="repeat" size={16} />
 
-              <span>
-                {repeat
-                  ? "Monthly"
-                  : "None"}
-              </span>
+              <span>{repeat ? "Monthly" : "None"}</span>
 
               <i />
             </button>
@@ -2226,24 +1524,15 @@ function TransactionModal({
         </div>
 
         {formError && (
-          <div
-            className="modal-form-error"
-            role="alert"
-          >
+          <div className="modal-form-error" role="alert">
             {formError}
           </div>
         )}
 
         <div className="modal-footer">
-          <small>
-            Press Enter to save · Esc
-            to close
-          </small>
+          <small>Press Enter to save · Esc to close</small>
 
-          <button
-            type="button"
-            onClick={onClose}
-          >
+          <button type="button" onClick={onClose}>
             Cancel
           </button>
 
@@ -2251,17 +1540,9 @@ function TransactionModal({
             type="button"
             className="primary-btn"
             onClick={handleSave}
-            disabled={
-              !amount ||
-              !categoryId ||
-              !description.trim() ||
-              !date
-            }
+            disabled={!amount || !categoryId || !description.trim() || !date}
           >
-            ✓ Save{" "}
-            {income
-              ? "income"
-              : "expense"}
+            ✓ Save {income ? "income" : "expense"}
           </button>
         </div>
       </div>
@@ -2269,9 +1550,6 @@ function TransactionModal({
   );
 }
 
-export {
-  DashboardShell,
-  NotificationPanel,
-};
+export { DashboardShell, NotificationPanel };
 
 export default DashboardPage;

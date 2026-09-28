@@ -3568,3 +3568,146 @@
     padding: 16px;
   }
 }
+
+/* Notes feature */
+.money-tools-app .notes-grid .note-card {
+  min-width: 0;
+}
+
+.money-tools-app .bookmark-menu-button {
+  border: 0;
+  background: transparent;
+  color: var(--db-muted);
+  font: inherit;
+  font-size: 10px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.money-tools-app .bookmark-menu-button:hover {
+  color: var(--db-text);
+}
+
+.money-tools-app .bookmark-note-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  color: var(--db-muted);
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.money-tools-app .bookmark-note-label svg {
+  color: #008b62;
+}
+
+.money-tools-app .note-card p {
+  margin-top: 6px;
+}
+
+.money-tools-app .note-updated {
+  display: block;
+  margin-top: 7px;
+  color: var(--db-muted);
+  font-size: 7px;
+}
+
+.money-tools-app .note-error-state {
+  gap: 8px;
+}
+
+.money-tools-app .note-error-state .tool-primary {
+  margin-top: 3px;
+}
+
+.money-tools-app .note-viewer {
+  background: var(--db-bg);
+  border: 1px solid var(--db-border);
+  border-radius: 10px;
+  padding: 13px;
+}
+
+.money-tools-app .note-viewer p {
+  margin: 8px 0 0;
+  color: var(--db-text);
+  font-size: 10px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.money-tools-app .tool-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.money-tools-app .danger-btn {
+  border: 0;
+  background: #c94b4b;
+  color: #fff;
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* =========================================================
+   Settings profile integration
+   Only used by SettingsProfileV2 inside MoneyToolsPage.jsx
+   ========================================================= */
+.money-tools-app .settings-profile-error {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid #f0c8cc;
+  border-radius: 9px;
+  background: #fff4f5;
+  color: #a9363f;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.money-tools-app .settings-profile-saving {
+  margin-top: 10px;
+  color: #008b62;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.money-tools-app .settings-photo-btn.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.money-tools-app .settings-photo-btn input:disabled {
+  cursor: not-allowed;
+}
+
+.money-tools-app .settings-form-grid-v2 input:disabled,
+.money-tools-app .settings-form-grid-v2 select:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .money-tools-app .settings-profile-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .money-tools-app .profile-summary {
+    min-width: calc(100% - 70px);
+  }
+
+  .money-tools-app .settings-photo-btn {
+    margin-left: 66px;
+  }
+
+  .money-tools-app .settings-remove-photo {
+    margin-left: 4px;
+  }
+
+  .money-tools-app .settings-form-grid-v2 {
+    grid-template-columns: 1fr;
+  }
+}
