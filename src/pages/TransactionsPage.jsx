@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { navigate } from "../routes/AppRoutes";
 import Icon from "../components/Icon";
 import { DashboardShell } from "./DashboardPage";
+import { formatMoney } from "../utils/currency";
 
 import {
   getTransactions,
@@ -16,7 +17,7 @@ function money(amount, type) {
   const value = Number(amount || 0);
   const isIncome = type === "INCOME";
 
-  return `${isIncome ? "+" : "−"}$${Math.abs(value).toFixed(2)}`;
+  return `${isIncome ? "+" : "−"}${formatMoney(Math.abs(value))}`;
 }
 
 function formatDate(date) {
@@ -418,21 +419,21 @@ function TransactionsPage() {
             icon="arrowup"
             tone="mint"
             label="Income · Sep"
-            value={`$${septemberIncome.toFixed(2)}`}
+            value={formatMoney(septemberIncome)}
           />
 
           <Metric
             icon="arrowdown"
             tone="blue"
             label="Expenses · Sep"
-            value={`$${septemberExpenses.toFixed(2)}`}
+            value={formatMoney(septemberExpenses)}
           />
 
           <Metric
             icon="wallet"
             tone="slate"
             label="Net balance"
-            value={`$${netBalance.toFixed(2)}`}
+            value={formatMoney(netBalance)}
           />
 
           <Metric
@@ -1102,8 +1103,8 @@ function TransactionDrawer({
             {amount
               ? money(amount, type)
               : type === "INCOME"
-                ? "+$0.00"
-                : "−$0.00"}
+                ? `+${formatMoney(0)}`
+                : `−${formatMoney(0)}`}
           </strong>
         </div>
 
