@@ -25,7 +25,6 @@ import {
   deleteProfilePhoto,
   loadProfilePhoto,
 } from "../api/profileApi";
-import { getStudentSession } from "../utils";
 
 const categories = [
   {

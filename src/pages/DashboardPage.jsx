@@ -357,8 +357,6 @@ function DashboardShell({
 
               {notificationOpen && <NotificationPanel />}
             </div>
-
-            {renderAvatar("top-avatar")}
             <button
               className="top-avatar"
               type="button"
@@ -642,43 +640,28 @@ function DashboardPage() {
   /*
    * Category spending
    */
-  const categorySpending =
-    useMemo(() => {
-      const map = {};
+  /*
+ * Category spending
+ */
+const categorySpending = useMemo(() => {
+  const map = {};
 
-      currentMonthTransactions
-        .filter(
-          (transaction) =>
-            transaction.type ===
-            "EXPENSE"
-        )
-        .forEach((transaction) => {
-          const category =
-            transaction.categoryName ||
-            "Other";
+  currentMonthTransactions
+    .filter((transaction) => transaction.type === "EXPENSE")
+    .forEach((transaction) => {
+      const category = transaction.categoryName || "Other";
+      const amount = Number(transaction.amount || 0);
 
-    septemberTransactions
-      .filter((transaction) => transaction.type === "EXPENSE")
-      .forEach((transaction) => {
-        const category = transaction.categoryName || "Other";
+      map[category] = (map[category] || 0) + amount;
+    });
 
-          map[category] += Number(
-            transaction.amount || 0
-          );
-        });
-
-      return Object.entries(map)
-        .map(
-          ([name, value]) => ({
-            name,
-            value,
-          })
-        )
-        .sort(
-          (a, b) =>
-            b.value - a.value
-        );
-    }, [currentMonthTransactions]);
+  return Object.entries(map)
+    .map(([name, value]) => ({
+      name,
+      value,
+    }))
+    .sort((a, b) => b.value - a.value);
+}, [currentMonthTransactions]);
 
   const topCategory = categorySpending[0] || null;
 
@@ -1823,90 +1806,89 @@ function TransactionModal({
           </div>
         </label>
 
-        {ai && !income && description.trim().length > 0 && (
-          <div className="ai-suggestion">
-            {toneIcon("mint", "sparkle")}
+      {ai && !income && description.trim().length > 0 && (
+  <div className="ai-suggestion">
+    {toneIcon("mint", "sparkle")}
 
-            <div>
-              <strong>Suggested category: Academics</strong>
+    <div>
+      <strong>Suggested category: Academics</strong>
+      <small>Based on your description</small>
+    </div>
+  </div>
+)}
 
-              <small>Based on your description</small>
-            </div>
+<div className="chips">
+  {availableCategories.map((item) => (
+    <button
+      type="button"
+      key={item.categoryId}
+      className={categoryId === item.categoryId ? "selected" : ""}
+      onClick={() => setCategoryId(item.categoryId)}
+    >
+      {item.name}
+    </button>
+  ))}
 
+  <button type="button" onClick={() => navigate("/categories")}>
+    ＋ New
+  </button>
+</div>
 
-          </div>
+<div className="date-grid">
+  <label>
+    Date
 
-          <div className="chips">
-            {availableCategories.map((item) => (
-              <button
-                type="button"
-                key={item.categoryId}
-                className={categoryId === item.categoryId ? "selected" : ""}
-                onClick={() => setCategoryId(item.categoryId)}
-              >
-                {item.name}
-              </button>
-            ))}
+    <div className="field-input">
+      <Icon name="calendar" size={16} />
 
-            <button type="button" onClick={() => navigate("/categories")}>
-              ＋ New
-            </button>
-          </div>
-        </div>
+      <input
+        type="date"
+        value={date}
+        onChange={(event) => setDate(event.target.value)}
+      />
+    </div>
+  </label>
 
-        <div className="date-grid">
-          <label>
-            Date
-            <div className="field-input">
-              <Icon name="calendar" size={16} />
+  <label>
+    Repeat
 
-              <input
-                type="date"
-                value={date}
-                onChange={(event) => setDate(event.target.value)}
-              />
-            </div>
-          </label>
+    <button
+      type="button"
+      className={`repeat-field ${repeat ? "on" : ""}`}
+      onClick={() => setRepeat((value) => !value)}
+      aria-pressed={repeat}
+    >
+      <Icon name="repeat" size={16} />
 
-          <label>
-            Repeat
-            <button
-              type="button"
-              className={`repeat-field ${repeat ? "on" : ""}`}
-              onClick={() => setRepeat((value) => !value)}
-              aria-pressed={repeat}
-            >
-              <Icon name="repeat" size={16} />
+      <span>{repeat ? "Monthly" : "None"}</span>
 
-              <span>{repeat ? "Monthly" : "None"}</span>
+      <i />
+    </button>
+  </label>
+</div>
 
-              <i />
-            </button>
-          </label>
-        </div>
+{formError && (
+  <div className="modal-form-error" role="alert">
+    {formError}
+  </div>
+)}
 
-        {formError && (
-          <div className="modal-form-error" role="alert">
-            {formError}
-          </div>
-        )}
+<div className="modal-footer">
+  <small>Press Enter to save · Esc to close</small>
 
-        <div className="modal-footer">
-          <small>Press Enter to save · Esc to close</small>
+  <button type="button" onClick={onClose}>
+    Cancel
+  </button>
 
-          <button type="button" onClick={onClose}>
-            Cancel
-          </button>
-
-          <button
-            type="button"
-            className="primary-btn"
-            onClick={handleSave}
-            disabled={!amount || !categoryId || !description.trim() || !date}
-          >
-            ✓ Save {income ? "income" : "expense"}
-          </button>
-        </div>
+  <button
+    type="button"
+    className="primary-btn"
+    onClick={handleSave}
+    disabled={!amount || !categoryId || !description.trim() || !date}
+  >
+    ✓ Save {income ? "income" : "expense"}
+  </button>
+</div>
       </div>
     </div>
   );
