@@ -70,3 +70,6 @@ html[data-theme="dark"] .admin-console-app .notification-placement.notification{
 html[data-theme="dark"] .admin-console-app .notification-expiry{background:#27354a;color:#a8b8cc}
 html[data-theme="dark"] .admin-console-app .notification-expiry.valid{background:#103b32;color:#52d6a2}
 html[data-theme="dark"] .admin-console-app .notification-expiry.expired{background:#512c34;color:#ffaaaa}
+.category-bar .category-bar-name{display:flex;align-items:center;gap:6px;min-width:0}
+.category-bar .category-bar-name .admin-cat-icon{width:22px;height:22px;flex:0 0 22px;border-radius:6px}
+.category-bar .category-bar-name>span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
