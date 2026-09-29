@@ -6271,3 +6271,12 @@
 .dashboard-app .notification-panel .notif-settings {
   flex: 0 0 auto !important;
 }
+
+.transaction-save-btn {
+  background: #ffffff;
+  color: #16a34a !important;
+}
+
+.transaction-save-btn:hover {
+  color: #ffffff !important;
+}
