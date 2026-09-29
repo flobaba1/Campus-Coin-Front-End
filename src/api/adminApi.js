@@ -24,6 +24,12 @@ export function getAdminCategoryAnalytics(days = 30) {
   })
 }
 
+export function getRecentAdminAuditLogs() {
+  return apiRequest('/api/admin/audit-logs/recent', {
+    method: 'GET',
+  })
+}
+
 export function getAdminNotifications() {
   return apiRequest('/api/admin/notification', {
     method: 'GET',
