@@ -109,7 +109,7 @@ const alerts = [
   ],
   [
     "Food is approaching its limit",
-    `${formatMoney(214.60)} spent · ${formatMoney(35.40)} remaining.`,
+    `${formatMoney(214.6)} spent · ${formatMoney(35.4)} remaining.`,
     "food",
     "86%",
   ],
@@ -119,14 +119,14 @@ const tips = [
   {
     title: "Cut one food delivery this week",
     text: "Skipping one delivery can keep your Food budget below its monthly target.",
-    amount: formatMoney(18.40),
+    amount: formatMoney(18.4),
     tone: "amber",
     icon: "food",
   },
   {
     title: "Use your student transport option",
     text: "Choose your lower-cost route for the next few library trips.",
-    amount: formatMoney(6.20),
+    amount: formatMoney(6.2),
     tone: "blue",
     icon: "bus",
   },
@@ -147,23 +147,22 @@ const tips = [
   {
     title: "Plan academics spending",
     text: "Keep printing and lecture-note costs inside the remaining budget.",
-    amount: formatMoney(35.80),
+    amount: formatMoney(35.8),
     tone: "peach",
     icon: "grad",
   },
 ];
 
-
 const reviewRows = [
-  ["Sep 23", "Printing, lecture notes", formatMoney(4.50), "Academics", "91%"],
-  ["Sep 22", "Ride to library", formatMoney(6.20), "Transport", "96%"],
-  ["Sep 20", "Chop & Go delivery", formatMoney(18.40), "Food", "94%"],
+  ["Sep 23", "Printing, lecture notes", formatMoney(4.5), "Academics", "91%"],
+  ["Sep 22", "Ride to library", formatMoney(6.2), "Transport", "96%"],
+  ["Sep 20", "Chop & Go delivery", formatMoney(18.4), "Food", "94%"],
   ["Sep 18", "Cinema night", formatMoney(14), "Entertainment", "88%"],
-  ["Sep 17", "Campus Cafe", formatMoney(8.50), "Food", "97%"],
+  ["Sep 17", "Campus Cafe", formatMoney(8.5), "Food", "97%"],
   ["Sep 16", "Monthly data", formatMoney(12), "Subscriptions", "79%"],
   ["Sep 14", "Textbook rental", formatMoney(32), "Academics", "93%"],
   ["Sep 12", "Bus pass", formatMoney(20), "Transport", "95%"],
-  ["Sep 09", "Misc purchase", formatMoney(9.20), "Miscellaneous", "68%"],
+  ["Sep 09", "Misc purchase", formatMoney(9.2), "Miscellaneous", "68%"],
   ["Sep 04", "Spotify", formatMoney(5.99), "Subscriptions", "81%"],
 ];
 
@@ -370,33 +369,23 @@ function ToolsShell({
   const [moreOpen, setMoreOpen] = useState(false);
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [resolvedDark, setResolvedDark] = useState(
-    document.documentElement.dataset.theme === "dark"
+    document.documentElement.dataset.theme === "dark",
   );
 
   useEffect(() => {
     const handleThemeChange = () => {
-      setResolvedDark(
-        document.documentElement.dataset.theme === "dark"
-      );
+      setResolvedDark(document.documentElement.dataset.theme === "dark");
     };
 
-    window.addEventListener(
-      "campuscoin-theme-change",
-      handleThemeChange
-    );
+    window.addEventListener("campuscoin-theme-change", handleThemeChange);
 
     return () =>
-      window.removeEventListener(
-        "campuscoin-theme-change",
-        handleThemeChange
-      );
+      window.removeEventListener("campuscoin-theme-change", handleThemeChange);
   }, []);
 
   const studentSession = getStudentSession();
   const userFullName =
-    studentSession?.name ||
-    studentSession?.fullName ||
-    "CampusCoin User";
+    studentSession?.name || studentSession?.fullName || "CampusCoin User";
 
   const userInitials =
     userFullName
@@ -427,22 +416,22 @@ function ToolsShell({
     ["Bookmarks", "bookmark", "/bookmarks"],
   ];
   const account = [
-  {
-    label: "Import CSV",
-    icon: "upload",
-    path: "/import-csv",
-  },
-  {
-    label: "Site Map",
-    icon: "grid",
-    path: "/app/sitemap",
-  },
-  {
-    label: "Settings",
-    icon: "settings",
-    path: "/settings",
-  },
-];
+    {
+      label: "Import CSV",
+      icon: "upload",
+      path: "/import-csv",
+    },
+    {
+      label: "Site Map",
+      icon: "grid",
+      path: "/app/sitemap",
+    },
+    {
+      label: "Settings",
+      icon: "settings",
+      path: "/settings",
+    },
+  ];
 
   useEffect(() => {
     let mounted = true;
@@ -518,10 +507,10 @@ function ToolsShell({
     navigate("/");
   };
 
-
-
   return (
-    <div className={`dashboard-app money-tools-app ${resolvedDark ? "dark" : ""}`}>
+    <div
+      className={`dashboard-app money-tools-app ${resolvedDark ? "dark" : ""}`}
+    >
       <aside className="dash-sidebar">
         <button
           className="dash-brand"
@@ -557,26 +546,26 @@ function ToolsShell({
             {label === "AI Insights" && <b className="new">New</b>}
           </button>
         ))}
-        
-   <div className="side-label smart">ACCOUNT</div>
 
-{account.map((item) => (
-  <button
-    key={item.label}
-    className={`side-link ${
-      page === item.label ||
-      (item.label === "Site Map" &&
-        window.location.pathname === "/app/sitemap")
-        ? "active"
-        : ""
-    }`}
-    onClick={() => navigate(item.path)}
-    type="button"
-  >
-    <Icon name={item.icon} size={18} />
-    <span>{item.label}</span>
-  </button>
-))}
+        <div className="side-label smart">ACCOUNT</div>
+
+        {account.map((item) => (
+          <button
+            key={item.label}
+            className={`side-link ${
+              page === item.label ||
+              (item.label === "Site Map" &&
+                window.location.pathname === "/app/sitemap")
+                ? "active"
+                : ""
+            }`}
+            onClick={() => navigate(item.path)}
+            type="button"
+          >
+            <Icon name={item.icon} size={18} />
+            <span>{item.label}</span>
+          </button>
+        ))}
         <div className="side-spacer" />
         <div className="budget-mini">
           <div>
@@ -590,9 +579,7 @@ function ToolsShell({
             <i />
           </div>
 
-          <small>
-            Based on your transactions
-          </small>
+          <small>Based on your transactions</small>
         </div>
         <button
           className="profile-mini"
@@ -646,9 +633,7 @@ function ToolsShell({
               </button>
 
               {notificationOpen && (
-                <MiniNotifications
-                  onClose={() => setNotificationOpen(false)}
-                />
+                <MiniNotifications onClose={() => setNotificationOpen(false)} />
               )}
             </div>
 
@@ -1393,12 +1378,7 @@ function BudgetCategory({ budget, progress, onEdit }) {
       </div>
 
       {progress && (
-        <div
-          className={`mini-progress ${used >= 100
-              ? "danger"
-              : ""
-            }`}
-        >
+        <div className={`mini-progress ${used >= 100 ? "danger" : ""}`}>
           <i
             style={{
               width: `${used}%`,
@@ -1627,10 +1607,9 @@ function BudgetAutomation({ alertCount = 0 }) {
 
         <span>
           {alertCount > 0
-            ? `CampusCoin found ${alertCount} budget alert${alertCount === 1
-              ? ""
-              : "s"
-            } for this month.`
+            ? `CampusCoin found ${alertCount} budget alert${
+                alertCount === 1 ? "" : "s"
+              } for this month.`
             : "No budget alerts for this month."}
         </span>
       </div>
@@ -1651,10 +1630,10 @@ function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [exportOpen, setExportOpen] = useState(false);
 
- const [category, setCategory] = useState("All categories");
-const [kind, setKind] = useState("All transactions");
-const [view, setView] = useState("Month");
-const [selectedDate, setSelectedDate] = useState(now);
+  const [category, setCategory] = useState("All categories");
+  const [kind, setKind] = useState("All transactions");
+  const [view, setView] = useState("Month");
+  const [selectedDate, setSelectedDate] = useState(now);
 
   const [toast, showToast] = useToast();
 
@@ -1694,82 +1673,78 @@ const [selectedDate, setSelectedDate] = useState(now);
   );
 
   const periodTransactions = useMemo(() => {
-  const selected = new Date(selectedDate);
+    const selected = new Date(selectedDate);
 
-  let start;
-  let end;
+    let start;
+    let end;
 
-  if (view === "Month") {
-    start = new Date(
-      selected.getFullYear(),
-      selected.getMonth(),
-      1,
-    );
+    if (view === "Month") {
+      start = new Date(selected.getFullYear(), selected.getMonth(), 1);
 
-    end = new Date(
-      selected.getFullYear(),
-      selected.getMonth() + 1,
-      0,
-      23,
-      59,
-      59,
-      999,
-    );
-  } else if (view === "Week") {
-    const day = selected.getDay();
+      end = new Date(
+        selected.getFullYear(),
+        selected.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
+    } else if (view === "Week") {
+      const day = selected.getDay();
 
-    // Monday = 0 ... Sunday = 6
-    const mondayOffset = day === 0 ? -6 : 1 - day;
+      // Monday = 0 ... Sunday = 6
+      const mondayOffset = day === 0 ? -6 : 1 - day;
 
-    start = new Date(selected);
-    start.setDate(selected.getDate() + mondayOffset);
-    start.setHours(0, 0, 0, 0);
+      start = new Date(selected);
+      start.setDate(selected.getDate() + mondayOffset);
+      start.setHours(0, 0, 0, 0);
 
-    end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-  } else {
-    start = new Date(selected);
-    start.setHours(0, 0, 0, 0);
+      end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+    } else {
+      start = new Date(selected);
+      start.setHours(0, 0, 0, 0);
 
-    end = new Date(selected);
-    end.setHours(23, 59, 59, 999);
-  }
+      end = new Date(selected);
+      end.setHours(23, 59, 59, 999);
+    }
 
-  return transactions.filter((transaction) => {
-    const date = new Date(transaction.date);
+    return transactions.filter((transaction) => {
+      const date = new Date(transaction.date);
 
-    return date >= start && date <= end;
-  });
-}, [transactions, selectedDate, view]);
+      return date >= start && date <= end;
+    });
+  }, [transactions, selectedDate, view]);
 
-const filteredTransactions = useMemo(() => {
-  let result = [...periodTransactions];
+  const filteredTransactions = useMemo(() => {
+    let result = [...periodTransactions];
 
-  if (category !== "All categories") {
-    result = result.filter(
-      (transaction) =>
-        transaction.categoryName === category ||
-        transaction.category?.name === category,
-    );
-  }
+    if (category !== "All categories") {
+      result = result.filter(
+        (transaction) =>
+          transaction.categoryName === category ||
+          transaction.category?.name === category,
+      );
+    }
 
-  if (kind === "Expenses") {
-    result = result.filter(
-      (transaction) =>
-        String(transaction.type || "").toUpperCase() === "EXPENSE",
-    );
-  }
+    if (kind === "Expenses") {
+      result = result.filter(
+        (transaction) =>
+          String(transaction.type || "").toUpperCase() === "EXPENSE",
+      );
+    }
 
-  if (kind === "Income") {
-    result = result.filter(
-      (transaction) =>
-        String(transaction.type || "").toUpperCase() === "INCOME",
-    );
-  }
+    if (kind === "Income") {
+      result = result.filter(
+        (transaction) =>
+          String(transaction.type || "").toUpperCase() === "INCOME",
+      );
+    }
 
-  return result;
-}, [periodTransactions, category, kind]);
+    return result;
+  }, [periodTransactions, category, kind]);
 
   const expenseTransactions = useMemo(
     () =>
@@ -1828,99 +1803,84 @@ const filteredTransactions = useMemo(() => {
   }, [expenseTransactions]);
 
   const selectedMonthBudget = useMemo(() => {
-  const selected = new Date(selectedDate);
-  const month = selected.getMonth() + 1;
-  const year = selected.getFullYear();
+    const selected = new Date(selectedDate);
+    const month = selected.getMonth() + 1;
+    const year = selected.getFullYear();
 
-  return budgets
-    .filter(
-      (budget) =>
-        Number(budget.month) === month &&
-        Number(budget.year) === year,
-    )
-    .reduce(
-      (sum, budget) => sum + Number(budget.amount || 0),
-      0,
-    );
-}, [budgets, selectedDate]);
+    return budgets
+      .filter(
+        (budget) =>
+          Number(budget.month) === month && Number(budget.year) === year,
+      )
+      .reduce((sum, budget) => sum + Number(budget.amount || 0), 0);
+  }, [budgets, selectedDate]);
 
-const monthlyBudgetSpent = useMemo(() => {
-  const selected = new Date(selectedDate);
-  const month = selected.getMonth();
-  const year = selected.getFullYear();
+  const monthlyBudgetSpent = useMemo(() => {
+    const selected = new Date(selectedDate);
+    const month = selected.getMonth();
+    const year = selected.getFullYear();
 
-  return transactions
-    .filter((transaction) => {
-      const date = new Date(transaction.date);
+    return transactions
+      .filter((transaction) => {
+        const date = new Date(transaction.date);
 
-      return (
-        date.getMonth() === month &&
-        date.getFullYear() === year &&
-        String(transaction.type || "").toUpperCase() === "EXPENSE"
-      );
-    })
-    .reduce(
-      (sum, transaction) =>
-        sum + Number(transaction.amount || 0),
-      0,
-    );
-}, [transactions, selectedDate]);
+        return (
+          date.getMonth() === month &&
+          date.getFullYear() === year &&
+          String(transaction.type || "").toUpperCase() === "EXPENSE"
+        );
+      })
+      .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
+  }, [transactions, selectedDate]);
 
   const remainingBudget = selectedMonthBudget - monthlyBudgetSpent;
 
- const monthlyData = useMemo(() => {
-  const result = [];
-  const selected = new Date(selectedDate);
+  const monthlyData = useMemo(() => {
+    const result = [];
+    const selected = new Date(selectedDate);
 
-  for (let offset = 4; offset >= 0; offset--) {
-    const date = new Date(
-      selected.getFullYear(),
-      selected.getMonth() - offset,
-      1,
-    );
-
-    const month = date.getMonth() + 1;
-    const year = date.getFullYear();
-
-    const monthTransactions = transactions.filter((transaction) => {
-      const transactionDate = new Date(transaction.date);
-
-      return (
-        transactionDate.getFullYear() === year &&
-        transactionDate.getMonth() + 1 === month &&
-        String(transaction.type || "").toUpperCase() === "EXPENSE"
+    for (let offset = 4; offset >= 0; offset--) {
+      const date = new Date(
+        selected.getFullYear(),
+        selected.getMonth() - offset,
+        1,
       );
-    });
 
-    const spent = monthTransactions.reduce(
-      (sum, transaction) =>
-        sum + Number(transaction.amount || 0),
-      0,
-    );
+      const month = date.getMonth() + 1;
+      const year = date.getFullYear();
 
-    const budget = budgets
-      .filter(
-        (item) =>
-          Number(item.month) === month &&
-          Number(item.year) === year,
-      )
-      .reduce(
-        (sum, item) =>
-          sum + Number(item.amount || 0),
+      const monthTransactions = transactions.filter((transaction) => {
+        const transactionDate = new Date(transaction.date);
+
+        return (
+          transactionDate.getFullYear() === year &&
+          transactionDate.getMonth() + 1 === month &&
+          String(transaction.type || "").toUpperCase() === "EXPENSE"
+        );
+      });
+
+      const spent = monthTransactions.reduce(
+        (sum, transaction) => sum + Number(transaction.amount || 0),
         0,
       );
 
-    result.push({
-      month: date.toLocaleString("en-US", {
-        month: "short",
-      }),
-      budget,
-      spent,
-    });
-  }
+      const budget = budgets
+        .filter(
+          (item) => Number(item.month) === month && Number(item.year) === year,
+        )
+        .reduce((sum, item) => sum + Number(item.amount || 0), 0);
 
-  return result;
-}, [transactions, budgets, selectedDate]);
+      result.push({
+        month: date.toLocaleString("en-US", {
+          month: "short",
+        }),
+        budget,
+        spent,
+      });
+    }
+
+    return result;
+  }, [transactions, budgets, selectedDate]);
 
   const topCategories = categorySpending.slice(0, 5);
 
@@ -1931,385 +1891,301 @@ const monthlyBudgetSpent = useMemo(() => {
   const yearLabel = now.getFullYear();
 
   const movePeriod = (direction) => {
-  setSelectedDate((current) => {
-    const next = new Date(current);
+    setSelectedDate((current) => {
+      const next = new Date(current);
+
+      if (view === "Month") {
+        next.setMonth(next.getMonth() + direction);
+      } else if (view === "Week") {
+        next.setDate(next.getDate() + direction * 7);
+      } else {
+        next.setDate(next.getDate() + direction);
+      }
+
+      return next;
+    });
+  };
+
+  const getPeriodLabel = () => {
+    const selected = new Date(selectedDate);
 
     if (view === "Month") {
-      next.setMonth(next.getMonth() + direction);
-    } else if (view === "Week") {
-      next.setDate(next.getDate() + direction * 7);
-    } else {
-      next.setDate(next.getDate() + direction);
+      return selected.toLocaleString("en-US", {
+        month: "long",
+        year: "numeric",
+      });
     }
 
-    return next;
-  });
-};
+    if (view === "Week") {
+      const day = selected.getDay();
+      const mondayOffset = day === 0 ? -6 : 1 - day;
 
-const getPeriodLabel = () => {
-  const selected = new Date(selectedDate);
+      const start = new Date(selected);
+      start.setDate(selected.getDate() + mondayOffset);
 
-  if (view === "Month") {
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+
+      const startLabel = start.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+
+      const endLabel = end.toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+
+      return `${startLabel} – ${endLabel}`;
+    }
+
     return selected.toLocaleString("en-US", {
       month: "long",
-      year: "numeric",
-    });
-  }
-
-  if (view === "Week") {
-    const day = selected.getDay();
-    const mondayOffset = day === 0 ? -6 : 1 - day;
-
-    const start = new Date(selected);
-    start.setDate(selected.getDate() + mondayOffset);
-
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-
-    const startLabel = start.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-    });
-
-    const endLabel = end.toLocaleString("en-US", {
-      month: "short",
       day: "numeric",
       year: "numeric",
     });
+  };
 
-    return `${startLabel} – ${endLabel}`;
-  }
+  const getInputValue = () => {
+    const selected = new Date(selectedDate);
 
-  return selected.toLocaleString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-};
+    if (view === "Month") {
+      return `${selected.getFullYear()}-${String(
+        selected.getMonth() + 1,
+      ).padStart(2, "0")}`;
+    }
 
-const getInputValue = () => {
-  const selected = new Date(selectedDate);
-
-  if (view === "Month") {
     return `${selected.getFullYear()}-${String(
       selected.getMonth() + 1,
-    ).padStart(2, "0")}`;
-  }
+    ).padStart(2, "0")}-${String(selected.getDate()).padStart(2, "0")}`;
+  };
 
-  return `${selected.getFullYear()}-${String(
-    selected.getMonth() + 1,
-  ).padStart(2, "0")}-${String(
-    selected.getDate(),
-  ).padStart(2, "0")}`;
-};
+  const handlePeriodInput = (value) => {
+    if (!value) return;
 
-const handlePeriodInput = (value) => {
-  if (!value) return;
+    if (view === "Month") {
+      const [year, month] = value.split("-").map(Number);
 
-  if (view === "Month") {
-    const [year, month] = value.split("-").map(Number);
+      setSelectedDate(new Date(year, month - 1, 1));
+      return;
+    }
 
-    setSelectedDate(
-      new Date(year, month - 1, 1),
-    );
-    return;
-  }
+    const [year, month, day] = value.split("-").map(Number);
 
-  const [year, month, day] = value.split("-").map(Number);
-
-  setSelectedDate(
-    new Date(year, month - 1, day),
-  );
-};
+    setSelectedDate(new Date(year, month - 1, day));
+  };
 
   const handleExport = (format) => {
-  if (format === "CSV data") {
-    const headers = [
-      "Date",
-      "Description",
-      "Type",
-      "Category",
-      "Amount",
-    ];
+    if (format === "CSV data") {
+      const headers = ["Date", "Description", "Type", "Category", "Amount"];
 
-    const rows = filteredTransactions.map((transaction) => [
-      transaction.date || "",
-      transaction.description || "",
-      transaction.type || "",
-      transaction.categoryName ||
-        transaction.category?.name ||
-        "",
-      transaction.amount || 0,
-    ]);
+      const rows = filteredTransactions.map((transaction) => [
+        transaction.date || "",
+        transaction.description || "",
+        transaction.type || "",
+        transaction.categoryName || transaction.category?.name || "",
+        transaction.amount || 0,
+      ]);
 
-    const csv = [headers, ...rows]
-      .map((row) =>
-        row
-          .map(
-            (value) =>
-              `"${String(value).replaceAll('"', '""')}"`,
-          )
-          .join(","),
-      )
-      .join("\n");
+      const csv = [headers, ...rows]
+        .map((row) =>
+          row
+            .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+            .join(","),
+        )
+        .join("\n");
 
-    const blob = new Blob([csv], {
-      type: "text/csv;charset=utf-8;",
-    });
+      const blob = new Blob([csv], {
+        type: "text/csv;charset=utf-8;",
+      });
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
 
-    link.href = url;
-    link.download = `campuscoin-report-${getPeriodLabel()
-      .replace(/[^a-z0-9]+/gi, "-")
-      .toLowerCase()}.csv`;
+      link.href = url;
+      link.download = `campuscoin-report-${getPeriodLabel()
+        .replace(/[^a-z0-9]+/gi, "-")
+        .toLowerCase()}.csv`;
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-    URL.revokeObjectURL(url);
+      URL.revokeObjectURL(url);
 
-    setExportOpen(false);
-    showToast("CSV report downloaded");
-    return;
-  }
+      setExportOpen(false);
+      showToast("CSV report downloaded");
+      return;
+    }
 
-  try {
-    const doc = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
+    try {
+      const doc = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
 
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
 
-    const margin = 16;
-    let y = 18;
+      const margin = 16;
+      let y = 18;
 
-    const green = [0, 139, 98];
-    const dark = [23, 43, 77];
-    const muted = [105, 119, 137];
-    const light = [243, 247, 246];
+      const green = [0, 139, 98];
+      const dark = [23, 43, 77];
+      const muted = [105, 119, 137];
+      const light = [243, 247, 246];
 
-    const selectedPeriod = getPeriodLabel();
+      const selectedPeriod = getPeriodLabel();
 
-    const addPageIfNeeded = (space = 12) => {
-      if (y + space > pageHeight - 15) {
-        doc.addPage();
-        y = 18;
-      }
-    };
+      const addPageIfNeeded = (space = 12) => {
+        if (y + space > pageHeight - 15) {
+          doc.addPage();
+          y = 18;
+        }
+      };
 
-    const addSectionTitle = (title) => {
-      addPageIfNeeded(18);
+      const addSectionTitle = (title) => {
+        addPageIfNeeded(18);
 
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.setTextColor(...dark);
+
+        doc.text(title, margin, y);
+
+        y += 8;
+      };
+
+      const addDivider = () => {
+        doc.setDrawColor(220, 228, 232);
+        doc.line(margin, y, pageWidth - margin, y);
+
+        y += 7;
+      };
+
+      // ---------------------------------------
+      // HEADER
+      // ---------------------------------------
+
+      doc.setFillColor(...green);
+      doc.roundedRect(margin, y, pageWidth - margin * 2, 24, 4, 4, "F");
+
+      doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(12);
-      doc.setTextColor(...dark);
+      doc.setFontSize(19);
+      doc.text("CampusCoin", margin + 8, y + 10);
 
-      doc.text(title, margin, y);
-
-      y += 8;
-    };
-
-    const addDivider = () => {
-      doc.setDrawColor(220, 228, 232);
-      doc.line(
-        margin,
-        y,
-        pageWidth - margin,
-        y,
-      );
-
-      y += 7;
-    };
-
-    // ---------------------------------------
-    // HEADER
-    // ---------------------------------------
-
-    doc.setFillColor(...green);
-    doc.roundedRect(
-      margin,
-      y,
-      pageWidth - margin * 2,
-      24,
-      4,
-      4,
-      "F",
-    );
-
-    doc.setTextColor(255, 255, 255);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(19);
-    doc.text(
-      "CampusCoin",
-      margin + 8,
-      y + 10,
-    );
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9);
-    doc.text(
-      "Financial Report",
-      margin + 8,
-      y + 17,
-    );
-
-    y += 34;
-
-    // ---------------------------------------
-    // PERIOD
-    // ---------------------------------------
-
-    doc.setTextColor(...dark);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-
-    doc.text(
-      "Spending Report",
-      margin,
-      y,
-    );
-
-    y += 7;
-
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(...muted);
-
-    doc.text(
-      selectedPeriod,
-      margin,
-      y,
-    );
-
-    y += 10;
-
-    doc.setFontSize(8);
-    doc.text(
-      `View: ${view}   •   Category: ${category}   •   Type: ${kind}`,
-      margin,
-      y,
-    );
-
-    y += 10;
-
-    addDivider();
-
-    // ---------------------------------------
-    // SUMMARY
-    // ---------------------------------------
-
-    addSectionTitle("Spending summary");
-
-    const summaryWidth =
-      (pageWidth - margin * 2 - 8) / 2;
-
-    const summaryItems = [
-      ["Total spending", money(totalSpend)],
-      ["Total income", money(totalIncome)],
-      [
-        "Transactions",
-        String(filteredTransactions.length),
-      ],
-      [
-        "Remaining budget",
-        selectedMonthBudget > 0
-          ? money(Math.max(remainingBudget, 0))
-          : "—",
-      ],
-    ];
-
-    summaryItems.forEach((item, index) => {
-      const column = index % 2;
-      const row = Math.floor(index / 2);
-
-      const x =
-        margin +
-        column * (summaryWidth + 8);
-
-      const boxY =
-        y + row * 25;
-
-      doc.setFillColor(...light);
-      doc.roundedRect(
-        x,
-        boxY,
-        summaryWidth,
-        20,
-        3,
-        3,
-        "F",
-      );
-
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(...muted);
-
-      doc.text(
-        item[0],
-        x + 6,
-        boxY + 7,
-      );
-
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(11);
-      doc.setTextColor(...dark);
-
-      doc.text(
-        item[1],
-        x + 6,
-        boxY + 15,
-      );
-    });
-
-    y += 58;
-
-    // ---------------------------------------
-    // CATEGORY BREAKDOWN
-    // ---------------------------------------
-
-    addSectionTitle("Category breakdown");
-
-    if (categorySpending.length === 0) {
       doc.setFont("helvetica", "normal");
       doc.setFontSize(9);
+      doc.text("Financial Report", margin + 8, y + 17);
+
+      y += 34;
+
+      // ---------------------------------------
+      // PERIOD
+      // ---------------------------------------
+
+      doc.setTextColor(...dark);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(16);
+
+      doc.text("Spending Report", margin, y);
+
+      y += 7;
+
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
       doc.setTextColor(...muted);
 
+      doc.text(selectedPeriod, margin, y);
+
+      y += 10;
+
+      doc.setFontSize(8);
       doc.text(
-        "No expense data for this period.",
+        `View: ${view}   •   Category: ${category}   •   Type: ${kind}`,
         margin,
         y,
       );
 
-      y += 12;
-    } else {
-      categorySpending
-        .slice(0, 10)
-        .forEach((item) => {
+      y += 10;
+
+      addDivider();
+
+      // ---------------------------------------
+      // SUMMARY
+      // ---------------------------------------
+
+      addSectionTitle("Spending summary");
+
+      const summaryWidth = (pageWidth - margin * 2 - 8) / 2;
+
+      const summaryItems = [
+        ["Total spending", money(totalSpend)],
+        ["Total income", money(totalIncome)],
+        ["Transactions", String(filteredTransactions.length)],
+        [
+          "Remaining budget",
+          selectedMonthBudget > 0 ? money(Math.max(remainingBudget, 0)) : "—",
+        ],
+      ];
+
+      summaryItems.forEach((item, index) => {
+        const column = index % 2;
+        const row = Math.floor(index / 2);
+
+        const x = margin + column * (summaryWidth + 8);
+
+        const boxY = y + row * 25;
+
+        doc.setFillColor(...light);
+        doc.roundedRect(x, boxY, summaryWidth, 20, 3, 3, "F");
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...muted);
+
+        doc.text(item[0], x + 6, boxY + 7);
+
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.setTextColor(...dark);
+
+        doc.text(item[1], x + 6, boxY + 15);
+      });
+
+      y += 58;
+
+      // ---------------------------------------
+      // CATEGORY BREAKDOWN
+      // ---------------------------------------
+
+      addSectionTitle("Category breakdown");
+
+      if (categorySpending.length === 0) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...muted);
+
+        doc.text("No expense data for this period.", margin, y);
+
+        y += 12;
+      } else {
+        categorySpending.slice(0, 10).forEach((item) => {
           addPageIfNeeded(14);
 
           const percentage =
             totalSpend > 0
-              ? (
-                  (item.spent / totalSpend) *
-                  100
-                ).toFixed(1)
+              ? ((item.spent / totalSpend) * 100).toFixed(1)
               : "0.0";
 
           doc.setFont("helvetica", "normal");
           doc.setFontSize(9);
           doc.setTextColor(...dark);
 
-          doc.text(
-            item.name,
-            margin,
-            y,
-          );
+          doc.text(item.name, margin, y);
 
           doc.text(
             `${money(item.spent)} (${percentage}%)`,
@@ -2322,161 +2198,103 @@ const handlePeriodInput = (value) => {
 
           doc.setFillColor(232, 239, 236);
 
-          doc.roundedRect(
-            margin,
-            y,
-            pageWidth - margin * 2,
-            3,
-            1.5,
-            1.5,
-            "F",
-          );
+          doc.roundedRect(margin, y, pageWidth - margin * 2, 3, 1.5, 1.5, "F");
 
           const barWidth =
             totalSpend > 0
-              ? ((item.spent / totalSpend) *
-                  (pageWidth - margin * 2))
+              ? (item.spent / totalSpend) * (pageWidth - margin * 2)
               : 0;
 
           doc.setFillColor(...green);
 
           if (barWidth > 0) {
-            doc.roundedRect(
-              margin,
-              y,
-              barWidth,
-              3,
-              1.5,
-              1.5,
-              "F",
-            );
+            doc.roundedRect(margin, y, barWidth, 3, 1.5, 1.5, "F");
           }
 
           y += 9;
         });
-    }
+      }
 
-    // ---------------------------------------
-    // BUDGET
-    // ---------------------------------------
+      // ---------------------------------------
+      // BUDGET
+      // ---------------------------------------
 
-    addSectionTitle("Budget vs actual");
+      addSectionTitle("Budget vs actual");
 
-    const budgetRows = [
-      ["Budget", selectedMonthBudget > 0
-        ? money(selectedMonthBudget)
-        : "—"],
-      ["Spent", monthlyBudgetSpent > 0
-        ? money(monthlyBudgetSpent)
-        : "—"],
-      ["Remaining", selectedMonthBudget > 0
-        ? money(Math.max(remainingBudget, 0))
-        : "—"],
-    ];
+      const budgetRows = [
+        ["Budget", selectedMonthBudget > 0 ? money(selectedMonthBudget) : "—"],
+        ["Spent", monthlyBudgetSpent > 0 ? money(monthlyBudgetSpent) : "—"],
+        [
+          "Remaining",
+          selectedMonthBudget > 0 ? money(Math.max(remainingBudget, 0)) : "—",
+        ],
+      ];
 
-    budgetRows.forEach(([label, value]) => {
-      addPageIfNeeded(12);
+      budgetRows.forEach(([label, value]) => {
+        addPageIfNeeded(12);
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(...muted);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...muted);
 
-      doc.text(
-        label,
-        margin,
-        y,
-      );
+        doc.text(label, margin, y);
 
-      doc.setFont("helvetica", "bold");
-      doc.setTextColor(...dark);
+        doc.setFont("helvetica", "bold");
+        doc.setTextColor(...dark);
 
-      doc.text(
-        value,
-        pageWidth - margin,
-        y,
-        { align: "right" },
-      );
+        doc.text(value, pageWidth - margin, y, { align: "right" });
 
-      y += 8;
-    });
+        y += 8;
+      });
 
-    y += 3;
+      y += 3;
 
-    // ---------------------------------------
-    // TRANSACTIONS
-    // ---------------------------------------
+      // ---------------------------------------
+      // TRANSACTIONS
+      // ---------------------------------------
 
-    addSectionTitle("Transactions");
+      addSectionTitle("Transactions");
 
-    if (filteredTransactions.length === 0) {
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(9);
-      doc.setTextColor(...muted);
+      if (filteredTransactions.length === 0) {
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        doc.setTextColor(...muted);
 
-      doc.text(
-        "No transactions found for this period.",
-        margin,
-        y,
-      );
+        doc.text("No transactions found for this period.", margin, y);
 
-      y += 12;
-    } else {
-      filteredTransactions.forEach(
-        (transaction) => {
+        y += 12;
+      } else {
+        filteredTransactions.forEach((transaction) => {
           addPageIfNeeded(18);
 
           const date = transaction.date
-            ? new Date(
-                transaction.date,
-              ).toLocaleDateString(
-                "en-NG",
-                {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                },
-              )
+            ? new Date(transaction.date).toLocaleDateString("en-NG", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })
             : "—";
 
-          const description =
-            transaction.description ||
-            "Transaction";
+          const description = transaction.description || "Transaction";
 
           const transactionCategory =
             transaction.categoryName ||
             transaction.category?.name ||
             "Uncategorized";
 
-          const amount = money(
-            Number(transaction.amount || 0),
-          );
+          const amount = money(Number(transaction.amount || 0));
 
-          doc.setFont(
-            "helvetica",
-            "bold",
-          );
+          doc.setFont("helvetica", "bold");
           doc.setFontSize(8.5);
           doc.setTextColor(...dark);
 
-          doc.text(
-            description.slice(0, 55),
-            margin,
-            y,
-          );
+          doc.text(description.slice(0, 55), margin, y);
 
-          doc.text(
-            amount,
-            pageWidth - margin,
-            y,
-            { align: "right" },
-          );
+          doc.text(amount, pageWidth - margin, y, { align: "right" });
 
           y += 5;
 
-          doc.setFont(
-            "helvetica",
-            "normal",
-          );
+          doc.setFont("helvetica", "normal");
           doc.setFontSize(7.5);
           doc.setTextColor(...muted);
 
@@ -2487,78 +2305,54 @@ const handlePeriodInput = (value) => {
           );
 
           y += 8;
-        },
-      );
-    }
+        });
+      }
 
-    // ---------------------------------------
-    // FOOTER
-    // ---------------------------------------
+      // ---------------------------------------
+      // FOOTER
+      // ---------------------------------------
 
-    const totalPages =
-      doc.internal.getNumberOfPages();
+      const totalPages = doc.internal.getNumberOfPages();
 
-    for (
-      let page = 1;
-      page <= totalPages;
-      page++
-    ) {
-      doc.setPage(page);
+      for (let page = 1; page <= totalPages; page++) {
+        doc.setPage(page);
 
-      doc.setDrawColor(
-        220,
-        228,
-        232,
-      );
+        doc.setDrawColor(220, 228, 232);
 
-      doc.line(
-        margin,
-        pageHeight - 12,
-        pageWidth - margin,
-        pageHeight - 12,
-      );
+        doc.line(margin, pageHeight - 12, pageWidth - margin, pageHeight - 12);
 
-      doc.setFont(
-        "helvetica",
-        "normal",
-      );
-      doc.setFontSize(7);
-      doc.setTextColor(...muted);
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(7);
+        doc.setTextColor(...muted);
 
-      doc.text(
-        "CampusCoin · Personal finance report",
-        margin,
-        pageHeight - 7,
-      );
+        doc.text(
+          "CampusCoin · Personal finance report",
+          margin,
+          pageHeight - 7,
+        );
 
-      doc.text(
-        `Page ${page} of ${totalPages}`,
-        pageWidth - margin,
-        pageHeight - 7,
-        { align: "right" },
-      );
-    }
+        doc.text(
+          `Page ${page} of ${totalPages}`,
+          pageWidth - margin,
+          pageHeight - 7,
+          { align: "right" },
+        );
+      }
 
-    const filename =
-      `campuscoin-report-${selectedPeriod
+      const filename = `campuscoin-report-${selectedPeriod
         .replace(/[^a-z0-9]+/gi, "-")
         .toLowerCase()}.pdf`;
 
-    doc.save(filename);
+      doc.save(filename);
 
-    setExportOpen(false);
-    showToast("PDF report downloaded");
-  } catch (error) {
-    console.error(
-      "Failed to generate PDF report:",
-      error,
-    );
+      setExportOpen(false);
+      showToast("PDF report downloaded");
+    } catch (error) {
+      console.error("Failed to generate PDF report:", error);
 
-    showToast(
-      "Unable to generate PDF report",
-    );
-  }
-};
+      showToast("Unable to generate PDF report");
+    }
+  };
 
   return (
     <ToolsShell
@@ -2586,82 +2380,74 @@ const handlePeriodInput = (value) => {
         }
       >
         <div className="report-period-controls">
-  <div className="report-view-toggle">
-    {["Month", "Week", "Day"].map((item) => (
-      <button
-        key={item}
-        type="button"
-        className={view === item ? "active" : ""}
-        onClick={() => setView(item)}
-      >
-        {item}
-      </button>
-    ))}
-  </div>
+          <div className="report-view-toggle">
+            {["Month", "Week", "Day"].map((item) => (
+              <button
+                key={item}
+                type="button"
+                className={view === item ? "active" : ""}
+                onClick={() => setView(item)}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
 
-  <div className="report-period-picker">
-    <button
-      type="button"
-      className="period-arrow"
-      onClick={() => movePeriod(-1)}
-      aria-label={`Previous ${view.toLowerCase()}`}
-    >
-      ‹
-    </button>
+          <div className="report-period-picker">
+            <button
+              type="button"
+              className="period-arrow"
+              onClick={() => movePeriod(-1)}
+              aria-label={`Previous ${view.toLowerCase()}`}
+            >
+              ‹
+            </button>
 
-    <div className="period-current">
-      <strong>{getPeriodLabel()}</strong>
+            <div className="period-current">
+              <strong>{getPeriodLabel()}</strong>
 
-      <input
-        type={view === "Month" ? "month" : "date"}
-        value={getInputValue()}
-        onChange={(e) =>
-          handlePeriodInput(e.target.value)
-        }
-        aria-label={`Select ${view.toLowerCase()}`}
-      />
-    </div>
+              <input
+                type={view === "Month" ? "month" : "date"}
+                value={getInputValue()}
+                onChange={(e) => handlePeriodInput(e.target.value)}
+                aria-label={`Select ${view.toLowerCase()}`}
+              />
+            </div>
 
-    <button
-      type="button"
-      className="period-arrow"
-      onClick={() => movePeriod(1)}
-      aria-label={`Next ${view.toLowerCase()}`}
-    >
-      ›
-    </button>
-  </div>
+            <button
+              type="button"
+              className="period-arrow"
+              onClick={() => movePeriod(1)}
+              aria-label={`Next ${view.toLowerCase()}`}
+            >
+              ›
+            </button>
+          </div>
 
-  <div className="report-filter-selects">
-    <select
-      value={category}
-      onChange={(e) => setCategory(e.target.value)}
-    >
-      <option>All categories</option>
+          <div className="report-filter-selects">
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option>All categories</option>
 
-      {expenseCategories.map((c) => (
-        <option key={c.categoryId || c.name}>
-          {c.name}
-        </option>
-      ))}
-    </select>
+              {expenseCategories.map((c) => (
+                <option key={c.categoryId || c.name}>{c.name}</option>
+              ))}
+            </select>
 
-    <select
-      value={kind}
-      onChange={(e) => setKind(e.target.value)}
-    >
-      <option>All transactions</option>
-      <option>Expenses</option>
-      <option>Income</option>
-    </select>
-  </div>
-</div>
+            <select value={kind} onChange={(e) => setKind(e.target.value)}>
+              <option>All transactions</option>
+              <option>Expenses</option>
+              <option>Income</option>
+            </select>
+          </div>
+        </div>
 
-<div className="report-filter-summary">
-  Showing <strong>{category}</strong> ·{" "}
-  <strong>{kind}</strong> ·{" "}
-  <strong>{getPeriodLabel()}</strong>
-</div>
+        <div className="report-filter-summary">
+          Showing <strong>{category}</strong> · <strong>{kind}</strong> ·{" "}
+          <strong>{getPeriodLabel()}</strong>
+        </div>
 
         {loading ? (
           <div
@@ -2689,12 +2475,12 @@ const handlePeriodInput = (value) => {
             />
 
             <DailySpendReport
-  transactions={transactions}
-  selectedDate={selectedDate}
-  view={view}
-  category={category}
-  kind={kind}
-/>
+              transactions={transactions}
+              selectedDate={selectedDate}
+              view={view}
+              category={category}
+              kind={kind}
+            />
 
             <TopSpenders topCategories={topCategories} />
           </div>
@@ -2861,11 +2647,7 @@ function DailySpendReport({
     let count;
 
     if (view === "Month") {
-      start = new Date(
-        selected.getFullYear(),
-        selected.getMonth(),
-        1,
-      );
+      start = new Date(selected.getFullYear(), selected.getMonth(), 1);
 
       count = new Date(
         selected.getFullYear(),
@@ -2877,9 +2659,7 @@ function DailySpendReport({
       const mondayOffset = day === 0 ? -6 : 1 - day;
 
       start = new Date(selected);
-      start.setDate(
-        selected.getDate() + mondayOffset,
-      );
+      start.setDate(selected.getDate() + mondayOffset);
 
       count = 7;
     } else {
@@ -2897,47 +2677,32 @@ function DailySpendReport({
 
       const total = transactions
         .filter((transaction) => {
-          const transactionDate = new Date(
-            transaction.date,
-          );
+          const transactionDate = new Date(transaction.date);
 
           if (
-            transactionDate.getFullYear() !==
-              date.getFullYear() ||
-            transactionDate.getMonth() !==
-              date.getMonth() ||
-            transactionDate.getDate() !==
-              date.getDate()
+            transactionDate.getFullYear() !== date.getFullYear() ||
+            transactionDate.getMonth() !== date.getMonth() ||
+            transactionDate.getDate() !== date.getDate()
           ) {
             return false;
           }
 
-          if (
-            String(transaction.type || "").toUpperCase() !==
-            "EXPENSE"
-          ) {
+          if (String(transaction.type || "").toUpperCase() !== "EXPENSE") {
             return false;
           }
 
           if (category !== "All categories") {
             const transactionCategory =
-              transaction.categoryName ||
-              transaction.category?.name;
+              transaction.categoryName || transaction.category?.name;
 
-            if (
-              transactionCategory !== category
-            ) {
+            if (transactionCategory !== category) {
               return false;
             }
           }
 
           return true;
         })
-        .reduce(
-          (sum, transaction) =>
-            sum + Number(transaction.amount || 0),
-          0,
-        );
+        .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
 
       values.push({
         date,
@@ -2948,10 +2713,7 @@ function DailySpendReport({
     return values;
   }, [transactions, selectedDate, view, category, kind]);
 
-  const max = Math.max(
-    ...data.map((item) => item.total),
-    1,
-  );
+  const max = Math.max(...data.map((item) => item.total), 1);
 
   const formatLabel = (date) => {
     if (view === "Month") {
@@ -2978,10 +2740,7 @@ function DailySpendReport({
       year: "numeric",
     });
 
-  const periodTotal = data.reduce(
-    (sum, item) => sum + item.total,
-    0,
-  );
+  const periodTotal = data.reduce((sum, item) => sum + item.total, 0);
 
   return (
     <div className="report-card daily-card">
@@ -2998,14 +2757,10 @@ function DailySpendReport({
           </small>
         </div>
 
-        <div className="daily-total">
-          {money(periodTotal)}
-        </div>
+        <div className="daily-total">{money(periodTotal)}</div>
       </div>
 
-      <div
-        className={`daily-chart daily-chart-${view.toLowerCase()}`}
-      >
+      <div className={`daily-chart daily-chart-${view.toLowerCase()}`}>
         <div className="daily-bars filled">
           {data.map((item) => (
             <i
@@ -3013,15 +2768,10 @@ function DailySpendReport({
               style={{
                 height:
                   item.total > 0
-                    ? `${Math.max(
-                        (item.total / max) * 100,
-                        5,
-                      )}%`
+                    ? `${Math.max((item.total / max) * 100, 5)}%`
                     : "3%",
               }}
-              title={`${formatFullDate(item.date)} · ${money(
-                item.total,
-              )}`}
+              title={`${formatFullDate(item.date)} · ${money(item.total)}`}
             />
           ))}
         </div>
@@ -3178,9 +2928,7 @@ function ExportModal({ onClose, onExport }) {
         >
           <Icon name="download" size={14} />
 
-          {format === "CSV data"
-  ? "Download CSV"
-  : "Download PDF"}
+          {format === "CSV data" ? "Download CSV" : "Download PDF"}
         </button>
       </div>
     </Modal>
@@ -3680,9 +3428,9 @@ function BookmarksPage() {
   const [sort, setSort] = useState("Newest");
   const [search, setSearch] = useState("");
 
- const [items, setItems] = useState([]);
-const [bookmarksLoading, setBookmarksLoading] = useState(true);
-const [bookmarksError, setBookmarksError] = useState("");
+  const [items, setItems] = useState([]);
+  const [bookmarksLoading, setBookmarksLoading] = useState(true);
+  const [bookmarksError, setBookmarksError] = useState("");
 
   const [notes, setNotes] = useState([]);
   const [notesLoading, setNotesLoading] = useState(false);
@@ -3697,45 +3445,39 @@ const [bookmarksError, setBookmarksError] = useState("");
   const [toast, showToast] = useToast();
 
   const getBookmarkPresentation = (bookmark) => {
-  if (bookmark.type === "INSIGHT") {
-    return {
-      type: "Insights",
-      tone: "blue",
-      icon: "sparkle",
-      label: "Saved insight",
-    };
-  }
+    if (bookmark.type === "INSIGHT") {
+      return {
+        type: "Insights",
+        tone: "blue",
+        icon: "sparkle",
+        label: "Saved insight",
+      };
+    }
 
-  return {
-    type: "Tips",
-    tone: "amber",
-    icon: "bulb",
-    label: "Saving tip",
+    return {
+      type: "Tips",
+      tone: "amber",
+      icon: "bulb",
+      label: "Saving tip",
+    };
   };
-};
 
   const loadBookmarks = async () => {
-  try {
-    setBookmarksLoading(true);
-    setBookmarksError("");
+    try {
+      setBookmarksLoading(true);
+      setBookmarksError("");
 
-    const data = await getBookmarks();
+      const data = await getBookmarks();
 
-    setItems(Array.isArray(data) ? data : []);
-  } catch (error) {
-    console.error(
-      "Failed to load bookmarks:",
-      error,
-    );
+      setItems(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load bookmarks:", error);
 
-    setBookmarksError(
-      error.message ||
-        "Unable to load your bookmarks.",
-    );
-  } finally {
-    setBookmarksLoading(false);
-  }
-};
+      setBookmarksError(error.message || "Unable to load your bookmarks.");
+    } finally {
+      setBookmarksLoading(false);
+    }
+  };
 
   const loadNotes = async () => {
     try {
@@ -3748,52 +3490,42 @@ const [bookmarksError, setBookmarksError] = useState("");
     } catch (error) {
       console.error("Failed to load notes:", error);
 
-      setNotesError(
-        error.message || "Unable to load your notes.",
-      );
+      setNotesError(error.message || "Unable to load your notes.");
     } finally {
       setNotesLoading(false);
     }
   };
 
   useEffect(() => {
-  loadNotes();
-  loadBookmarks();
-}, []);
+    loadNotes();
+    loadBookmarks();
+  }, []);
 
   const normalizedSearch = search.trim().toLowerCase();
 
-const filteredBookmarks = useMemo(() => {
-  let result = [...items];
+  const filteredBookmarks = useMemo(() => {
+    let result = [...items];
 
-  if (tab === "Tips") {
-    result = result.filter(
-      (item) => item.type === "TIP",
-    );
-  }
+    if (tab === "Tips") {
+      result = result.filter((item) => item.type === "TIP");
+    }
 
-  if (tab === "Insights") {
-    result = result.filter(
-      (item) => item.type === "INSIGHT",
-    );
-  }
+    if (tab === "Insights") {
+      result = result.filter((item) => item.type === "INSIGHT");
+    }
 
-  if (sort === "Newest") {
-    result.sort(
-      (a, b) =>
-        new Date(b.createdAt || 0) -
-        new Date(a.createdAt || 0),
-    );
-  }
+    if (sort === "Newest") {
+      result.sort(
+        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
+      );
+    }
 
-  if (sort === "A–Z") {
-    result.sort((a, b) =>
-      a.title.localeCompare(b.title),
-    );
-  }
+    if (sort === "A–Z") {
+      result.sort((a, b) => a.title.localeCompare(b.title));
+    }
 
-  return result;
-}, [items, tab, sort]);
+    return result;
+  }, [items, tab, sort]);
 
   const filteredNotes = useMemo(() => {
     let result = [...notes];
@@ -3801,130 +3533,84 @@ const filteredBookmarks = useMemo(() => {
     if (normalizedSearch) {
       result = result.filter(
         (note) =>
-          note.title
-            ?.toLowerCase()
-            .includes(normalizedSearch) ||
-          note.content
-            ?.toLowerCase()
-            .includes(normalizedSearch),
+          note.title?.toLowerCase().includes(normalizedSearch) ||
+          note.content?.toLowerCase().includes(normalizedSearch),
       );
     }
 
     if (sort === "Newest") {
       result.sort(
-        (a, b) =>
-          new Date(b.createdAt || 0) -
-          new Date(a.createdAt || 0),
+        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
       );
     }
 
     if (sort === "Oldest") {
       result.sort(
-        (a, b) =>
-          new Date(a.createdAt || 0) -
-          new Date(b.createdAt || 0),
+        (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
       );
     }
 
     if (sort === "A–Z") {
-      result.sort((a, b) =>
-        a.title.localeCompare(b.title),
-      );
+      result.sort((a, b) => a.title.localeCompare(b.title));
     }
 
     if (sort === "Z–A") {
-      result.sort((a, b) =>
-        b.title.localeCompare(a.title),
-      );
+      result.sort((a, b) => b.title.localeCompare(a.title));
     }
 
     if (sort === "Recently updated") {
       result.sort(
-        (a, b) =>
-          new Date(b.updatedAt || 0) -
-          new Date(a.updatedAt || 0),
+        (a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0),
       );
     }
 
     return result;
-  }, [
-    notes,
-    sort,
-    normalizedSearch,
-  ]);
+  }, [notes, sort, normalizedSearch]);
 
-  const totalSaved =
-    items.length + notes.length;
+  const totalSaved = items.length + notes.length;
 
   const isNotesTab = tab === "Notes";
   const isAllTab = tab === "All";
 
-  const showBookmarks =
-  tab === "All" ||
-  tab === "Tips" ||
-  tab === "Insights";
+  const showBookmarks = tab === "All" || tab === "Tips" || tab === "Insights";
 
-const showNotes =
-  tab === "All" ||
-  tab === "Notes";
+  const showNotes = tab === "All" || tab === "Notes";
 
   const handleRemoveBookmark = async (bookmarkId) => {
-  try {
-    await deleteBookmark(bookmarkId);
+    try {
+      await deleteBookmark(bookmarkId);
 
-    setItems((current) =>
-      current.filter(
-        (item) =>
-          item.bookmarkId !== bookmarkId,
-      ),
-    );
+      setItems((current) =>
+        current.filter((item) => item.bookmarkId !== bookmarkId),
+      );
 
-    showToast("Bookmark removed");
-  } catch (error) {
-    console.error(
-      "Failed to remove bookmark:",
-      error,
-    );
+      showToast("Bookmark removed");
+    } catch (error) {
+      console.error("Failed to remove bookmark:", error);
 
-    showToast(
-      error.message ||
-        "Failed to remove bookmark",
-    );
-  }
-};
+      showToast(error.message || "Failed to remove bookmark");
+    }
+  };
 
-const handleCreateBookmark = async (
-  type,
-  title,
-  content,
-) => {
-  try {
-    const created = await createBookmark({
-      type,
-      title,
-      content,
-    });
+  const handleCreateBookmark = async (type, title, content) => {
+    try {
+      const created = await createBookmark({
+        type,
+        title,
+        content,
+      });
 
-    setItems((current) => [
-      created,
-      ...current,
-    ]);
+      setItems((current) => [created, ...current]);
 
-    setModal(false);
+      setModal(false);
 
-    showToast("Bookmark saved");
-  } catch (error) {
-    console.error(
-      "Failed to create bookmark:",
-      error,
-    );
+      showToast("Bookmark saved");
+    } catch (error) {
+      console.error("Failed to create bookmark:", error);
 
-    showToast(
-      error.message ||
-        "Failed to save bookmark",
-    );
-  }
-};
+      showToast(error.message || "Failed to save bookmark");
+    }
+  };
 
   const handleOpenBookmark = (item) => {
     if (item.type === "INSIGHT") {
@@ -3938,56 +3624,37 @@ const handleCreateBookmark = async (
     }
   };
 
-  const handleCreateNote = async ({
-    title,
-    content,
-  }) => {
+  const handleCreateNote = async ({ title, content }) => {
     try {
       const created = await createNote({
         title,
         content,
       });
 
-      setNotes((current) => [
-        created,
-        ...current,
-      ]);
+      setNotes((current) => [created, ...current]);
 
       setModal(false);
 
       showToast("Note saved");
     } catch (error) {
-      console.error(
-        "Failed to create note:",
-        error,
-      );
+      console.error("Failed to create note:", error);
 
-      showToast(
-        error.message || "Failed to save note",
-      );
+      showToast(error.message || "Failed to save note");
     }
   };
 
-  const handleUpdateNote = async ({
-    title,
-    content,
-  }) => {
+  const handleUpdateNote = async ({ title, content }) => {
     if (!editingNote) return;
 
     try {
-      const updated = await updateNote(
-        editingNote.noteId,
-        {
-          title,
-          content,
-        },
-      );
+      const updated = await updateNote(editingNote.noteId, {
+        title,
+        content,
+      });
 
       setNotes((current) =>
         current.map((note) =>
-          note.noteId === updated.noteId
-            ? updated
-            : note,
+          note.noteId === updated.noteId ? updated : note,
         ),
       );
 
@@ -3995,15 +3662,9 @@ const handleCreateBookmark = async (
 
       showToast("Note updated");
     } catch (error) {
-      console.error(
-        "Failed to update note:",
-        error,
-      );
+      console.error("Failed to update note:", error);
 
-      showToast(
-        error.message ||
-          "Failed to update note",
-      );
+      showToast(error.message || "Failed to update note");
     }
   };
 
@@ -4011,31 +3672,19 @@ const handleCreateBookmark = async (
     if (!deletingNote) return;
 
     try {
-      await deleteNote(
-        deletingNote.noteId,
-      );
+      await deleteNote(deletingNote.noteId);
 
       setNotes((current) =>
-        current.filter(
-          (note) =>
-            note.noteId !==
-            deletingNote.noteId,
-        ),
+        current.filter((note) => note.noteId !== deletingNote.noteId),
       );
 
       setDeletingNote(null);
 
       showToast("Note removed");
     } catch (error) {
-      console.error(
-        "Failed to delete note:",
-        error,
-      );
+      console.error("Failed to delete note:", error);
 
-      showToast(
-        error.message ||
-          "Failed to remove note",
-      );
+      showToast(error.message || "Failed to remove note");
     }
   };
 
@@ -4058,64 +3707,44 @@ const handleCreateBookmark = async (
         actions={
           <>
             <button
-  className="tool-primary"
-  type="button"
-  onClick={() => {
-    if (isNotesTab) {
-      setEditingNote(null);
-      setModal(true);
-    } else {
-      setModal(true);
-    }
-  }}
->
-  <Icon
-    name={isNotesTab ? "edit" : "bookmark"}
-    size={14}
-  />
-  {isNotesTab ? "New note" : "New bookmark"}
-</button>
+              className="tool-primary"
+              type="button"
+              onClick={() => {
+                if (isNotesTab) {
+                  setEditingNote(null);
+                  setModal(true);
+                } else {
+                  setModal(true);
+                }
+              }}
+            >
+              <Icon name={isNotesTab ? "edit" : "bookmark"} size={14} />
+              {isNotesTab ? "New note" : "New bookmark"}
+            </button>
 
             <select
               className="tool-btn-select"
               value={sort}
-              onChange={(e) =>
-                setSort(e.target.value)
-              }
+              onChange={(e) => setSort(e.target.value)}
               aria-label="Sort saved items"
             >
-              <option value="Newest">
-                Newest
-              </option>
-              <option value="Oldest">
-                Oldest
-              </option>
-              <option value="A–Z">
-                A–Z
-              </option>
-              <option value="Z–A">
-                Z–A
-              </option>
-              <option value="Recently updated">
-                Recently updated
-              </option>
+              <option value="Newest">Newest</option>
+              <option value="Oldest">Oldest</option>
+              <option value="A–Z">A–Z</option>
+              <option value="Z–A">Z–A</option>
+              <option value="Recently updated">Recently updated</option>
             </select>
           </>
         }
       >
         <div className="bookmark-toolbar">
           <div className="bookmark-search">
-            <Icon
-              name="search"
-              size={14}
-            />
+            <Icon name="search" size={14} />
 
             <input
               type="search"
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+              onChange={(e) => setSearch(e.target.value)}
               placeholder="Search bookmarks and notes..."
               aria-label="Search bookmarks and notes"
             />
@@ -4138,34 +3767,27 @@ const handleCreateBookmark = async (
           </div>
         </div>
 
- <div className="bookmark-tabs">
-  {[
-    ["All", items.length],
-    [
-      "Tips",
-      items.filter(
-        (item) => item.type === "TIP",
-      ).length,
-    ],
-    [
-      "Insights",
-      items.filter(
-        (item) => item.type === "INSIGHT",
-      ).length,
-    ],
-    ["Notes", notes.length],
-  ].map(([name, count]) => (
-    <button
-      type="button"
-      key={name}
-      className={tab === name ? "active" : ""}
-      onClick={() => setTab(name)}
-    >
-      {name}
-      <span>{count}</span>
-    </button>
-  ))}
-</div>
+        <div className="bookmark-tabs">
+          {[
+            ["All", items.length],
+            ["Tips", items.filter((item) => item.type === "TIP").length],
+            [
+              "Insights",
+              items.filter((item) => item.type === "INSIGHT").length,
+            ],
+            ["Notes", notes.length],
+          ].map(([name, count]) => (
+            <button
+              type="button"
+              key={name}
+              className={tab === name ? "active" : ""}
+              onClick={() => setTab(name)}
+            >
+              {name}
+              <span>{count}</span>
+            </button>
+          ))}
+        </div>
 
         <div className="saved-sections">
           {showNotes && (
@@ -4418,31 +4040,31 @@ const handleCreateBookmark = async (
       </PageFrame>
 
       {!isNotesTab && modal && (
-  <Modal
-    title="New bookmark"
-    description="Save a useful tip or insight for later."
-    onClose={() => setModal(false)}
-  >
-    <BookmarkForm
-      onClose={() => setModal(false)}
-      onSave={handleCreateBookmark}
-    />
-  </Modal>
-)}
+        <Modal
+          title="New bookmark"
+          description="Save a useful tip or insight for later."
+          onClose={() => setModal(false)}
+        >
+          <BookmarkForm
+            onClose={() => setModal(false)}
+            onSave={handleCreateBookmark}
+          />
+        </Modal>
+      )}
 
-{isNotesTab && modal && (
-  <Modal
-    title="New note"
-    description="Keep a useful personal reminder close at hand."
-    onClose={() => setModal(false)}
-  >
-    <NoteForm
-      submitLabel="Save note"
-      onClose={() => setModal(false)}
-      onSave={handleCreateNote}
-    />
-  </Modal>
-)}
+      {isNotesTab && modal && (
+        <Modal
+          title="New note"
+          description="Keep a useful personal reminder close at hand."
+          onClose={() => setModal(false)}
+        >
+          <NoteForm
+            submitLabel="Save note"
+            onClose={() => setModal(false)}
+            onSave={handleCreateNote}
+          />
+        </Modal>
+      )}
 
       {viewingBookmark && (
         <Modal
@@ -4509,19 +4131,13 @@ const handleCreateBookmark = async (
         <Modal
           title="Edit note"
           description="Update your note and save your changes."
-          onClose={() =>
-            setEditingNote(null)
-          }
+          onClose={() => setEditingNote(null)}
         >
           <NoteForm
             initialNote={editingNote}
             submitLabel="Save changes"
-            onClose={() =>
-              setEditingNote(null)
-            }
-            onSave={
-              handleUpdateNote
-            }
+            onClose={() => setEditingNote(null)}
+            onSave={handleUpdateNote}
           />
         </Modal>
       )}
@@ -4529,25 +4145,16 @@ const handleCreateBookmark = async (
       {viewingNote && (
         <Modal
           title={viewingNote.title}
-          description={`Updated ${formatNoteDate(
-            viewingNote.updatedAt,
-          )}`}
-          onClose={() =>
-            setViewingNote(null)
-          }
+          description={`Updated ${formatNoteDate(viewingNote.updatedAt)}`}
+          onClose={() => setViewingNote(null)}
         >
           <div className="note-viewer">
             <div className="bookmark-type-label">
-              <Icon
-                name="receipt"
-                size={11}
-              />
+              <Icon name="receipt" size={11} />
               Personal note
             </div>
 
-            <p>
-              {viewingNote.content}
-            </p>
+            <p>{viewingNote.content}</p>
 
             <div className="modal-actions">
               <button
@@ -4555,9 +4162,7 @@ const handleCreateBookmark = async (
                 className="ghost-btn"
                 onClick={() => {
                   setViewingNote(null);
-                  setEditingNote(
-                    viewingNote,
-                  );
+                  setEditingNote(viewingNote);
                 }}
               >
                 Edit note
@@ -4566,9 +4171,7 @@ const handleCreateBookmark = async (
               <button
                 type="button"
                 className="tool-primary"
-                onClick={() =>
-                  setViewingNote(null)
-                }
+                onClick={() => setViewingNote(null)}
               >
                 Done
               </button>
@@ -4581,17 +4184,13 @@ const handleCreateBookmark = async (
         <Modal
           title="Remove note?"
           description={`This will permanently remove “${deletingNote.title}”.`}
-          onClose={() =>
-            setDeletingNote(null)
-          }
+          onClose={() => setDeletingNote(null)}
         >
           <div className="modal-actions">
             <button
               type="button"
               className="ghost-btn"
-              onClick={() =>
-                setDeletingNote(null)
-              }
+              onClick={() => setDeletingNote(null)}
             >
               Cancel
             </button>
@@ -4599,9 +4198,7 @@ const handleCreateBookmark = async (
             <button
               type="button"
               className="danger-btn"
-              onClick={
-                handleDeleteNote
-              }
+              onClick={handleDeleteNote}
             >
               Remove note
             </button>
@@ -4698,47 +4295,25 @@ function BookmarkForm({ onClose, onSave }) {
       onSubmit={(e) => {
         e.preventDefault();
 
-        if (
-          type &&
-          title.trim() &&
-          text.trim()
-        ) {
-          onSave(
-            type,
-            title.trim(),
-            text.trim(),
-          );
+        if (type && title.trim() && text.trim()) {
+          onSave(type, title.trim(), text.trim());
         }
       }}
     >
       <label>
         Type
+        <select value={type} onChange={(e) => setType(e.target.value)} required>
+          <option value="TIP">Saving Tip</option>
 
-        <select
-          value={type}
-          onChange={(e) =>
-            setType(e.target.value)
-          }
-          required
-        >
-          <option value="TIP">
-            Saving Tip
-          </option>
-
-          <option value="INSIGHT">
-            AI Insight
-          </option>
+          <option value="INSIGHT">AI Insight</option>
         </select>
       </label>
 
       <label>
         Title
-
         <input
           value={title}
-          onChange={(e) =>
-            setTitle(e.target.value)
-          }
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. October budget plan"
           required
         />
@@ -4746,31 +4321,21 @@ function BookmarkForm({ onClose, onSave }) {
 
       <label>
         Note
-
         <textarea
           rows="4"
           value={text}
-          onChange={(e) =>
-            setText(e.target.value)
-          }
+          onChange={(e) => setText(e.target.value)}
           placeholder="What should you remember?"
           required
         />
       </label>
 
       <div className="modal-actions">
-        <button
-          type="button"
-          className="ghost-btn"
-          onClick={onClose}
-        >
+        <button type="button" className="ghost-btn" onClick={onClose}>
           Cancel
         </button>
 
-        <button
-          type="submit"
-          className="tool-primary"
-        >
+        <button type="submit" className="tool-primary">
           Save bookmark
         </button>
       </div>
@@ -5072,12 +4637,10 @@ function SettingsPage() {
 
     const id = sections.find((x) => x[0] === name)?.[1];
 
-    document
-      .getElementById(id)
-      ?.scrollIntoView({
-        behavior: "smooth",
-        block: "start",
-      });
+    document.getElementById(id)?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
   };
 
   const save = async () => {
@@ -5093,9 +4656,7 @@ function SettingsPage() {
     } catch (error) {
       setSaved(false);
 
-      showToast(
-        error?.message || "Unable to save your settings",
-      );
+      showToast(error?.message || "Unable to save your settings");
     }
   };
 
@@ -5124,12 +4685,7 @@ function SettingsPage() {
         description="Your details, goals, preferences and security."
       >
         <div className="settings-mobile-selector">
-          <button
-            type="button"
-            onClick={() =>
-              setMobileSectionOpen((v) => !v)
-            }
-          >
+          <button type="button" onClick={() => setMobileSectionOpen((v) => !v)}>
             <span>{active}</span>
             <Icon name="chevron" size={14} />
           </button>
@@ -5140,9 +4696,7 @@ function SettingsPage() {
                 <button
                   type="button"
                   key={label}
-                  className={
-                    active === label ? "active" : ""
-                  }
+                  className={active === label ? "active" : ""}
                   onClick={() => jump(label)}
                 >
                   <Icon name={icon} size={14} />
@@ -5159,9 +4713,7 @@ function SettingsPage() {
               <button
                 type="button"
                 key={label}
-                className={
-                  active === label ? "active" : ""
-                }
+                className={active === label ? "active" : ""}
                 onClick={() => jump(label)}
               >
                 <Icon name={icon} size={15} />
@@ -5190,9 +4742,7 @@ function SettingsPage() {
             */}
 
             <div id="settings-preferences">
-              <SettingsBudgetPreferences
-                showToast={showToast}
-              />
+              <SettingsBudgetPreferences showToast={showToast} />
             </div>
 
             <div id="settings-notifications">
@@ -5201,9 +4751,7 @@ function SettingsPage() {
 
             <div id="settings-security">
               <SettingsSecurityV2
-                onPassword={() =>
-                  setPasswordOpen(true)
-                }
+                onPassword={() => setPasswordOpen(true)}
                 showToast={showToast}
               />
             </div>
@@ -5246,14 +4794,10 @@ function SettingsPage() {
           onClose={() => setPasswordOpen(false)}
         >
           <PasswordForm
-            onClose={() =>
-              setPasswordOpen(false)
-            }
+            onClose={() => setPasswordOpen(false)}
             onSave={() => {
               setPasswordOpen(false);
-              showToast(
-                "Password updated successfully",
-              );
+              showToast("Password updated successfully");
             }}
           />
         </Modal>
@@ -5264,30 +4808,16 @@ function SettingsPage() {
   );
 }
 
-
-function SettingsProfileV2({
-  saveRef,
-  discardRef,
-  showToast,
-  onDirtyChange,
-}) {
+function SettingsProfileV2({ saveRef, discardRef, showToast, onDirtyChange }) {
   const session = getStudentSession();
 
-  const [name, setName] = useState(
-    session?.name || "",
-  );
+  const [name, setName] = useState(session?.name || "");
 
-  const [email, setEmail] = useState(
-    session?.email || "",
-  );
+  const [email, setEmail] = useState(session?.email || "");
 
-  const [year, setYear] = useState(
-    session?.academicYear || "Year 1",
-  );
+  const [year, setYear] = useState(session?.academicYear || "Year 1");
 
-  const [currency, setCurrency] = useState(
-    "NGN · ₦",
-  );
+  const [currency, setCurrency] = useState("NGN · ₦");
 
   const [photo, setPhoto] = useState(null);
   const [photoLoading, setPhotoLoading] = useState(false);
@@ -5323,8 +4853,7 @@ function SettingsProfileV2({
 
         const loadedName = profile?.name || "";
         const loadedEmail = profile?.email || "";
-        const loadedYear =
-          profile?.academicYear || "Year 1";
+        const loadedYear = profile?.academicYear || "Year 1";
 
         setName(loadedName);
         setEmail(loadedEmail);
@@ -5342,8 +4871,7 @@ function SettingsProfileV2({
         // Profile is clean when first loaded.
         onDirtyChange?.(false);
 
-        const currentSession =
-          getStudentSession() || {};
+        const currentSession = getStudentSession() || {};
 
         localStorage.setItem(
           "campuscoin.student.auth",
@@ -5351,18 +4879,14 @@ function SettingsProfileV2({
             ...currentSession,
             name: profile?.name,
             email: profile?.email,
-            academicYear:
-              profile?.academicYear,
-            monthlySavingsGoal:
-              profile?.monthlySavingsGoal,
-            monthlyIncome:
-              profile?.monthlyIncome,
+            academicYear: profile?.academicYear,
+            monthlySavingsGoal: profile?.monthlySavingsGoal,
+            monthlyIncome: profile?.monthlyIncome,
           }),
         );
 
         if (profile?.profilePhotoAvailable) {
-          const photoUrl =
-            await loadProfilePhoto();
+          const photoUrl = await loadProfilePhoto();
 
           if (mounted) {
             setPhoto(photoUrl);
@@ -5370,10 +4894,7 @@ function SettingsProfileV2({
         }
       } catch (err) {
         if (mounted) {
-          setError(
-            err?.message ||
-              "Unable to load your profile",
-          );
+          setError(err?.message || "Unable to load your profile");
         }
       } finally {
         if (mounted) {
@@ -5405,17 +4926,11 @@ function SettingsProfileV2({
   // CHECK FOR UNSAVED CHANGES
   // --------------------------------------------------
 
-  const checkForChanges = (
-    nextName,
-    nextYear,
-  ) => {
-    const saved =
-      savedProfileRef.current;
+  const checkForChanges = (nextName, nextYear) => {
+    const saved = savedProfileRef.current;
 
     const dirty =
-      nextName.trim() !==
-        saved.name.trim() ||
-      nextYear !== saved.year;
+      nextName.trim() !== saved.name.trim() || nextYear !== saved.year;
 
     onDirtyChange?.(dirty);
 
@@ -5431,10 +4946,7 @@ function SettingsProfileV2({
 
     setName(value);
 
-    checkForChanges(
-      value,
-      year,
-    );
+    checkForChanges(value, year);
   };
 
   // --------------------------------------------------
@@ -5446,27 +4958,19 @@ function SettingsProfileV2({
 
     setYear(value);
 
-    checkForChanges(
-      name,
-      value,
-    );
+    checkForChanges(name, value);
   };
 
   // --------------------------------------------------
   // INITIALS
   // --------------------------------------------------
 
-  const initials = (
-    name || "CampusCoin"
-  )
+  const initials = (name || "CampusCoin")
     .trim()
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
-    .map(
-      (part) =>
-        part[0]?.toUpperCase(),
-    )
+    .map((part) => part[0]?.toUpperCase())
     .join("");
 
   // --------------------------------------------------
@@ -5475,31 +4979,22 @@ function SettingsProfileV2({
 
   const saveProfile = async () => {
     if (!name.trim()) {
-      throw new Error(
-        "Full name is required",
-      );
+      throw new Error("Full name is required");
     }
 
     setSaving(true);
 
     try {
-      const profile =
-        await updateProfile({
-          name: name.trim(),
-          academicYear: year,
-        });
+      const profile = await updateProfile({
+        name: name.trim(),
+        academicYear: year,
+      });
 
-      const savedName =
-        profile?.name ||
-        name.trim();
+      const savedName = profile?.name || name.trim();
 
-      const savedEmail =
-        profile?.email ||
-        email;
+      const savedEmail = profile?.email || email;
 
-      const savedYear =
-        profile?.academicYear ||
-        year;
+      const savedYear = profile?.academicYear || year;
 
       /*
        * Update the saved snapshot.
@@ -5512,8 +5007,7 @@ function SettingsProfileV2({
         year: savedYear,
       };
 
-      const currentSession =
-        getStudentSession() || {};
+      const currentSession = getStudentSession() || {};
 
       localStorage.setItem(
         "campuscoin.student.auth",
@@ -5522,10 +5016,8 @@ function SettingsProfileV2({
           name: savedName,
           email: savedEmail,
           academicYear: savedYear,
-          monthlySavingsGoal:
-            profile?.monthlySavingsGoal,
-          monthlyIncome:
-            profile?.monthlyIncome,
+          monthlySavingsGoal: profile?.monthlySavingsGoal,
+          monthlyIncome: profile?.monthlyIncome,
         }),
       );
 
@@ -5537,11 +5029,7 @@ function SettingsProfileV2({
       // No unsaved changes remain.
       onDirtyChange?.(false);
 
-      window.dispatchEvent(
-        new Event(
-          "campuscoin:profile-updated",
-        ),
-      );
+      window.dispatchEvent(new Event("campuscoin:profile-updated"));
     } finally {
       setSaving(false);
     }
@@ -5552,8 +5040,7 @@ function SettingsProfileV2({
   // --------------------------------------------------
 
   const discardChanges = () => {
-    const saved =
-      savedProfileRef.current;
+    const saved = savedProfileRef.current;
 
     /*
      * Restore the last saved values.
@@ -5576,18 +5063,11 @@ function SettingsProfileV2({
     saveRef.current = saveProfile;
 
     return () => {
-      if (
-        saveRef.current ===
-        saveProfile
-      ) {
+      if (saveRef.current === saveProfile) {
         saveRef.current = null;
       }
     };
-  }, [
-    saveRef,
-    name,
-    year,
-  ]);
+  }, [saveRef, name, year]);
 
   // --------------------------------------------------
   // CONNECT DISCARD REF
@@ -5596,103 +5076,61 @@ function SettingsProfileV2({
   useEffect(() => {
     if (!discardRef) return undefined;
 
-    discardRef.current =
-      discardChanges;
+    discardRef.current = discardChanges;
 
     return () => {
-      if (
-        discardRef.current ===
-        discardChanges
-      ) {
+      if (discardRef.current === discardChanges) {
         discardRef.current = null;
       }
     };
-  }, [
-    discardRef,
-    name,
-    year,
-  ]);
+  }, [discardRef, name, year]);
 
   // --------------------------------------------------
   // CHANGE PROFILE PHOTO
   // --------------------------------------------------
 
-  const handlePhotoChange = async (
-    event,
-  ) => {
-    const file =
-      event.target.files?.[0];
+  const handlePhotoChange = async (event) => {
+    const file = event.target.files?.[0];
 
     event.target.value = "";
 
     if (!file) return;
 
-    if (
-      !file.type.startsWith(
-        "image/",
-      )
-    ) {
-      showToast(
-        "Please choose an image file",
-      );
+    if (!file.type.startsWith("image/")) {
+      showToast("Please choose an image file");
 
       return;
     }
 
-    if (
-      file.size >
-      5 * 1024 * 1024
-    ) {
-      showToast(
-        "Profile photo must be 5 MB or smaller",
-      );
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Profile photo must be 5 MB or smaller");
 
       return;
     }
 
-    const preview =
-      URL.createObjectURL(file);
+    const preview = URL.createObjectURL(file);
 
     setPhotoLoading(true);
     setError("");
 
     try {
-      await uploadProfilePhoto(
-        file,
-      );
+      await uploadProfilePhoto(file);
 
       const oldPhoto = photo;
 
       setPhoto(preview);
 
-      if (
-        oldPhoto?.startsWith(
-          "blob:",
-        )
-      ) {
-        URL.revokeObjectURL(
-          oldPhoto,
-        );
+      if (oldPhoto?.startsWith("blob:")) {
+        URL.revokeObjectURL(oldPhoto);
       }
 
-      window.dispatchEvent(
-        new Event(
-          "campuscoin:profile-updated",
-        ),
-      );
+      window.dispatchEvent(new Event("campuscoin:profile-updated"));
 
-      showToast(
-        "Profile photo updated",
-      );
+      showToast("Profile photo updated");
     } catch (err) {
-      URL.revokeObjectURL(
-        preview,
-      );
+      URL.revokeObjectURL(preview);
 
-      showToast(
-        err?.message ||
-          "Unable to upload profile photo",
-      );
+      showToast(err?.message || "Unable to upload profile photo");
     } finally {
       setPhotoLoading(false);
     }
@@ -5702,43 +5140,27 @@ function SettingsProfileV2({
   // REMOVE PROFILE PHOTO
   // --------------------------------------------------
 
-  const handleRemovePhoto =
-    async () => {
-      setPhotoLoading(true);
+  const handleRemovePhoto = async () => {
+    setPhotoLoading(true);
 
-      try {
-        await deleteProfilePhoto();
+    try {
+      await deleteProfilePhoto();
 
-        if (
-          photo?.startsWith(
-            "blob:",
-          )
-        ) {
-          URL.revokeObjectURL(
-            photo,
-          );
-        }
-
-        setPhoto(null);
-
-        window.dispatchEvent(
-          new Event(
-            "campuscoin:profile-updated",
-          ),
-        );
-
-        showToast(
-          "Profile photo removed",
-        );
-      } catch (err) {
-        showToast(
-          err?.message ||
-            "Unable to remove profile photo",
-        );
-      } finally {
-        setPhotoLoading(false);
+      if (photo?.startsWith("blob:")) {
+        URL.revokeObjectURL(photo);
       }
-    };
+
+      setPhoto(null);
+
+      window.dispatchEvent(new Event("campuscoin:profile-updated"));
+
+      showToast("Profile photo removed");
+    } catch (err) {
+      showToast(err?.message || "Unable to remove profile photo");
+    } finally {
+      setPhotoLoading(false);
+    }
+  };
 
   // --------------------------------------------------
   // RENDER
@@ -5750,202 +5172,121 @@ function SettingsProfileV2({
         <div>
           <h3>Profile</h3>
 
-          <p>
-            Used to personalise tips
-            and insights
-          </p>
+          <p>Used to personalise tips and insights</p>
         </div>
       </div>
 
-      {error && (
-        <div className="settings-profile-error">
-          {error}
-        </div>
-      )}
+      {error && <div className="settings-profile-error">{error}</div>}
 
       <div className="settings-profile-header">
         <div className="large-avatar settings-avatar">
-          {photo ? (
-            <img
-              src={photo}
-              alt="Profile"
-            />
-          ) : (
-            initials
-          )}
+          {photo ? <img src={photo} alt="Profile" /> : initials}
         </div>
 
         <div className="profile-summary">
           <strong>
-            {profileLoading
-              ? "Loading profile..."
-              : name ||
-                "Your name"}
+            {profileLoading ? "Loading profile..." : name || "Your name"}
           </strong>
 
-          <small>
-            {email ||
-              "your@email.com"}
-          </small>
+          <small>{email || "your@email.com"}</small>
         </div>
 
         <label
           className={`ghost-btn settings-photo-btn ${
-            photoLoading
-              ? "disabled"
-              : ""
+            photoLoading ? "disabled" : ""
           }`}
         >
-          {photoLoading
-            ? "Uploading..."
-            : "Change photo"}
+          {photoLoading ? "Uploading..." : "Change photo"}
 
           <input
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
-            disabled={
-              photoLoading ||
-              profileLoading
-            }
-            onChange={
-              handlePhotoChange
-            }
+            disabled={photoLoading || profileLoading}
+            onChange={handlePhotoChange}
           />
         </label>
 
-        {photo &&
-          !photoLoading && (
-            <button
-              className="text-link settings-remove-photo"
-              type="button"
-              onClick={
-                handleRemovePhoto
-              }
-            >
-              Remove
-            </button>
-          )}
+        {photo && !photoLoading && (
+          <button
+            className="text-link settings-remove-photo"
+            type="button"
+            onClick={handleRemovePhoto}
+          >
+            Remove
+          </button>
+        )}
       </div>
 
       <div className="settings-form-grid-v2">
         <label>
-          <span>
-            Full name
-          </span>
+          <span>Full name</span>
 
           <input
             value={name}
-            onChange={
-              handleNameChange
-            }
+            onChange={handleNameChange}
             placeholder="Your full name"
-            disabled={
-              profileLoading ||
-              saving
-            }
+            disabled={profileLoading || saving}
           />
         </label>
 
         <label>
-          <span>
-            Email
-          </span>
+          <span>Email</span>
 
           <input
             type="email"
             value={email}
             readOnly
-            disabled={
-              profileLoading
-            }
+            disabled={profileLoading}
             placeholder="you@university.edu"
           />
 
           <small className="field-hint">
-            <Icon
-              name="check"
-              size={11}
-            />
-
+            <Icon name="check" size={11} />
             Verified
           </small>
         </label>
 
         <label>
-          <span>
-            Academic year
-          </span>
+          <span>Academic year</span>
 
           <select
             value={year}
-            onChange={
-              handleYearChange
-            }
-            disabled={
-              profileLoading ||
-              saving
-            }
+            onChange={handleYearChange}
+            disabled={profileLoading || saving}
           >
-            <option>
-              Year 1
-            </option>
+            <option>Year 1</option>
 
-            <option>
-              Year 2
-            </option>
+            <option>Year 2</option>
 
-            <option>
-              Year 3
-            </option>
+            <option>Year 3</option>
 
-            <option>
-              Year 4
-            </option>
+            <option>Year 4</option>
           </select>
         </label>
 
         <label>
-          <span>
-            Currency
-          </span>
+          <span>Currency</span>
 
           <select
             value={currency}
-            onChange={(e) =>
-              setCurrency(
-                e.target.value,
-              )
-            }
-            disabled={
-              profileLoading ||
-              saving
-            }
+            onChange={(e) => setCurrency(e.target.value)}
+            disabled={profileLoading || saving}
           >
-            <option>
-              NGN · ₦
-            </option>
+            <option>NGN · ₦</option>
 
-            <option>
-              USD · $
-            </option>
+            <option>USD · $</option>
 
-            <option>
-              GBP · £
-            </option>
+            <option>GBP · £</option>
           </select>
         </label>
       </div>
 
       {saving && (
-        <div className="settings-profile-saving">
-          Saving profile...
-        </div>
+        <div className="settings-profile-saving">Saving profile...</div>
       )}
     </div>
   );
 }
-
-
 
 function SettingsBudgetPreferences({ showToast }) {
   const [defaultPage, setDefaultPage] = useState("Dashboard");
@@ -5957,9 +5298,7 @@ function SettingsBudgetPreferences({ showToast }) {
       <div className="settings-card-heading">
         <div>
           <h3>Budget preferences</h3>
-          <p>
-            Choose how CampusCoin plans, tracks and presents your money.
-          </p>
+          <p>Choose how CampusCoin plans, tracks and presents your money.</p>
         </div>
       </div>
 
@@ -5971,9 +5310,7 @@ function SettingsBudgetPreferences({ showToast }) {
             value={defaultPage}
             onChange={(e) => {
               setDefaultPage(e.target.value);
-              showToast(
-                `Default page set to ${e.target.value}`,
-              );
+              showToast(`Default page set to ${e.target.value}`);
             }}
           >
             <option>Dashboard</option>
@@ -5982,9 +5319,7 @@ function SettingsBudgetPreferences({ showToast }) {
             <option>Reports</option>
           </select>
 
-          <small>
-            Choose the page CampusCoin opens first.
-          </small>
+          <small>Choose the page CampusCoin opens first.</small>
         </label>
 
         <label className="settings-preference-field">
@@ -5994,18 +5329,19 @@ function SettingsBudgetPreferences({ showToast }) {
             value={weekStarts}
             onChange={(e) => {
               setWeekStarts(e.target.value);
-              showToast(
-                `Week starts on ${e.target.value}`,
-              );
+              showToast(`Week starts on ${e.target.value}`);
             }}
           >
             <option>Sunday</option>
             <option>Monday</option>
+            <option>Tuesday</option>
+            <option>Wednesday</option>
+            <option>Thursday</option>
+            <option>Friday</option>
+            <option>Saturday</option>
           </select>
 
-          <small>
-            Used for weekly spending summaries and reports.
-          </small>
+          <small>Used for weekly spending summaries and reports.</small>
         </label>
 
         <label className="settings-preference-field">
@@ -6015,9 +5351,7 @@ function SettingsBudgetPreferences({ showToast }) {
             value={alertThreshold}
             onChange={(e) => {
               setAlertThreshold(e.target.value);
-              showToast(
-                `Budget alerts now start at ${e.target.value}`,
-              );
+              showToast(`Budget alerts now start at ${e.target.value}`);
             }}
           >
             <option>70%</option>
@@ -6026,9 +5360,7 @@ function SettingsBudgetPreferences({ showToast }) {
             <option>100%</option>
           </select>
 
-          <small>
-            Get notified before a category reaches its limit.
-          </small>
+          <small>Get notified before a category reaches its limit.</small>
         </label>
       </div>
     </div>
@@ -6134,12 +5466,7 @@ function SettingsNotifications() {
 }
 
 function SettingsSecurity({ onPassword }) {
-  return (
-    <SettingsSecurityV2
-      onPassword={onPassword}
-      showToast={() => {}}
-    />
-  );
+  return <SettingsSecurityV2 onPassword={onPassword} showToast={() => {}} />;
 }
 
 const pageMap = {
