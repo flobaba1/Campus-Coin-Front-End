@@ -1,6 +1,6 @@
 .landing {
   width: 100%;
-  overflow: hidden
+  overflow-x: clip
 }
 
 .navbar {
@@ -35,9 +35,33 @@
   padding: 0
 }
 
+.nav-links button {
+  position: relative;
+}
+
+.nav-links button::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -6px;
+  left: 0;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 180ms ease;
+}
+
+.nav-links button:hover::after,
+.nav-links button:focus-visible::after {
+  transform: scaleX(1);
+  color: var(--green);
+  height: 2px;
+}
+
 .nav-links button:hover,
 .nav-sign-in:hover {
-  color: var(--text)
+  color: var(--text);
 }
 
 .nav-actions {
@@ -55,6 +79,7 @@
 }
 
 .hero-section {
+  margin-top: -10px;
   min-height: 704px;
   background: var(--bg);
   display: flex;
@@ -77,7 +102,8 @@
   color: var(--green);
   border-radius: 999px;
   padding: 6px 12px;
-  font: 600 13px/1 Inter, Arial, sans-serif
+  font: 600 13px/1 Inter, Arial, sans-serif;
+  /* animation: fade-in 0.4s ease; */
 }
 
 .hero-copy h1 {
@@ -370,6 +396,39 @@
   color: var(--text)
 }
 
+@keyframes landing-card-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.landing .budget-card,
+.landing .ai-chip,
+.landing .quick-chip {
+  animation: landing-card-float 5.2s ease-in-out infinite;
+}
+
+.landing .ai-chip {
+  animation-delay: -1.7s;
+}
+
+.landing .quick-chip {
+  animation-delay: -3.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing .budget-card,
+  .landing .ai-chip,
+  .landing .quick-chip {
+    animation: none;
+  }
+}
+
 .section-light {
   background: #fff
 }
@@ -410,12 +469,13 @@
 .feature-card {
   min-height: 209px;
   background: #fff;
-  border: 1px solid var(--line);
+  border: 2px solid var(--line);
   border-radius: 16px;
   padding: 28px;
   display: flex;
   flex-direction: column;
-  gap: 14px
+  gap: 14px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
 .feature-icon {
@@ -483,10 +543,11 @@
 
 .step-card {
   background: #fff;
-  border: 1px solid var(--line);
+  /* border: 6px solid var(--line); */
   border-radius: 16px;
   padding: 28px;
-  min-height: 197px
+  min-height: 197px;
+  border: 1px dashed #333333;
 }
 
 .step-number {
@@ -700,7 +761,8 @@
   }
 
   .hero-section {
-    padding-top: 60px
+    padding-top: 60px;
+    align-items: center;
   }
 
   .hero-copy h1 {
@@ -723,9 +785,13 @@
   }
 
   .hero-visual {
-    transform: scale(.65);
+    align-self: center;
+    max-width: none;
+    transform: scale(.52);
+    transform-origin: top center;
     width: 624px;
-    margin-bottom: -180px
+    margin-left: 0;
+    margin-bottom: -250px
   }
 
   .features-section,
@@ -741,6 +807,43 @@
   .feature-grid,
   .steps-grid {
     grid-template-columns: 1fr
+  }
+
+  .landing .feature-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .landing .feature-card {
+    position: sticky;
+    top: 88px;
+    z-index: 1;
+  }
+
+  .landing .feature-card:nth-child(2) {
+    top: 100px;
+    z-index: 2;
+  }
+
+  .landing .feature-card:nth-child(3) {
+    top: 112px;
+    z-index: 3;
+  }
+
+  .landing .feature-card:nth-child(4) {
+    top: 124px;
+    z-index: 4;
+  }
+
+  .landing .feature-card:nth-child(5) {
+    top: 136px;
+    z-index: 5;
+  }
+
+  .landing .feature-card:nth-child(6) {
+    top: 148px;
+    z-index: 6;
   }
 
   .privacy-section {
@@ -779,9 +882,10 @@
 
 @media(max-width:450px) {
   .hero-visual {
-    margin-left: -55px;
-    transform: scale(.52);
-    margin-bottom: -230px
+    margin-left: 0;
+    transform: scale(.46);
+    transform-origin: top center;
+    margin-bottom: -280px
   }
 
   .footer {
@@ -794,6 +898,13 @@
 
   .hero-actions .cc-button {
     width: 100%
+  }
+}
+
+@media(max-width:360px) {
+  .hero-visual {
+    transform: scale(.42);
+    margin-bottom: -300px;
   }
 }
 
@@ -827,6 +938,12 @@ html[data-theme="dark"] .landing .hero-copy h1,
 html[data-theme="dark"] .landing .section-heading h2,
 html[data-theme="dark"] .landing .cta-section h2 {
   color: #eef4ff
+}
+
+html[data-theme="dark"] .landing .hero-badge {
+  background: #164c3d;
+  border: 1px solid #2b765b;
+  color: #b5f3d5;
 }
 
 html[data-theme="dark"] .landing .hero-description,
@@ -1000,6 +1117,261 @@ html[data-theme="dark"] .landing .ai-chip {
 
 .landing {
   width: 100%;
-  overflow: hidden;
+  overflow-x: clip;
   padding-top: 80px;
+}
+
+.landing .nav-sign-in,
+.landing .hero-actions .cc-button-secondary {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  transition: background-color 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.landing .nav-sign-in::after,
+.landing .hero-actions .cc-button-secondary::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  bottom: 7px;
+  left: 18px;
+  border-radius: 1px;
+  background: currentColor;
+  transform: translateY(-1px);
+  transform-origin: center;
+  transition: transform 180ms ease;
+}
+
+.landing .hero-actions .cc-button-secondary::after {
+  right: 24px;
+  bottom: 9px;
+  left: 24px;
+}
+
+.landing .nav-sign-in:hover,
+.landing .nav-sign-in:focus-visible,
+.landing .hero-actions .cc-button-secondary:hover,
+.landing .hero-actions .cc-button-secondary:focus-visible {
+  background: #07162c;
+  border-color: #07162c;
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.landing .nav-sign-in:hover::after,
+.landing .nav-sign-in:focus-visible::after,
+.landing .hero-actions .cc-button-secondary:hover::after,
+.landing .hero-actions .cc-button-secondary:focus-visible::after {
+  transform: translateY(-1px);
+}
+
+html[data-theme="dark"] .landing .nav-sign-in,
+html[data-theme="dark"] .landing .hero-actions .cc-button-secondary {
+  background: #0d223f;
+  border-color: #29425f;
+  color: #eef4ff;
+  
+}
+
+html[data-theme="dark"] .landing .nav-sign-in:hover,
+html[data-theme="dark"] .landing .nav-sign-in:focus-visible,
+html[data-theme="dark"] .landing .hero-actions .cc-button-secondary:hover,
+html[data-theme="dark"] .landing .hero-actions .cc-button-secondary:focus-visible {
+  background: #fff;
+  border-color: #fff;
+  color: #07162c;
+  transform: translateY(-1px);
+}
+
+.landing .nav-menu-toggle,
+.landing .mobile-nav-sign-in,
+.landing .mobile-nav-cta,
+.landing .mobile-nav-account-actions {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .landing .navbar {
+    height: 72px;
+    grid-template-columns: 1fr auto;
+    padding: 0 20px;
+  }
+
+  .landing .nav-links {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1001;
+    width: 100%;
+    padding: 14px 20px 18px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 18px;
+    justify-self: auto;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-top: 0;
+    box-shadow: 0 16px 32px rgba(11, 25, 51, .14);
+  }
+
+  .landing .navbar.menu-open .nav-links {
+    display: flex;
+  }
+
+  .landing .nav-links > button {
+    display: inline-flex;
+    height: 44px;
+    align-items: center;
+    padding: 9px 0;
+    text-align: left;
+  }
+
+  .landing .nav-links .mobile-nav-account-actions {
+    display: flex;
+    flex: 0 0 100%;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+  }
+
+  .landing .nav-links .mobile-nav-sign-in {
+    display: inline-flex;
+    height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 12px;
+  }
+
+  .landing .nav-links .mobile-nav-sign-in::after {
+    right: 12px;
+    bottom: 5px;
+    left: 12px;
+    height: 1px;
+    background: currentColor;
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 180ms ease;
+    display: block;
+  }
+
+  .landing .nav-links .mobile-nav-sign-in:hover,
+  .landing .nav-links .mobile-nav-sign-in:focus-visible {
+  background: #07162c;
+  border-color: #07162c;
+  color: #fff;
+  transform: translateY(-1px);
+  }
+
+  .landing .nav-links .mobile-nav-sign-in:hover::after,
+  .landing .nav-links .mobile-nav-sign-in:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  .landing .nav-links .mobile-nav-cta {
+    display: inline-flex;
+    height: 44px;
+    max-width: 100%;
+    padding: 0 18px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--green);
+    color: #fff;
+    font: 600 14px/1 Inter, Arial, sans-serif;
+    white-space: nowrap;
+  }
+
+  .landing .nav-links .mobile-nav-cta:hover,
+  .landing .nav-links .mobile-nav-cta:focus-visible {
+    background: #0c704a;
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  .landing .nav-actions {
+    position: relative;
+    z-index: 1002;
+    gap: 8px;
+  }
+
+  .landing .nav-actions > .nav-sign-in,
+  .landing .nav-actions > .cc-button {
+    display: none;
+  }
+
+  .landing .nav-menu-toggle {
+    position: relative;
+    z-index: 41;
+    width: 44px;
+    height: 44px;
+    padding: 11px;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .landing .nav-links .mobile-nav-cta::after {
+    display: none;
+  }
+
+  .landing .nav-menu-toggle:focus-visible {
+   outline: 2px solid var(--green);
+    outline-offset: 2px;
+  }
+
+  .landing .nav-menu-toggle span {
+    width: 20px;
+    height: 2px;
+    border-radius: 1px;
+    background: currentColor;
+    transition: transform 180ms ease, opacity 180ms ease;
+  }
+
+  .landing .navbar.menu-open .nav-menu-toggle span:first-child {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .landing .navbar.menu-open .nav-menu-toggle span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .landing .navbar.menu-open .nav-menu-toggle span:last-child {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  html[data-theme="dark"] .landing .nav-links {
+    background: #0d223f;
+    border-color: #29425f;
+  }
+
+  html[data-theme="dark"] .landing .nav-links .mobile-nav-cta {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+
+  html[data-theme="dark"] .landing .nav-links .mobile-nav-cta:hover,
+  html[data-theme="dark"] .landing .nav-links .mobile-nav-cta:focus-visible {
+    background: #0c704a;
+    border-color: #0c704a;
+    color: #fff;
+    transform: translateY(-1px);
+  }
+
+  html[data-theme="dark"] .landing .nav-links .mobile-nav-sign-in:hover,
+  html[data-theme="dark"] .landing .nav-links .mobile-nav-sign-in:focus-visible {
+  background: #fff;
+  border-color: #fff;
+  color: #07162c;
+  transform: translateY(-1px);
+  }
 }

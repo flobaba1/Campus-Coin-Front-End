@@ -608,6 +608,15 @@
     width: min(420px, 100%)
   }
 
+  .auth-form-inner .legal-back-button {
+    width: auto;
+    height: auto;
+    margin-bottom: 24px;
+    padding: 9px 14px;
+    justify-content: flex-start;
+    font-size: 13px;
+  }
+
   .admin-card {
     margin-top: 70px
   }
@@ -992,6 +1001,10 @@
 }
 
 @media(max-width:1000px) {
+  .signup-auth {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .signup-auth .auth-brand-panel {
     display: none
   }
@@ -1002,6 +1015,27 @@
 
   .signup-auth .auth-title-icon {
     display: none
+  }
+}
+
+@media(max-width:600px) {
+  .signup-auth .auth-form-panel {
+    padding: 24px 16px;
+  }
+
+  .signup-auth .auth-form-inner {
+    width: min(420px, 100%);
+  }
+
+  .signup-auth .password-rule-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px 10px;
+    white-space: normal;
+  }
+
+  .signup-auth .password-rule-row span {
+    font-size: 11px;
   }
 }
 

@@ -10,23 +10,13 @@ import { getProfile, loadProfilePhoto } from "../api/profileApi";
 import { getTransactions, createTransaction } from "../api/transactionApi";
 import { getCategories } from "../api/categoryApi";
 import { getBudgetsForMonth } from "../api/budgetApi";
+import { getCategorySuggestion } from "../api/aiApi";
+import { createCategory } from "../api/categoryApi";
+import { getNotifications, markNotificationAsRead} from "../api/notificationApi";
 
 import "../styles/dashboard.css";
 
-const DEMO_NOTIFICATIONS = [
-  [
-    "Your latest insight is ready",
-    "Your spending data has been updated",
-    "sparkle",
-    "Today",
-  ],
-  [
-    "Transactions synced",
-    "Your latest transactions are available",
-    "bell",
-    "Today",
-  ],
-];
+
 
 function money(n) {
   const value = Number(n || 0);
@@ -105,6 +95,35 @@ function DashboardShell({
   setNotificationOpen,
   page = "Dashboard",
 }) {
+  const [notifications, setNotifications] =
+  useState([]);
+
+const [notificationsLoading, setNotificationsLoading] =
+  useState(false);
+
+const loadNotifications = async () => {
+  try {
+    setNotificationsLoading(true);
+
+    const data = await getNotifications();
+
+    setNotifications(
+      Array.isArray(data) ? data : []
+    );
+  } catch (error) {
+    console.error(
+      "Failed to load notifications:",
+      error
+    );
+  } finally {
+    setNotificationsLoading(false);
+  }
+};
+
+useEffect(() => {
+  loadNotifications();
+}, []);
+
   const nav = [
     ["Dashboard", "grid", "/dashboard"],
     ["Transactions", "swap", "/transactions"],
@@ -121,6 +140,7 @@ function DashboardShell({
 
   const account = [
     ["Import CSV", "upload", "/import-csv"],
+    ["Site Map", "grid", "/app/sitemap"],
     ["Settings", "settings", "/settings"],
   ];
 
@@ -346,19 +366,56 @@ function DashboardShell({
 
             <div className="notify-wrap">
               <button
-                className={`top-btn ${notificationOpen ? "selected" : ""}`}
-                type="button"
-                onClick={() => setNotificationOpen((value) => !value)}
-                aria-label="Notifications"
-              >
-                <Icon name="bell" size={17} />
-                <i />
-              </button>
+  className={`top-btn ${
+    notificationOpen ? "selected" : ""
+  }`}
+  type="button"
+  onClick={() =>
+    setNotificationOpen(
+      (value) => !value
+    )
+  }
+  aria-label="Notifications"
+>
+  <Icon name="bell" size={17} />
 
-              {notificationOpen && <NotificationPanel />}
+  {notifications.some(
+    (notification) =>
+      notification.status === "UNREAD"
+  ) && <i />}
+</button>
+
+{notificationOpen && (
+  <NotificationPanel
+    notifications={notifications}
+    loading={notificationsLoading}
+    onRead={async (notificationId) => {
+      try {
+        await markNotificationAsRead(
+          notificationId
+        );
+
+        setNotifications((current) =>
+          current.map((notification) =>
+            notification.notificationId ===
+            notificationId
+              ? {
+                  ...notification,
+                  status: "READ",
+                }
+              : notification
+          )
+        );
+      } catch (error) {
+        console.error(
+          "Failed to mark notification as read:",
+          error
+        );
+      }
+    }}
+  />
+)}
             </div>
-
-            {renderAvatar("top-avatar")}
             <button
               className="top-avatar"
               type="button"
@@ -376,36 +433,202 @@ function DashboardShell({
   );
 }
 
-function NotificationPanel() {
+function NotificationPanel({
+  notifications = [],
+  loading = false,
+  onRead,
+}) {
+  const unreadCount =
+    notifications.filter(
+      (notification) =>
+        notification.status === "UNREAD"
+    ).length;
+
+  const formatNotificationDate = (date) => {
+    if (!date) {
+      return "";
+    }
+
+    const parsed = new Date(date);
+
+    if (Number.isNaN(parsed.getTime())) {
+      return "";
+    }
+
+    return parsed.toLocaleDateString(
+      "en-US",
+      {
+        month: "short",
+        day: "numeric",
+      }
+    );
+  };
+
+  const iconForNotification = (
+    notification
+  ) => {
+    const type =
+      String(
+        notification?.type || ""
+      ).toUpperCase();
+
+    if (type === "ADMIN") {
+      return "bell";
+    }
+
+    if (
+      notification?.category
+        ?.toLowerCase()
+        .includes("budget")
+    ) {
+      return "target";
+    }
+
+    if (
+      notification?.category
+        ?.toLowerCase()
+        .includes("ai")
+    ) {
+      return "sparkle";
+    }
+
+    return "bell";
+  };
+
+  const toneForNotification = (
+    notification
+  ) => {
+    const type =
+      String(
+        notification?.type || ""
+      ).toUpperCase();
+
+    if (type === "ADMIN") {
+      return "blue";
+    }
+
+    if (
+      notification?.category
+        ?.toLowerCase()
+        .includes("budget")
+    ) {
+      return "amber";
+    }
+
+    if (
+      notification?.category
+        ?.toLowerCase()
+        .includes("ai")
+    ) {
+      return "mint";
+    }
+
+    return "slate";
+  };
+
   return (
     <div className="notification-panel">
       <div className="notif-head">
-        <strong>Notifications</strong>
-        <b>2 new</b>
+        <strong>
+          Notifications
+        </strong>
 
-        <button>Mark all read</button>
+        <b>
+          {unreadCount} new
+        </b>
+
+        <button
+          type="button"
+          onClick={() =>
+            notifications
+              .filter(
+                (notification) =>
+                  notification.status ===
+                  "UNREAD"
+              )
+              .forEach(
+                (notification) =>
+                  onRead(
+                    notification.notificationId
+                  )
+              )
+          }
+        >
+          Mark all read
+        </button>
       </div>
 
-      {DEMO_NOTIFICATIONS.map((notification, index) => (
-        <div className="notif-item" key={index}>
-          {toneIcon(["mint", "blue"][index], notification[2])}
-
-          <div>
-            <strong>{notification[0]}</strong>
-
-            <p>{notification[1]}</p>
-
-            <small>{notification[3]}</small>
-          </div>
-
-          <i />
+      {loading ? (
+        <div className="notif-empty">
+          Loading notifications...
         </div>
-      ))}
+      ) : notifications.length === 0 ? (
+        <div className="notif-empty">
+          You're all caught up.
+        </div>
+      ) : (
+        notifications.map(
+          (notification) => (
+            <button
+              type="button"
+              className={`notif-item ${
+                notification.status ===
+                "READ"
+                  ? "read"
+                  : ""
+              }`}
+              key={
+                notification.notificationId
+              }
+              onClick={() => {
+                if (
+                  notification.status !==
+                  "READ"
+                ) {
+                  onRead(
+                    notification.notificationId
+                  );
+                }
+              }}
+            >
+              {toneIcon(
+                toneForNotification(
+                  notification
+                ),
+                iconForNotification(
+                  notification
+                )
+              )}
+
+              <div>
+                <strong>
+                  {notification.title}
+                </strong>
+
+                <p>
+                  {notification.message}
+                </p>
+
+                <small>
+                  {formatNotificationDate(
+                    notification.createdAt
+                  )}
+                </small>
+              </div>
+
+              {notification.status ===
+                "UNREAD" && <i />}
+            </button>
+          )
+        )
+      )}
 
       <button
         type="button"
         className="notif-settings"
-        onClick={() => navigate("/settings")}
+        onClick={() =>
+          navigate("/settings")
+        }
       >
         Notification settings
       </button>
@@ -642,43 +865,28 @@ function DashboardPage() {
   /*
    * Category spending
    */
-  const categorySpending =
-    useMemo(() => {
-      const map = {};
+  /*
+ * Category spending
+ */
+const categorySpending = useMemo(() => {
+  const map = {};
 
-      currentMonthTransactions
-        .filter(
-          (transaction) =>
-            transaction.type ===
-            "EXPENSE"
-        )
-        .forEach((transaction) => {
-          const category =
-            transaction.categoryName ||
-            "Other";
+  currentMonthTransactions
+    .filter((transaction) => transaction.type === "EXPENSE")
+    .forEach((transaction) => {
+      const category = transaction.categoryName || "Other";
+      const amount = Number(transaction.amount || 0);
 
-    septemberTransactions
-      .filter((transaction) => transaction.type === "EXPENSE")
-      .forEach((transaction) => {
-        const category = transaction.categoryName || "Other";
+      map[category] = (map[category] || 0) + amount;
+    });
 
-          map[category] += Number(
-            transaction.amount || 0
-          );
-        });
-
-      return Object.entries(map)
-        .map(
-          ([name, value]) => ({
-            name,
-            value,
-          })
-        )
-        .sort(
-          (a, b) =>
-            b.value - a.value
-        );
-    }, [currentMonthTransactions]);
+  return Object.entries(map)
+    .map(([name, value]) => ({
+      name,
+      value,
+    }))
+    .sort((a, b) => b.value - a.value);
+}, [currentMonthTransactions]);
 
   const topCategory = categorySpending[0] || null;
 
@@ -875,7 +1083,7 @@ function DashboardPage() {
       {modal && (
         <TransactionModal
           type={modal}
-          ai={modal === "expense" && initialAi}
+          ai={initialAi}
           amount={modal === "income" ? income : expense}
           setAmount={modal === "income" ? setIncome : setExpense}
           categories={categories}
@@ -1620,16 +1828,28 @@ function TransactionModal({
   const income = type === "income";
 
   const [description, setDescription] = useState(
-    ai ? "Printing, lecture notes" : "",
+    ai && !income ? "Printing, lecture notes" : "",
   );
 
   const [categoryId, setCategoryId] = useState("");
 
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [pendingAiCategory, setPendingAiCategory] = useState("");
+
+  const [aiSuggestion, setAiSuggestion] = useState(null);
+
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const [aiError, setAiError] = useState("");
+
+  const [date, setDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
 
   const [repeat, setRepeat] = useState(false);
 
   const [formError, setFormError] = useState("");
+
+  const [saving, setSaving] = useState(false);
 
   const transactionType = income ? "INCOME" : "EXPENSE";
 
@@ -1637,9 +1857,14 @@ function TransactionModal({
     (category) => category.type === transactionType,
   );
 
+  /*
+   * Reset the modal whenever the transaction type changes.
+   */
   useEffect(() => {
     const defaultCategory = availableCategories.find(
-      (category) => category.name === (ai && !income ? "Academics" : ""),
+      (category) =>
+        category.name ===
+        (ai && !income ? "Academics" : ""),
     );
 
     setCategoryId(
@@ -1647,6 +1872,10 @@ function TransactionModal({
         ? defaultCategory.categoryId
         : availableCategories[0]?.categoryId || "",
     );
+
+    setPendingAiCategory("");
+    setAiSuggestion(null);
+    setAiError("");
 
     if (ai && !income) {
       setDescription("Printing, lecture notes");
@@ -1657,6 +1886,56 @@ function TransactionModal({
     setFormError("");
   }, [type, ai, income, categories]);
 
+  /*
+   * Ask AI for a category suggestion after the
+   * student stops typing for a short moment.
+   */
+  useEffect(() => {
+    const text = description.trim();
+
+    if (text.length < 3) {
+      setAiSuggestion(null);
+      setAiError("");
+      setAiLoading(false);
+      return;
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        setAiLoading(true);
+        setAiError("");
+
+        const result = await getCategorySuggestion(
+          text,
+          transactionType,
+        );
+
+        setAiSuggestion(result);
+      } catch (error) {
+        console.error(
+          "Failed to get AI category suggestion:",
+          error,
+        );
+
+        setAiSuggestion(null);
+
+        setAiError(
+          error?.message ||
+            "AI category suggestion unavailable.",
+        );
+      } finally {
+        setAiLoading(false);
+      }
+    }, 650);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [description, transactionType]);
+
+  /*
+   * Close modal / keyboard handling.
+   */
   useEffect(() => {
     const handleKeyDown = (event) => {
       if (event.key === "Escape") {
@@ -1664,28 +1943,69 @@ function TransactionModal({
         onClose();
       }
 
-      if (event.key === "Enter" && event.target?.tagName !== "TEXTAREA") {
+      if (
+        event.key === "Enter" &&
+        event.target?.tagName !== "TEXTAREA"
+      ) {
         event.preventDefault();
         handleSave();
       }
     };
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener(
+      "keydown",
+      handleKeyDown,
+    );
 
-    const previousOverflow = document.body.style.overflow;
+    const previousOverflow =
+      document.body.style.overflow;
 
     document.body.style.overflow = "hidden";
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener(
+        "keydown",
+        handleKeyDown,
+      );
 
-      document.body.style.overflow = previousOverflow;
+      document.body.style.overflow =
+        previousOverflow;
     };
-  }, [onClose, amount, categoryId, description, date]);
+  }, [
+    onClose,
+    amount,
+    categoryId,
+    description,
+    date,
+    pendingAiCategory,
+  ]);
 
-  const selectedCategory = categories.find(
-    (category) => category.categoryId === categoryId,
-  );
+  /*
+   * Existing AI category.
+   */
+  const existingAiCategory =
+    availableCategories.find(
+      (category) =>
+        category.name.toLowerCase() ===
+        String(
+          aiSuggestion?.selectedCategory || "",
+        ).toLowerCase(),
+    );
+
+  /*
+   * AI suggested category that does not yet exist.
+   */
+  const newAiCategory =
+    aiSuggestion?.suggestedCategory &&
+    !availableCategories.some(
+      (category) =>
+        category.name.toLowerCase() ===
+        String(
+          aiSuggestion.suggestedCategory,
+        ).toLowerCase(),
+    )
+      ? aiSuggestion.suggestedCategory
+      : "";
 
   const switchType = (nextType) => {
     if (nextType !== type) {
@@ -1699,36 +2019,115 @@ function TransactionModal({
     }
   };
 
-  const handleSave = () => {
+  /*
+   * Clicking an existing AI category simply selects it.
+   */
+  const useExistingAiCategory = () => {
+    if (!existingAiCategory) {
+      return;
+    }
+
+    setCategoryId(
+      existingAiCategory.categoryId,
+    );
+
+    setPendingAiCategory("");
+  };
+
+  /*
+   * Clicking a new AI category DOES NOT create it.
+   *
+   * We only remember the category name.
+   * It will be created when Save is clicked.
+   */
+  const useNewAiCategory = () => {
+    if (!newAiCategory) {
+      return;
+    }
+
+    setCategoryId("");
+
+    setPendingAiCategory(newAiCategory);
+  };
+
+  /*
+   * Save transaction.
+   *
+   * If the AI suggested a new category,
+   * create the category first, then save
+   * the transaction using its categoryId.
+   */
+  const handleSave = async () => {
     setFormError("");
 
     if (!amount || Number(amount) <= 0) {
-      setFormError("Please enter an amount greater than zero.");
+      setFormError(
+        "Please enter an amount greater than zero.",
+      );
       return;
     }
 
     if (!description.trim()) {
-      setFormError("Please enter a description.");
+      setFormError(
+        "Please enter a description.",
+      );
       return;
     }
 
-    if (!categoryId) {
-      setFormError("Please select a category.");
+    if (!categoryId && !pendingAiCategory) {
+      setFormError(
+        "Please select a category.",
+      );
       return;
     }
 
     if (!date) {
-      setFormError("Please select a date.");
+      setFormError(
+        "Please select a date.",
+      );
       return;
     }
 
-    onSave({
-      categoryId,
-      amount: Number(amount),
-      type: transactionType,
-      description: description.trim(),
-      date,
-    });
+    setSaving(true);
+
+    try {
+      let finalCategoryId = categoryId;
+
+      /*
+       * Only create the AI category at the
+       * moment the user actually saves.
+       */
+      if (pendingAiCategory) {
+        const createdCategory =
+          await createCategory({
+            name: pendingAiCategory,
+            type: transactionType,
+          });
+
+        finalCategoryId =
+          createdCategory.categoryId;
+      }
+
+      await onSave({
+        categoryId: finalCategoryId,
+        amount: Number(amount),
+        type: transactionType,
+        description: description.trim(),
+        date,
+      });
+    } catch (error) {
+      console.error(
+        "Failed to save transaction:",
+        error,
+      );
+
+      setFormError(
+        error?.message ||
+          "Unable to save transaction.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -1738,11 +2137,15 @@ function TransactionModal({
       onMouseDown={handleBackdropClick}
     >
       <div
-        className={`transaction-modal ${ai ? "ai-modal" : ""}`}
+        className={`transaction-modal ${
+          ai ? "ai-modal" : ""
+        }`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="transaction-modal-title"
-        onMouseDown={(event) => event.stopPropagation()}
+        onMouseDown={(event) =>
+          event.stopPropagation()
+        }
       >
         <div className="modal-head">
           <div>
@@ -1750,7 +2153,10 @@ function TransactionModal({
               Add {income ? "income" : "expense"}
             </h2>
 
-            <p>Log it in seconds. Categories are suggested as you type.</p>
+            <p>
+              Log it in seconds. Categories are
+              suggested as you type.
+            </p>
           </div>
 
           <button
@@ -1771,7 +2177,9 @@ function TransactionModal({
             type="button"
             className={!income ? "active" : ""}
             aria-selected={!income}
-            onClick={() => switchType("expense")}
+            onClick={() =>
+              switchType("expense")
+            }
           >
             Expense
           </button>
@@ -1780,7 +2188,9 @@ function TransactionModal({
             type="button"
             className={income ? "active" : ""}
             aria-selected={income}
-            onClick={() => switchType("income")}
+            onClick={() =>
+              switchType("income")
+            }
           >
             Income
           </button>
@@ -1788,31 +2198,54 @@ function TransactionModal({
 
         <label>
           Amount
+
           <div className="amount-input">
-            <span>{getCurrencyInfo().symbol}</span>
+            <span>
+              {getCurrencyInfo().symbol}
+            </span>
 
             <input
               inputMode="decimal"
-              aria-label={`${income ? "Income" : "Expense"} amount`}
+              aria-label={`${
+                income ? "Income" : "Expense"
+              } amount`}
               value={amount || ""}
               onChange={(event) => {
-                const value = event.target.value.replace(/[^0-9.]/g, "");
+                const value =
+                  event.target.value.replace(
+                    /[^0-9.]/g,
+                    "",
+                  );
 
-                setAmount(value === "" ? 0 : Number(value));
+                setAmount(
+                  value === ""
+                    ? 0
+                    : Number(value),
+                );
               }}
-              onFocus={(event) => event.target.select()}
+              onFocus={(event) =>
+                event.target.select()
+              }
             />
           </div>
         </label>
 
         <label>
           Description
+
           <div className="field-input">
-            <Icon name="receipt" size={16} />
+            <Icon
+              name="receipt"
+              size={16}
+            />
 
             <input
               value={description}
-              onChange={(event) => setDescription(event.target.value)}
+              onChange={(event) =>
+                setDescription(
+                  event.target.value,
+                )
+              }
               placeholder={
                 income
                   ? "e.g. allowance, scholarship, freelance"
@@ -1823,62 +2256,190 @@ function TransactionModal({
           </div>
         </label>
 
-        {ai && !income && description.trim().length > 0 && (
-          <div className="ai-suggestion">
-            {toneIcon("mint", "sparkle")}
+        {/* AI suggestion */}
+        {description.trim().length >= 3 && (
+          <div className="ai-category-area">
+            {aiLoading && (
+              <div className="ai-category-loading">
+                <Icon
+                  name="sparkle"
+                  size={14}
+                />
 
-            <div>
-              <strong>Suggested category: Academics</strong>
+                <span>
+                  AI is checking your
+                  categories...
+                </span>
+              </div>
+            )}
 
-              <small>Based on your description</small>
-            </div>
+            {!aiLoading &&
+              existingAiCategory && (
+                <button
+                  type="button"
+                  className={`ai-category-suggestion ${
+                    categoryId ===
+                    existingAiCategory.categoryId
+                      ? "selected"
+                      : ""
+                  }`}
+                  onClick={
+                    useExistingAiCategory
+                  }
+                >
+                  <span className="ai-category-label">
+                    AI suggested
+                  </span>
 
+                  <strong>
+                    {
+                      existingAiCategory.name
+                    }
+                  </strong>
 
+                </button>
+              )}
+
+            {!aiLoading &&
+              newAiCategory && (
+                <button
+                  type="button"
+                  className={`ai-category-suggestion ${
+                    pendingAiCategory ===
+                    newAiCategory
+                      ? "selected"
+                      : ""
+                  }`}
+                  onClick={
+                    useNewAiCategory
+                  }
+                >
+                  <span className="ai-category-label">
+                    AI suggested
+                  </span>
+
+                  <strong>
+                    {newAiCategory}
+                  </strong>
+
+                  <small>
+                    New category
+                  </small>
+                </button>
+              )}
+
+            {!aiLoading &&
+              aiError && (
+                <small className="ai-category-error">
+                  {aiError}
+                </small>
+              )}
           </div>
+        )}
 
-          <div className="chips">
-            {availableCategories.map((item) => (
-              <button
-                type="button"
-                key={item.categoryId}
-                className={categoryId === item.categoryId ? "selected" : ""}
-                onClick={() => setCategoryId(item.categoryId)}
-              >
-                {item.name}
-              </button>
-            ))}
+        {/* Category dropdown */}
+        <div className="category-select">
+          <div className="label-row">
+            <label htmlFor="transaction-category">
+              Category
+            </label>
 
-            <button type="button" onClick={() => navigate("/categories")}>
-              ＋ New
+            <button
+              type="button"
+              onClick={() =>
+                navigate("/categories")
+              }
+            >
+              Manage categories
             </button>
           </div>
+
+          <select
+            id="transaction-category"
+            value={categoryId}
+            onChange={(event) => {
+              setCategoryId(
+                event.target.value,
+              );
+
+              setPendingAiCategory("");
+            }}
+          >
+            <option value="">
+              {pendingAiCategory
+                ? `AI: ${pendingAiCategory}`
+                : "Select a category"}
+            </option>
+
+            {availableCategories.map(
+              (item) => (
+                <option
+                  key={item.categoryId}
+                  value={
+                    item.categoryId
+                  }
+                >
+                  {item.name}
+                </option>
+              ),
+            )}
+          </select>
+
+          {pendingAiCategory && (
+            <small className="pending-ai-category">
+              AI category will be created when
+              you save this transaction.
+            </small>
+          )}
         </div>
 
         <div className="date-grid">
           <label>
             Date
+
             <div className="field-input">
-              <Icon name="calendar" size={16} />
+              <Icon
+                name="calendar"
+                size={16}
+              />
 
               <input
                 type="date"
                 value={date}
-                onChange={(event) => setDate(event.target.value)}
+                onChange={(event) =>
+                  setDate(
+                    event.target.value,
+                  )
+                }
               />
             </div>
           </label>
 
           <label>
             Repeat
+
             <button
               type="button"
-              className={`repeat-field ${repeat ? "on" : ""}`}
-              onClick={() => setRepeat((value) => !value)}
+              className={`repeat-field ${
+                repeat ? "on" : ""
+              }`}
+              onClick={() =>
+                setRepeat(
+                  (value) => !value,
+                )
+              }
               aria-pressed={repeat}
             >
-              <Icon name="repeat" size={16} />
+              <Icon
+                name="repeat"
+                size={16}
+              />
 
-              <span>{repeat ? "Monthly" : "None"}</span>
+              <span>
+                {repeat
+                  ? "Monthly"
+                  : "None"}
+              </span>
 
               <i />
             </button>
@@ -1886,15 +2447,23 @@ function TransactionModal({
         </div>
 
         {formError && (
-          <div className="modal-form-error" role="alert">
+          <div
+            className="modal-form-error"
+            role="alert"
+          >
             {formError}
           </div>
         )}
 
         <div className="modal-footer">
-          <small>Press Enter to save · Esc to close</small>
+          <small>
+            Press Enter to save · Esc to close
+          </small>
 
-          <button type="button" onClick={onClose}>
+          <button
+            type="button"
+            onClick={onClose}
+          >
             Cancel
           </button>
 
@@ -1902,9 +2471,22 @@ function TransactionModal({
             type="button"
             className="primary-btn"
             onClick={handleSave}
-            disabled={!amount || !categoryId || !description.trim() || !date}
+            disabled={
+              saving ||
+              !amount ||
+              (!categoryId &&
+                !pendingAiCategory) ||
+              !description.trim() ||
+              !date
+            }
           >
-            ✓ Save {income ? "income" : "expense"}
+            {saving
+              ? "Saving..."
+              : `✓ Save ${
+                  income
+                    ? "income"
+                    : "expense"
+                }`}
           </button>
         </div>
       </div>

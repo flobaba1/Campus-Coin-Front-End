@@ -2182,6 +2182,71 @@
 .dashboard-app .notif-item small {
   font-size: 9px;
 }
+
+.dashboard-app .notif-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 82px;
+  padding: 16px;
+  color: var(--db-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.dashboard-app .notif-item {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--db-border);
+  position: relative;
+  background: var(--db-surface);
+  color: var(--db-text);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.dashboard-app .notif-item:hover {
+  background: var(--db-surface-soft, #f8fafb);
+}
+
+.dashboard-app .notif-item.read {
+  opacity: 0.6;
+}
+
+.dashboard-app .notif-item > div {
+  min-width: 0;
+  flex: 1;
+}
+
+.dashboard-app .notif-item strong {
+  display: block;
+  font-size: 10px;
+  line-height: 1.35;
+  font-weight: 800;
+}
+
+.dashboard-app .notif-item p {
+  margin: 3px 0 4px;
+  color: var(--db-muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.dashboard-app .notif-item small {
+  display: block;
+  color: #9aa7ba;
+  font-size: 8px;
+  line-height: 1.3;
+}
+
 .dashboard-app .notif-settings {
   height: 40px;
   font-size: 10px;
@@ -4249,4 +4314,184 @@
 /* CampusCoin logo is intentionally clean: no decorative green dot. */
 .dashboard-app .brand-dot {
   display: none !important;
+}
+
+/* =========================================================
+   TRANSACTION MODAL - AI CATEGORY SUGGESTIONS
+   ========================================================= */
+
+.ai-category-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.ai-category-loading {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 11px;
+  border: 1px solid #dcece7;
+  border-radius: 9px;
+  background: #f7fcfa;
+  color: #718096;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.ai-category-suggestion {
+  position: relative;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 12px 9px;
+  border: 1px solid #d8ebe4;
+  border-radius: 10px;
+  background: #f7fcfa;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.ai-category-suggestion:hover {
+  border-color: #9bcfc0;
+  background: #f2faf7;
+}
+
+.ai-category-suggestion.selected {
+  border-color: #008b62;
+  background: #eef9f5;
+  box-shadow:
+    0 0 0 2px rgba(0, 139, 98, 0.08);
+}
+
+.ai-category-label {
+  position: absolute;
+  top: -8px;
+  left: 10px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: #008b62;
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.ai-category-suggestion strong {
+  margin-top: 2px;
+  color: #26364d;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.ai-category-suggestion small {
+  margin-left: auto;
+  color: #718096;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.ai-category-error {
+  display: block;
+  margin-top: 6px;
+  color: #b42318;
+  font-size: 10px;
+}
+
+.category-select {
+  margin-top: 17px;
+}
+
+.category-select .label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.category-select .label-row label {
+  margin: 0;
+  color: #26364d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.category-select .label-row button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #008b62;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.category-select select {
+  width: 100%;
+  height: 42px;
+  padding: 0 38px 0 12px;
+  border: 1px solid #dce4e8;
+  border-radius: 9px;
+  background-color: #ffffff;
+  color: #26364d;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+
+  background-image:
+    linear-gradient(
+      45deg,
+      transparent 50%,
+      #718096 50%
+    ),
+    linear-gradient(
+      135deg,
+      #718096 50%,
+      transparent 50%
+    );
+
+  background-position:
+    calc(100% - 16px) 17px,
+    calc(100% - 11px) 17px;
+
+  background-size:
+    5px 5px,
+    5px 5px;
+
+  background-repeat: no-repeat;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.category-select select:hover {
+  border-color: #b9c9c4;
+}
+
+.category-select select:focus {
+  border-color: #008b62;
+  box-shadow:
+    0 0 0 3px rgba(0, 139, 98, 0.08);
+}
+
+.pending-ai-category {
+  display: block;
+  margin-top: 6px;
+  color: #008b62;
+  font-size: 10px;
+  font-weight: 600;
 }

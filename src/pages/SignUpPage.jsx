@@ -53,6 +53,12 @@ function SignUpPage() {
       brandTitle="Take control of your money in 2 minutes."
       brandDescription="Log allowance, gigs and scholarships, see where every dollar goes, and get plain-language tips from your own habits."
       className="signup-auth"
+      topContent={(
+        <button type="button" className="legal-back-button" onClick={() => navigate('/')}>
+          <span>←</span>
+          Back to Home
+        </button>
+      )}
     >
       <form className="auth-form signup-form" onSubmit={submit}>
         <AuthField label="Full name" placeholder="Jordan Davis" value={name} onChange={e => setName(e.target.value)} icon="user" />
