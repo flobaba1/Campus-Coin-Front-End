@@ -52,7 +52,6 @@ function AdminShell({ page, children }) {
     { id: 3, title: 'Weekly usage report ready', time: '1 hour ago', read: true },
   ])
   const [admin, setAdmin] = useState(getAdminSession())
-  const [interfaceScale, setInterfaceScale] = useState(1)
   const unreadNotifications = notifications.filter(item => !item.read).length
   useEffect(() => {
     if (!isAdminAuthenticated()) navigate('/admin/sign-in')
@@ -96,7 +95,7 @@ function AdminShell({ page, children }) {
   ]
   const currentPath = nav.find(item => item[0] === page)?.[2] || '/admin/overview'
 
-  return <div className="admin-console-app" data-interface-scale={interfaceScale}>
+  return <div className="admin-console-app">
     <aside className="admin-sidebar">
       <button className="admin-brand" onClick={() => navigate('/admin/overview')}><Logo/><span className="brand-dot"/></button>
       <div className="admin-side-label">ADMIN CONSOLE</div>
@@ -113,8 +112,6 @@ function AdminShell({ page, children }) {
       <header className="admin-topbar">
         <div className="admin-crumb"><button className="admin-crumb-home" title="Admin overview" aria-label="Admin overview" onClick={() => navigate('/admin/overview')}><Icon name="home" size={14}/></button><span>›</span><button className="admin-crumb-page" onClick={() => navigate(currentPath)}>{page}</button></div>
         <div className="admin-top-actions">
-          <div className="admin-search"><Icon name="search" size={14}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search users, categories..."/><kbd>⌘K</kbd></div>
-          <button className="admin-top-btn" title="Decrease interface size" aria-label="Decrease interface size" onClick={()=>setInterfaceScale(0.9)}>A</button><button className="admin-top-btn" title="Increase interface size" aria-label="Increase interface size" onClick={()=>setInterfaceScale(1.1)}>A</button>
           <div className="admin-notify-wrap"><button className="admin-top-btn" title="Notifications" aria-label={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ''}`} onClick={()=>setNotification(v=>!v)}><Icon name="bell" size={16}/>{unreadNotifications > 0 && <i>{unreadNotifications}</i>}</button>{notification&&<div className="admin-notification"><div className="admin-notification-head"><strong>Admin notifications</strong>{unreadNotifications > 0 && <button onClick={()=>setNotifications(items=>items.map(item=>({...item, read:true})))}>Mark all read</button>}</div>{notifications.map(item=><button className={`admin-notification-item ${item.read ? 'read' : ''}`} key={item.id} onClick={()=>setNotifications(items=>items.map(current=>current.id === item.id ? {...current, read:true} : current))}><span>{item.title}</span><small>{item.time}</small></button>)}</div>}</div>
           <span className="admin-top-avatar">{admin?.name?.slice(0,2).toUpperCase() || 'IS'}</span>
         </div>
@@ -188,6 +185,7 @@ function FilterDropdown({ label, value, options, icon, onChange }) {
 
 function OverviewPage() {
   const [categoryAnalytics, setCategoryAnalytics] = useState([])
+  const [categoryNamesById, setCategoryNamesById] = useState({})
   const [categoryAnalyticsLoading, setCategoryAnalyticsLoading] = useState(true)
   const [categoryAnalyticsError, setCategoryAnalyticsError] = useState('')
   const [dailyActivity, setDailyActivity] = useState([])
@@ -224,6 +222,29 @@ function OverviewPage() {
     }
 
     fetchCategoryAnalytics()
+  }, [])
+
+  useEffect(() => {
+    let isCurrent = true
+
+    async function fetchCategoryNames() {
+      try {
+        const response = await getAdminCategories()
+        const categories = Array.isArray(response) ? response : []
+        const namesById = Object.fromEntries(categories.flatMap(category => {
+          const categoryId = category.categoryId || category.id || category.category_id
+          const categoryName = category.name || category.categoryName
+          return categoryId && categoryName ? [[String(categoryId), categoryName]] : []
+        }))
+
+        if (isCurrent) setCategoryNamesById(namesById)
+      } catch (error) {
+        console.error('Unable to load category names for overview:', error)
+      }
+    }
+
+    fetchCategoryNames()
+    return () => { isCurrent = false }
   }, [])
 
   useEffect(() => {
@@ -373,7 +394,7 @@ function OverviewPage() {
     </div>
     <div className="admin-overview-grid">
       <div className="admin-panel usage-panel"><div className="panel-head"><div><strong>Active students</strong><small>Daily active students · Last 30 days</small></div></div>{dailyActivityLoading ? <div className="admin-empty-state">Loading activity…</div> : dailyActivityError ? <div className="admin-empty-state" role="alert">{dailyActivityError}</div> : activityPoints.length ? <div className="area-chart"><div className="chart-y">{[4, 3, 2, 1, 0].map(step=><span key={step}>{(activityAxisStep * step).toLocaleString()}</span>)}</div><svg viewBox="0 0 620 210" preserveAspectRatio="none" role="img" aria-label="Daily active students over the last 30 days"><defs><linearGradient id="adminArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#107f55" stopOpacity=".25"/><stop offset="1" stopColor="#107f55" stopOpacity=".03"/></linearGradient></defs><path d={activityAreaPath} fill="url(#adminArea)"/><path d={activityLinePath} fill="none" stroke="#107f55" strokeWidth="2"/></svg><div className="chart-x">{activityDateTicks.map(index=><span key={dailyActivity[index].date}>{new Date(`${dailyActivity[index].date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>)}</div></div> : <div className="admin-empty-state">No daily activity data available.</div>}</div>
-      <div className="admin-panel category-panel"><div className="panel-head"><div><strong>Most-used categories</strong><small>Share of transactions · Last 30 days</small></div><button type="button" onClick={() => navigate('/admin/categories')}>View all</button></div>{categoryAnalyticsLoading ? <div className="admin-empty-state">Loading category analytics…</div> : categoryAnalyticsError ? <div className="admin-empty-state" role="alert">{categoryAnalyticsError}</div> : categoryAnalytics.length ? categoryAnalytics.slice(0, 6).map(category=>{const percentage=Math.min(100,Math.max(0,Number(category.percentage))); const count=Number(category.transactionCount); const categoryName=category.categoryName; const tone=getCategoryTone(categoryName); return <div className="category-bar" key={categoryName} title={`${count.toLocaleString()} transactions`}><span>{categoryName}</span><div><i className={tone} style={{width:`${percentage}%`}}/></div><b>{percentage.toLocaleString(undefined,{maximumFractionDigits:1})}%</b></div>}) : <div className="admin-empty-state">No category transaction data available.</div>}</div>
+      <div className="admin-panel category-panel"><div className="panel-head"><div><strong>Most-used categories</strong><small>Share of transactions · Last 30 days</small></div><button type="button" onClick={() => navigate('/admin/categories')}>View all</button></div>{categoryAnalyticsLoading ? <div className="admin-empty-state">Loading category analytics…</div> : categoryAnalyticsError ? <div className="admin-empty-state" role="alert">{categoryAnalyticsError}</div> : categoryAnalytics.length ? categoryAnalytics.slice(0, 6).map((category,index)=>{const percentage=Math.min(100,Math.max(0,Number(category.percentage))); const count=Number(category.transactionCount); const categoryKey=String(category.categoryName); const isCategoryId=/^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(categoryKey); const categoryName=categoryNamesById[categoryKey] || (isCategoryId ? 'Category' : categoryKey); const tone=getCategoryTone(categoryName); return <div className="category-bar" key={`${categoryKey}-${index}`} title={`${count.toLocaleString()} transactions`}><span className="category-bar-name"><span className={`admin-cat-icon ${tone}`}><Icon name={getCategoryIcon(categoryName)} size={13}/></span><span>{categoryName}</span></span><div><i className={tone} style={{width:`${percentage}%`}}/></div><b>{percentage.toLocaleString(undefined,{maximumFractionDigits:1})}%</b></div>}) : <div className="admin-empty-state">No category transaction data available.</div>}</div>
       <div className="admin-panel transaction-chart"><div className="panel-head"><div><strong>Transactions per day</strong><small>Last 14 days</small></div><span>{dailyTransactionsLoading ? 'Loading…' : dailyTransactionsError ? 'Unavailable' : `${dailyTransactionTotal.toLocaleString()} total`}</span></div>{dailyTransactionsLoading ? <div className="admin-empty-state">Loading transactions…</div> : dailyTransactionsError ? <div className="admin-empty-state" role="alert">{dailyTransactionsError}</div> : dailyTransactions.length ? <><div className="bar-chart">{dailyTransactions.map(entry=>{const count=Number(entry.count); const height=dailyTransactionMaximum ? count / dailyTransactionMaximum * 100 : 0; return <i key={entry.date} title={`${new Date(`${entry.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count.toLocaleString()} transactions`} aria-label={`${entry.date}: ${count} transactions`} style={{height:`${height}%`}}/>})}</div><div className="chart-x">{transactionDateTicks.map(index=><span key={dailyTransactions[index].date}>{new Date(`${dailyTransactions[index].date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>)}</div></> : <div className="admin-empty-state">No transaction data available.</div>}</div>
       <div className="admin-panel activity-panel"><div className="panel-head"><div><strong>Recent activity</strong><small>Latest admin events</small></div><span>Latest 4</span></div>{auditLogsLoading ? <div className="admin-empty-state">Loading recent activity…</div> : auditLogsError ? <div className="admin-empty-state" role="alert">{auditLogsError}</div> : recentAuditLogs.length ? recentAuditLogs.map((entry,index)=><div className="activity-row" key={entry.auditLogId}><span className={`activity-dot d${index % 4}`}/><div><strong>{entry.summary || entry.action || 'Admin activity'}</strong><small>{entry.actorName ? `Admin ID ${entry.actorName} · ` : ''}{formatAuditLogAge(entry.createdAt)}</small></div></div>) : <div className="admin-empty-state">No recent admin activity.</div>}</div>
     </div>
