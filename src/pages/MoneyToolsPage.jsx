@@ -6,6 +6,8 @@ import Logo from "../components/Logo";
 import { clearStudentSession, getStudentSession } from "../utils";
 import ThemeToggle from "../components/ThemeToggle";
 import { formatMoney } from "../utils/currency";
+import { getNotifications, markNotificationAsRead } from "../api/notificationApi";
+import { generateMonthlyReport } from "../api/aiApi";
 import "../styles/dashboard.css";
 import "../styles/money-tools.css";
 import {
@@ -689,35 +691,144 @@ function ToolsShell({
 }
 
 function MiniNotifications({ onClose }) {
-  const [read, setRead] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const data = await getNotifications();
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Failed to load notifications:", error);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const unread = notifications.filter(
+    (notification) => notification.status === "UNREAD"
+  );
+
+  const markRead = async (notification) => {
+    try {
+      if (notification.status === "UNREAD") {
+        await markNotificationAsRead(notification.notificationId);
+        setNotifications((current) =>
+          current.map((item) =>
+            item.notificationId === notification.notificationId
+              ? { ...item, status: "READ" }
+              : item
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const markAllRead = async () => {
+    await Promise.all(
+      unread.map((notification) =>
+        markNotificationAsRead(notification.notificationId).catch((error) => {
+          console.error("Failed to mark notification as read:", error);
+        })
+      )
+    );
+
+    setNotifications((current) =>
+      current.map((notification) => ({
+        ...notification,
+        status: "READ",
+      }))
+    );
+  };
+
+  const openNotification = async (notification) => {
+    await markRead(notification);
+
+    const placement = String(
+      notification?.placement || ""
+    ).toUpperCase();
+
+    const category = String(
+      notification?.category || ""
+    ).toLowerCase();
+
+    if (placement === "TIPS" || category.includes("tip")) {
+      onClose();
+      navigate("/saving-tips");
+      return;
+    }
+
+    if (
+      placement === "ANNOUNCEMENT" ||
+      category.includes("ai") ||
+      category.includes("insight")
+    ) {
+      onClose();
+      navigate("/ai-insights");
+      return;
+    }
+
+    onClose();
+  };
+
   return (
-    <div className="money-notifications">
+    <div className="money-notifications" role="dialog" aria-label="Notifications">
       <div className="notification-head">
         <strong>Notifications</strong>
-        <b>{read ? "0 new" : "4 new"}</b>
-        <button type="button" onClick={() => setRead(true)}>
+        <b>{unread.length} new</b>
+        <button type="button" onClick={markAllRead} disabled={!unread.length}>
           Mark all read
         </button>
         <button type="button" onClick={onClose} aria-label="Close">
           <Icon name="close" size={14} />
         </button>
       </div>
-      {[
-        "Your September insight is ready",
-        "Food is at 86% of budget",
-        "Possible duplicate found",
-        "Subscriptions is over budget",
-      ].map((x) => (
-        <button
-          className={`notification-item ${read ? "read" : ""}`}
-          key={x}
-          type="button"
-          onClick={onClose}
-        >
-          {x}
-          <Icon name="chevron" size={13} />
-        </button>
-      ))}
+
+      <div className="money-notification-list">
+        {loading ? (
+          <div className="money-notification-empty">Loading notifications...</div>
+        ) : notifications.length === 0 ? (
+          <div className="money-notification-empty">
+            You're all caught up.
+          </div>
+        ) : (
+          notifications.map((notification) => (
+            <button
+              key={notification.notificationId}
+              type="button"
+              className={`money-notification-item ${
+                notification.status === "READ" ? "read" : ""
+              }`}
+              onClick={() => openNotification(notification)}
+            >
+              <span className="money-notification-copy">
+                <strong>{notification.title}</strong>
+                <small>{notification.message}</small>
+                <em>
+                  {notification.createdAt
+                    ? new Date(notification.createdAt).toLocaleDateString(
+                        "en-US",
+                        { month: "short", day: "numeric" }
+                      )
+                    : ""}
+                </em>
+              </span>
+              {notification.status === "UNREAD" && (
+                <i aria-hidden="true" />
+              )}
+              <Icon name="chevron" size={13} />
+            </button>
+          ))
+        )}
+      </div>
     </div>
   );
 }
@@ -3076,20 +3187,121 @@ function ExportModal({ onClose, onExport }) {
   );
 }
 
+function getCurrentReportMonth() {
+  const now = new Date();
+  return `${String(now.getMonth() + 1).padStart(2, "0")}-${now.getFullYear()}`;
+}
+
+function isReportInsight(notification) {
+  return (
+    String(notification?.placement || "").toUpperCase() ===
+    "ANNOUNCEMENT"
+  );
+}
+
+function isReportTip(notification) {
+  return (
+    String(notification?.placement || "").toUpperCase() === "TIPS"
+  );
+}
+
 function AIInsightsPage() {
-  const [dark, setDark] = useState(false),
-    [notify, setNotify] = useState(false),
-    [saved, setSaved] = useState(false),
-    [dismissed, setDismissed] = useState([]),
-    [refreshing, setRefreshing] = useState(false),
-    [toast, showToast] = useToast();
-  const refresh = () => {
-    setRefreshing(true);
-    window.setTimeout(() => {
-      setRefreshing(false);
-      showToast("Insights refreshed");
-    }, 700);
+  const [dark, setDark] = useState(false);
+  const [notify, setNotify] = useState(false);
+  const [insight, setInsight] = useState(null);
+  const [tips, setTips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [toast, showToast] = useToast();
+
+  const loadReport = async () => {
+    try {
+      setLoading(true);
+      const notifications = await getNotifications();
+      const list = Array.isArray(notifications) ? notifications : [];
+
+      setInsight(
+        list.find(isReportInsight) || null
+      );
+      setTips(
+        list.filter(isReportTip).slice(0, 2)
+      );
+
+      try {
+        const bookmarks = await getBookmarks();
+        setSaved(
+          Array.isArray(bookmarks) &&
+            Boolean(
+              list.find(isReportInsight) &&
+                bookmarks.some(
+                  (bookmark) =>
+                    bookmark.type === "INSIGHT" &&
+                    bookmark.title ===
+                      list.find(isReportInsight)?.title
+                )
+            )
+        );
+      } catch {
+        setSaved(false);
+      }
+    } catch (error) {
+      console.error("Failed to load AI report:", error);
+      showToast(error.message || "Unable to load AI insight");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  useEffect(() => {
+    loadReport();
+  }, []);
+
+  useEffect(() => {
+    const handleAiUpdated = () => loadReport();
+    window.addEventListener("campuscoin:ai-updated", handleAiUpdated);
+    return () =>
+      window.removeEventListener(
+        "campuscoin:ai-updated",
+        handleAiUpdated
+      );
+  }, []);
+
+  const generateReport = async () => {
+    if (generating) return;
+
+    try {
+      setGenerating(true);
+      await generateMonthlyReport(getCurrentReportMonth());
+      window.dispatchEvent(new CustomEvent("campuscoin:ai-updated"));
+      await loadReport();
+      showToast("Your financial insight and saving tips are ready");
+    } catch (error) {
+      console.error("Failed to generate AI report:", error);
+      showToast(
+        error.message || "Unable to generate your financial report"
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const saveInsight = async () => {
+    if (!insight || saved) return;
+
+    try {
+      await createBookmark({
+        type: "INSIGHT",
+        title: insight.title,
+        content: insight.message,
+      });
+      setSaved(true);
+      showToast("Insight saved to Bookmarks");
+    } catch (error) {
+      showToast(error.message || "Unable to save insight");
+    }
+  };
+
   return (
     <ToolsShell
       page="AI Insights"
@@ -3101,172 +3313,233 @@ function AIInsightsPage() {
       <PageFrame
         eyebrow="SMART MONEY"
         title="AI Insights"
-        description="Clear, useful patterns from your September transactions and budgets."
+        description="Clear, useful patterns generated from your actual financial activity."
         actions={
           <>
             <button
               className="tool-btn"
               type="button"
-              onClick={() => {
-                setSaved((v) => !v);
-                showToast(
-                  saved ? "Insight removed from bookmarks" : "Insight saved",
-                );
-              }}
+              onClick={saveInsight}
+              disabled={!insight || saved}
             >
-              <Icon name="bookmark" size={14} />{" "}
+              <Icon name="bookmark" size={14} />
               {saved ? "Saved" : "Save insight"}
             </button>
-            <button className="tool-primary" type="button" onClick={refresh}>
-              <Icon name="refresh" size={14} />{" "}
-              {refreshing ? "Refreshing…" : "Refresh"}
+
+            <button
+              className="tool-primary"
+              type="button"
+              onClick={generateReport}
+              disabled={generating}
+            >
+              <Icon name="refresh" size={14} />
+              {generating ? "Generating…" : "Generate insight"}
             </button>
           </>
         }
       >
-        <div className="ai-layout">
-          <div>
-            <div className="insight-hero">
-              <div className="insight-icon">
-                <Icon name="sparkle" size={19} />
-              </div>
-              <div>
-                <strong>Your September story</strong>
-                <small>Updated today · based on 47 transactions</small>
-                <p>
-                  Your spending is tracking below the September budget. Food
-                  delivery and subscriptions are the two areas with the clearest
-                  opportunity to save.
-                </p>
-                <p>
-                  Rent is fixed, while your flexible spending has been more
-                  concentrated around meals and small recurring purchases.
-                </p>
-                <div className="insight-actions">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setSaved((v) => !v);
-                      showToast(saved ? "Insight removed" : "Insight saved");
-                    }}
-                  >
-                    {saved ? "Saved" : "Save insight"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => showToast("Share link ready")}
-                  >
-                    Share
-                  </button>
+        {loading ? (
+          <div className="ai-state-card">
+            <strong>Loading your latest financial insight…</strong>
+            <span>Reading the latest AI report from your account.</span>
+          </div>
+        ) : !insight ? (
+          <div className="ai-state-card">
+            <div className="ai-state-icon">
+              <Icon name="sparkle" size={20} />
+            </div>
+            <strong>No AI insight has been generated yet</strong>
+            <span>
+              Generate a report to analyze your income, expenses, budgets and
+              savings activity.
+            </span>
+            <button
+              type="button"
+              className="tool-primary"
+              onClick={generateReport}
+              disabled={generating}
+            >
+              {generating ? "Generating…" : "Generate my insight"}
+            </button>
+          </div>
+        ) : (
+          <div className="ai-layout">
+            <div>
+              <article className="insight-hero ai-readable-card">
+                <div className="insight-icon">
+                  <Icon name="sparkle" size={19} />
                 </div>
+
+                <div className="ai-readable-copy">
+                  <span className="ai-content-kind">AI Insight</span>
+                  <strong>{insight.title}</strong>
+
+                  <small>
+                    Generated{" "}
+                    {new Date(insight.createdAt).toLocaleDateString(
+                      "en-US",
+                      {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      }
+                    )}
+                  </small>
+
+                  <p>{insight.message}</p>
+
+                  <div className="insight-actions">
+                    <button type="button" onClick={saveInsight}>
+                      {saved ? "Saved" : "Save insight"}
+                    </button>
+                  </div>
+                </div>
+              </article>
+
+              <h3 className="section-mini-title">
+                Personalized saving tips
+              </h3>
+
+              <div className="opportunity-grid">
+                {tips.length ? (
+                  tips.map((tip) => (
+                    <article
+                      className="opportunity ai-readable-card"
+                      key={tip.notificationId}
+                    >
+                      <div className="opp-head">
+                        {toneIcon("mint", "bulb")}
+                        <div>
+                          <strong>{tip.title}</strong>
+                          <small>AI saving tip</small>
+                        </div>
+                      </div>
+
+                      <p>{tip.message}</p>
+
+                      <button
+                        className="tool-primary"
+                        type="button"
+                        onClick={() =>
+                          navigate("/saving-tips")
+                        }
+                      >
+                        View saving tips
+                      </button>
+                    </article>
+                  ))
+                ) : (
+                  <div className="ai-state-card compact">
+                    <strong>No saving tips yet</strong>
+                    <span>
+                      Generate a new report to create personalized tips.
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
-            <h3 className="section-mini-title">Key opportunities</h3>
-            <div className="opportunity-grid">
-              {!dismissed.includes("food") && (
-                <Opportunity
-                  title="Food delivery"
-                  value={`−${formatMoney(18.40)}`}
-                  text="One fewer delivery this week keeps Food comfortably inside budget."
-                  tone="amber"
-                  icon="food"
-                  onDismiss={() => setDismissed((v) => [...v, "food"])}
-                  onView={() => showToast("Saving tip opened")}
-                />
-              )}{" "}
-              {!dismissed.includes("subs") && (
-                <Opportunity
-                  title="Subscriptions"
-                  value={`−${formatMoney(5.99)}`}
-                  text="Review one recurring service before the next billing cycle."
-                  tone="pink"
-                  icon="tv"
-                  onDismiss={() => setDismissed((v) => [...v, "subs"])}
-                  onView={() => showToast("Subscription tip opened")}
-                />
-              )}
-            </div>
-            <div className="ai-follow">
-              <Icon name="info" size={16} />
-              <span>
-                Potential duplicate: Chop & Go delivery on Sep 20 looks similar
-                to a previous entry.
-              </span>
+
+            <aside className="insight-side">
+              <h3>Report actions</h3>
+
+              <div className="ai-side-message">
+                <strong>Insight and tips are linked</strong>
+                <p>
+                  Generating a new report creates the matching insight and
+                  saving tips automatically.
+                </p>
+              </div>
+
               <button
                 type="button"
-                onClick={() => navigate("/transactions?search=Chop%20%26%20Go")}
+                className="tool-primary"
+                onClick={() => navigate("/saving-tips")}
               >
-                Review
+                View saving tips
               </button>
-            </div>
+            </aside>
           </div>
-          <aside className="insight-side">
-            <h3>Highlights</h3>
-            {[
-              ["Spent", formatMoney(742.80)],
-              ["Biggest category", "Hostel/Rent"],
-              ["Food", formatMoney(214.60)],
-              ["Remaining", formatMoney(127.20)],
-            ].map(([a, b]) => (
-              <div key={a}>
-                <span>{a}</span>
-                <strong>{b}</strong>
-              </div>
-            ))}
-            <div className="side-tip">
-              <strong>Keep going</strong>
-              <p>You have 8 days left and about {formatMoney(15.90)}/day available.</p>
-            </div>
-          </aside>
-        </div>
+        )}
       </PageFrame>
+
       <ActionToast message={toast} />
     </ToolsShell>
   );
 }
-function Opportunity({ title, value, text, tone, icon, onDismiss, onView }) {
-  return (
-    <div className="opportunity">
-      {" "}
-      <div className="opp-head">
-        {toneIcon(tone, icon)}
-        <div>
-          <strong>{title}</strong>
-          <small>Flexible spend</small>
-        </div>
-        <b>{value}</b>
-      </div>
-      <p>{text}</p>
-      <button className="tool-primary" type="button" onClick={onView}>
-        View tip
-      </button>
-      <button className="ghost-btn" type="button" onClick={onDismiss}>
-        Dismiss
-      </button>
-    </div>
-  );
-}
+
 function SavingTipsPage() {
-  const [dark, setDark] = useState(false),
-    [notify, setNotify] = useState(false),
-    [tab, setTab] = useState("All"),
-    [saved, setSaved] = useState([false, true, false, false, false]),
-    [dismissed, setDismissed] = useState([]),
-    [toast, showToast] = useToast();
-  const visible = useMemo(
-    () =>
-      tips
-        .map((t, i) => ({ ...t, i }))
-        .filter((t) => !dismissed.includes(t.i))
-        .filter(
-          (t) =>
-            tab === "All" ||
-            (tab === "Saved" && saved[t.i]) ||
-            (tab === "Recommended" && !saved[t.i]) ||
-            (tab === "Dismissed" && dismissed.includes(t.i)),
-        ),
-    [tab, saved, dismissed],
-  );
+  const [dark, setDark] = useState(false);
+  const [notify, setNotify] = useState(false);
+  const [tips, setTips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [generating, setGenerating] = useState(false);
+  const [selectedTip, setSelectedTip] = useState(null);
+  const [toast, showToast] = useToast();
+
+  const loadTips = async () => {
+    try {
+      setLoading(true);
+      const notifications = await getNotifications();
+      const list = Array.isArray(notifications) ? notifications : [];
+      setTips(list.filter(isReportTip).slice(0, 10));
+    } catch (error) {
+      console.error("Failed to load saving tips:", error);
+      showToast(error.message || "Unable to load saving tips");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadTips();
+  }, []);
+
+  useEffect(() => {
+    const handleAiUpdated = () => loadTips();
+    window.addEventListener("campuscoin:ai-updated", handleAiUpdated);
+    return () =>
+      window.removeEventListener(
+        "campuscoin:ai-updated",
+        handleAiUpdated
+      );
+  }, []);
+
+  const generateTips = async () => {
+    if (generating) return;
+
+    try {
+      setGenerating(true);
+
+      await generateMonthlyReport(getCurrentReportMonth());
+
+      window.dispatchEvent(new CustomEvent("campuscoin:ai-updated"));
+
+      // The requested flow: after generating tips, take the user to
+      // the newly generated insight automatically.
+      navigate("/ai-insights");
+    } catch (error) {
+      console.error("Failed to generate saving tips:", error);
+      showToast(
+        error.message || "Unable to generate saving tips"
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const saveTip = async (tip) => {
+    try {
+      await createBookmark({
+        type: "TIP",
+        title: tip.title,
+        content: tip.message,
+      });
+      showToast("Saving tip saved to Bookmarks");
+    } catch (error) {
+      showToast(error.message || "Unable to save saving tip");
+    }
+  };
+
   return (
     <ToolsShell
       page="Saving Tips"
@@ -3278,109 +3551,127 @@ function SavingTipsPage() {
       <PageFrame
         eyebrow="SMART MONEY"
         title="Saving tips"
-        description="Small changes tailored to your current spending and budget targets."
+        description="Personalized suggestions generated from your latest financial activity."
         actions={
           <button
-            className="tool-btn"
+            className="tool-primary"
             type="button"
-            onClick={() => showToast("Showing September recommendations")}
+            onClick={generateTips}
+            disabled={generating}
           >
-            This month⌄
+            <Icon name="sparkle" size={14} />
+            {generating ? "Generating…" : "Generate tips"}
           </button>
         }
       >
         <div className="saving-metrics">
           <div className="saving-score">
-            <Icon name="zap" size={16} />
-            <span>Potential monthly savings</span>
-            <strong>{formatMoney(61)}</strong>
+            <Icon name="sparkle" size={16} />
+            <span>Personalized tips</span>
+            <strong>{tips.length}</strong>
           </div>
-          <Metric label="Tips ready" value={String(visible.length)} />
-          <Metric label="Saved" value={String(saved.filter(Boolean).length)} />
-          <Metric label="Dismissed" value={String(dismissed.length)} />
+          <Metric label="Tips ready" value={String(tips.length)} />
+          <Metric label="Source" value="AI report" />
+          <Metric label="Updated" value="Latest" />
         </div>
-        <div className="tip-tabs">
-          {["All", "Recommended", "Saved", "Dismissed"].map((x) => (
-            <button
-              type="button"
-              key={x}
-              className={tab === x ? "active" : ""}
-              onClick={() => {
-                setTab(x);
-                if (x === "Notes") {
-                  loadNotes();
-                }
-              }}
-            >
-              {x}
-            </button>
-          ))}
-        </div>
-        <div className="tip-list">
-          {visible.map((t) => (
-            <TipRow
-              key={t.title}
-              {...t}
-              featured={t.i === 0}
-              saved={saved[t.i]}
-              onSave={() =>
-                setSaved((v) => v.map((x, j) => (j === t.i ? !x : x)))
-              }
-              onDismiss={() => {
-                setDismissed((v) => [...v, t.i]);
-                showToast("Tip dismissed");
-              }}
-            />
-          ))}
-          {visible.length === 0 && (
-            <div className="empty-state">
-              <strong>No tips here yet</strong>
-              <span>Try another filter.</span>
+
+        <div className="tip-list ai-tip-list">
+          {loading ? (
+            <div className="ai-state-card">
+              <strong>Loading your saving tips…</strong>
+              <span>Getting the latest AI recommendations.</span>
             </div>
+          ) : tips.length === 0 ? (
+            <div className="ai-state-card">
+              <div className="ai-state-icon">
+                <Icon name="bulb" size={20} />
+              </div>
+              <strong>No saving tips have been generated yet</strong>
+              <span>
+                Generate your monthly report and CampusCoin will create
+                personalized tips from your actual spending.
+              </span>
+              <button
+                type="button"
+                className="tool-primary"
+                onClick={generateTips}
+                disabled={generating}
+              >
+                {generating ? "Generating…" : "Generate tips"}
+              </button>
+            </div>
+          ) : (
+            tips.map((tip) => (
+              <article
+                className="tip-row tip-row-clickable"
+                key={tip.notificationId}
+                onClick={() => setSelectedTip(tip)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setSelectedTip(tip);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                {toneIcon("mint", "bulb")}
+
+                <div className="tip-copy">
+                  <strong>{tip.title}</strong>
+                  <small>{tip.message}</small>
+                </div>
+
+                <span className="tip-open-label">Read</span>
+                <Icon name="chevron" size={14} />
+              </article>
+            ))
           )}
         </div>
+
         <div className="saving-note">
-          <Icon name="info" size={14} /> New tips appear as your transaction
-          patterns change.
+          <Icon name="info" size={14} />
+          Generate a new report whenever you want fresh advice based on your
+          latest financial activity.
         </div>
       </PageFrame>
+
+      {selectedTip && (
+        <Modal
+          title={selectedTip.title}
+          description="Personalized saving tip"
+          onClose={() => setSelectedTip(null)}
+        >
+          <div className="ai-modal-content">
+            <div className="ai-modal-icon">
+              <Icon name="bulb" size={19} />
+            </div>
+            <p>{selectedTip.message}</p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setSelectedTip(null)}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="tool-primary"
+                onClick={() => saveTip(selectedTip)}
+              >
+                Save to Bookmarks
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       <ActionToast message={toast} />
     </ToolsShell>
   );
 }
-function TipRow({
-  title,
-  text,
-  amount,
-  tone,
-  icon,
-  featured,
-  saved,
-  onSave,
-  onDismiss,
-}) {
-  return (
-    <div className={`tip-row ${featured ? "featured" : ""}`}>
-      <span className="tip-check">{saved ? "✓" : "○"}</span>
-      {toneIcon(tone, icon)}
-      <div className="tip-copy">
-        <strong>{title}</strong>
-        <small>{text}</small>
-      </div>
-      <div className="tip-save">
-        <b>Save {amount}</b>
-        <span>per month</span>
-      </div>
-      <button className="tool-primary" type="button" onClick={onSave}>
-        {saved ? "Saved" : "Save"}
-      </button>
-      <button className="ghost-btn" type="button" onClick={onDismiss}>
-        Dismiss
-      </button>
-      <Icon name="chevron" size={14} />
-    </div>
-  );
-}
+
 function BookmarksPage() {
   const [dark, setDark] = useState(false);
   const [notify, setNotify] = useState(false);
@@ -3400,6 +3691,7 @@ const [bookmarksError, setBookmarksError] = useState("");
   const [modal, setModal] = useState(false);
   const [editingNote, setEditingNote] = useState(null);
   const [viewingNote, setViewingNote] = useState(null);
+  const [viewingBookmark, setViewingBookmark] = useState(null);
   const [deletingNote, setDeletingNote] = useState(null);
 
   const [toast, showToast] = useToast();
@@ -3875,302 +4167,254 @@ const handleCreateBookmark = async (
   ))}
 </div>
 
-        {showNotes ? (
-          <div className="bookmark-grid notes-grid">
-            {notesLoading && (
-              <div
-                className="bookmark-empty"
-                role="status"
-              >
-                <div className="bookmark-empty-icon">
-                  <Icon
-                    name="edit"
-                    size={18}
-                  />
+        <div className="saved-sections">
+          {showNotes && (
+            <section className="saved-section">
+              <div className="saved-section-heading">
+                <div>
+                  <h2>Personal notes</h2>
+                  <p>Private reminders you created.</p>
                 </div>
-
-                <strong>
-                  Loading your notes
-                </strong>
-
-                <span>
-                  Getting your saved notes...
-                </span>
+                <span>{notes.length}</span>
               </div>
-            )}
 
-            {!notesLoading &&
-              notesError && (
-                <div className="bookmark-empty bookmark-empty-error">
-                  <div className="bookmark-empty-icon">
-                    <Icon
-                      name="alert"
-                      size={18}
-                    />
+              <div className="bookmark-grid notes-grid">
+                {notesLoading && (
+                  <div className="bookmark-empty" role="status">
+                    <strong>Loading your notes…</strong>
+                    <span>Getting your saved notes.</span>
                   </div>
+                )}
 
-                  <strong>
-                    We couldn't load your notes
-                  </strong>
-
-                  <span>
-                    {notesError}
-                  </span>
-
-                  <button
-                    type="button"
-                    className="tool-primary"
-                    onClick={loadNotes}
-                  >
-                    Try again
-                  </button>
-                </div>
-              )}
-
-            {!notesLoading &&
-              !notesError &&
-              filteredNotes.length === 0 && (
-                <div className="bookmark-empty">
-                  <div className="bookmark-empty-icon">
-                    <Icon
-                      name="edit"
-                      size={18}
-                    />
-                  </div>
-
-                  <strong>
-                    {search
-                      ? "No notes found"
-                      : "No notes yet"}
-                  </strong>
-
-                  <span>
-                    {search
-                      ? "Try a different search term."
-                      : "Create a personal note to keep an important reminder close at hand."}
-                  </span>
-
-                  {!search && (
+                {!notesLoading && notesError && (
+                  <div className="bookmark-empty bookmark-empty-error">
+                    <strong>We couldn't load your notes</strong>
+                    <span>{notesError}</span>
                     <button
                       type="button"
                       className="tool-primary"
-                      onClick={() => {
-                        setEditingNote(null);
-                        setModal(true);
-                      }}
+                      onClick={loadNotes}
                     >
-                      Create your first note
+                      Try again
                     </button>
-                  )}
-                </div>
-              )}
-
-            {!notesLoading &&
-              !notesError &&
-              filteredNotes.map(
-                (note) => (
-                  <div
-                    className="bookmark-card note-card"
-                    key={note.noteId}
-                  >
-                    <div className="bookmark-card-icon teal">
-                      <Icon
-                        name="edit"
-                        size={16}
-                      />
-                    </div>
-
-                    <div className="bookmark-head">
-                      <strong>
-                        {note.title}
-                      </strong>
-
-                      <button
-                        className="bookmark-menu-button"
-                        type="button"
-                        onClick={() =>
-                          setViewingNote(note)
-                        }
-                        aria-label={`Open ${note.title}`}
-                      >
-                        •••
-                      </button>
-                    </div>
-
-                    <div className="bookmark-type-label">
-                      <Icon
-                        name="receipt"
-                        size={11}
-                      />
-                      Personal note
-                    </div>
-
-                    <p>
-                      {note.content}
-                    </p>
-
-                    <small className="note-updated">
-                      Updated{" "}
-                      {formatNoteDate(
-                        note.updatedAt,
-                      )}
-                    </small>
-
-                    <div className="bookmark-actions">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setViewingNote(
-                            note,
-                          )
-                        }
-                      >
-                        Open
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setEditingNote(
-                            note,
-                          )
-                        }
-                      >
-                        <Icon
-                          name="edit"
-                          size={12}
-                        />
-                        Edit
-                      </button>
-
-                      <button
-                        type="button"
-                        className="bookmark-danger-action"
-                        onClick={() =>
-                          setDeletingNote(
-                            note,
-                          )
-                        }
-                      >
-                        <Icon
-                          name="trash"
-                          size={12}
-                        />
-                        Remove
-                      </button>
-                    </div>
                   </div>
-                ),
-              )}
-          </div>
-        ) : (
-          <div className="bookmark-grid">
-            {bookmarksLoading && (
-  <div className="empty-state" role="status">
-    <strong>Loading bookmarks…</strong>
-    <span>Getting your saved items.</span>
-  </div>
-)}
+                )}
 
-{!bookmarksLoading && bookmarksError && (
-  <div className="empty-state">
-    <strong>We couldn't load your bookmarks.</strong>
-    <span>{bookmarksError}</span>
+                {!notesLoading &&
+                  !notesError &&
+                  filteredNotes.length === 0 && (
+                    <div className="bookmark-empty">
+                      <div className="bookmark-empty-icon">
+                        <Icon name="edit" size={18} />
+                      </div>
+                      <strong>
+                        {search ? "No notes found" : "No notes yet"}
+                      </strong>
+                      <span>
+                        {search
+                          ? "Try a different search term."
+                          : "Create a personal note to keep an important reminder close at hand."}
+                      </span>
+                      {!search && (
+                        <button
+                          type="button"
+                          className="tool-primary"
+                          onClick={() => {
+                            setEditingNote(null);
+                            setModal(true);
+                          }}
+                        >
+                          Create note
+                        </button>
+                      )}
+                    </div>
+                  )}
 
-    <button
-      type="button"
-      className="tool-primary"
-      onClick={loadBookmarks}
-    >
-      Try again
-    </button>
-  </div>
-)}
+                {!notesLoading &&
+                  !notesError &&
+                  filteredNotes.map((note) => (
+                    <article
+                      className="bookmark-card note-card"
+                      key={note.noteId}
+                    >
+                      <div className="bookmark-card-icon teal">
+                        <Icon name="edit" size={16} />
+                      </div>
 
-{!bookmarksLoading &&
-  !bookmarksError &&
-  filteredBookmarks.map((bookmark) => {
-    const isInsight =
-      bookmark.type === "INSIGHT";
+                      <div className="bookmark-head">
+                        <strong>{note.title}</strong>
+                        <button
+                          className="bookmark-menu-button"
+                          type="button"
+                          onClick={() => setViewingNote(note)}
+                          aria-label={`Open ${note.title}`}
+                        >
+                          •••
+                        </button>
+                      </div>
 
-    const tone = isInsight
-      ? "blue"
-      : "amber";
+                      <div className="bookmark-type-label">
+                        <Icon name="receipt" size={11} />
+                        Personal note
+                      </div>
 
-    const icon = isInsight
-      ? "sparkle"
-      : "bulb";
+                      <p>{note.content}</p>
 
-    return (
-      <div
-        className="bookmark-card"
-        key={bookmark.bookmarkId}
-      >
-        {toneIcon(tone, icon)}
+                      <small className="note-updated">
+                        Updated {formatNoteDate(note.updatedAt)}
+                      </small>
 
-        <div className="bookmark-head">
-          <strong>{bookmark.title}</strong>
-          <span aria-hidden="true">•••</span>
+                      <div className="bookmark-actions">
+                        <button
+                          type="button"
+                          onClick={() => setViewingNote(note)}
+                        >
+                          Open
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingNote(note)}
+                        >
+                          <Icon name="edit" size={12} />
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="bookmark-danger-action"
+                          onClick={() => setDeletingNote(note)}
+                        >
+                          <Icon name="trash" size={12} />
+                          Remove
+                        </button>
+                      </div>
+                    </article>
+                  ))}
+              </div>
+            </section>
+          )}
+
+          {showBookmarks && (
+            <section className="saved-section">
+              <div className="saved-section-heading">
+                <div>
+                  <h2>Bookmarks</h2>
+                  <p>Save a saving tip or monthly insight for later reference.</p>
+                </div>
+                <span>{items.length}</span>
+              </div>
+
+              <div className="bookmark-grid">
+                {bookmarksLoading && (
+                  <div className="bookmark-empty" role="status">
+                    <strong>Loading bookmarks…</strong>
+                    <span>Getting your saved items.</span>
+                  </div>
+                )}
+
+                {!bookmarksLoading && bookmarksError && (
+                  <div className="bookmark-empty">
+                    <strong>We couldn't load your bookmarks.</strong>
+                    <span>{bookmarksError}</span>
+                    <button
+                      type="button"
+                      className="tool-primary"
+                      onClick={loadBookmarks}
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+
+                {!bookmarksLoading &&
+                  !bookmarksError &&
+                  filteredBookmarks.length === 0 && (
+                    <div className="bookmark-empty">
+                      <div className="bookmark-empty-icon">
+                        <Icon name="bookmark" size={18} />
+                      </div>
+                      <strong>No bookmarks yet</strong>
+                      <span>
+                        Save a useful saving tip or monthly insight to see it here.
+                      </span>
+                    </div>
+                  )}
+
+                {!bookmarksLoading &&
+                  !bookmarksError &&
+                  filteredBookmarks.map((bookmark) => {
+                    const isInsight = bookmark.type === "INSIGHT";
+                    return (
+                      <article
+                        className="bookmark-card bookmark-card-clickable"
+                        key={bookmark.bookmarkId}
+                        onClick={() => setViewingBookmark(bookmark)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setViewingBookmark(bookmark);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        {toneIcon(
+                          isInsight ? "blue" : "amber",
+                          isInsight ? "sparkle" : "bulb"
+                        )}
+
+                        <div className="bookmark-head">
+                          <strong>{bookmark.title}</strong>
+                          <span className="bookmark-type-chip">
+                            {isInsight ? "Insight" : "Tip"}
+                          </span>
+                        </div>
+
+                        <p>{bookmark.content}</p>
+
+                        <small className="note-updated">
+                          Saved {formatNoteDate(bookmark.createdAt)}
+                        </small>
+
+                        <div className="bookmark-actions">
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setViewingBookmark(bookmark);
+                            }}
+                          >
+                            Open
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setViewingBookmark(bookmark);
+                            }}
+                          >
+                            Read
+                          </button>
+
+                          <button
+                            type="button"
+                            className="bookmark-danger-action"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRemoveBookmark(bookmark.bookmarkId);
+                            }}
+                          >
+                            <Icon name="trash" size={13} />
+                            Remove
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+              </div>
+            </section>
+          )}
         </div>
-
-        <p>{bookmark.content}</p>
-
-        <small className="note-updated">
-          Saved {formatNoteDate(bookmark.createdAt)}
-        </small>
-
-        <div className="bookmark-actions">
-          <button
-            type="button"
-            onClick={() =>
-              showToast(
-                `Opened ${bookmark.title}`,
-              )
-            }
-          >
-            Open
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              showToast(
-                "Bookmark editing is not available yet",
-              )
-            }
-          >
-            <Icon name="edit" size={13} />
-            Edit
-          </button>
-
-          <button
-            type="button"
-            onClick={() =>
-              handleRemoveBookmark(
-                bookmark.bookmarkId,
-              )
-            }
-          >
-            <Icon name="trash" size={13} />
-            Remove
-          </button>
-        </div>
-      </div>
-    );
-  })}
-
-{!bookmarksLoading &&
-  !bookmarksError &&
-  filteredBookmarks.length === 0 && (
-    <div className="empty-state">
-      <strong>No bookmarks yet</strong>
-      <span>
-        Save a useful tip or insight to see it here.
-      </span>
-    </div>
-  )}
-          </div>
-        )}
       </PageFrame>
 
       {!isNotesTab && modal && (
@@ -4199,6 +4443,67 @@ const handleCreateBookmark = async (
     />
   </Modal>
 )}
+
+      {viewingBookmark && (
+        <Modal
+          title={viewingBookmark.title}
+          description={
+            viewingBookmark.type === "INSIGHT"
+              ? "Saved AI insight"
+              : "Saved saving tip"
+          }
+          onClose={() => setViewingBookmark(null)}
+        >
+          <div className="ai-modal-content bookmark-viewer">
+            <div
+              className={`ai-modal-icon ${
+                viewingBookmark.type === "INSIGHT" ? "blue" : "mint"
+              }`}
+            >
+              <Icon
+                name={
+                  viewingBookmark.type === "INSIGHT"
+                    ? "sparkle"
+                    : "bulb"
+                }
+                size={19}
+              />
+            </div>
+
+            <div className="bookmark-type-label">
+              {viewingBookmark.type === "INSIGHT"
+                ? "Monthly insight"
+                : "Saving tip"}
+            </div>
+
+            <p>{viewingBookmark.content}</p>
+
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="tool-primary"
+                onClick={() => {
+                  const path =
+                    viewingBookmark.type === "INSIGHT"
+                      ? "/ai-insights"
+                      : "/saving-tips";
+                  setViewingBookmark(null);
+                  navigate(path);
+                }}
+              >
+                Open full page
+              </button>
+              <button
+                type="button"
+                className="ghost-btn"
+                onClick={() => setViewingBookmark(null)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
 
       {editingNote && (
         <Modal

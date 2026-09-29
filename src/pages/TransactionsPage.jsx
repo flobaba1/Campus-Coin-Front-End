@@ -1287,7 +1287,7 @@ function TransactionDrawer({
           </button>
 
           <button
-            className="primary-btn"
+            className="primary-btn transaction-save-btn"
             onClick={handleSave}
             disabled={saving}
           >

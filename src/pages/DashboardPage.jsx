@@ -12,7 +12,8 @@ import { getCategories } from "../api/categoryApi";
 import { getBudgetsForMonth } from "../api/budgetApi";
 import { getCategorySuggestion } from "../api/aiApi";
 import { createCategory } from "../api/categoryApi";
-import { getNotifications, markNotificationAsRead} from "../api/notificationApi";
+import { getNotifications, markNotificationAsRead } from "../api/notificationApi";
+import { createBookmark } from "../api/bookmarkApi";
 
 import "../styles/dashboard.css";
 
@@ -105,24 +106,50 @@ const loadNotifications = async () => {
   try {
     setNotificationsLoading(true);
 
+    console.log("🔔 Calling GET /api/notifications...");
+
     const data = await getNotifications();
 
-    setNotifications(
-      Array.isArray(data) ? data : []
+    console.log("🔔 RAW NOTIFICATION RESPONSE:", data);
+    console.log(
+      "🔔 RESPONSE TYPE:",
+      Array.isArray(data) ? "ARRAY" : typeof data
     );
+
+    let items = [];
+
+    if (Array.isArray(data)) {
+      items = data;
+    } else if (Array.isArray(data?.notifications)) {
+      items = data.notifications;
+    } else if (Array.isArray(data?.data)) {
+      items = data.data;
+    } else if (Array.isArray(data?.content)) {
+      items = data.content;
+    } else if (Array.isArray(data?.data?.notifications)) {
+      items = data.data.notifications;
+    }
+
+    console.log("🔔 FINAL NOTIFICATION ITEMS:", items);
+    console.log("🔔 NOTIFICATION COUNT:", items.length);
+
+    setNotifications(items);
   } catch (error) {
-    console.error(
-      "Failed to load notifications:",
-      error
-    );
+    console.error("❌ NOTIFICATION REQUEST FAILED:", error);
+    console.error("❌ ERROR MESSAGE:", error?.message);
+    console.error("❌ ERROR RESPONSE:", error?.response);
+
+    setNotifications([]);
   } finally {
     setNotificationsLoading(false);
   }
 };
 
 useEffect(() => {
+  if (!notificationOpen) return;
+
   loadNotifications();
-}, []);
+}, [notificationOpen]);
 
   const nav = [
     ["Dashboard", "grid", "/dashboard"],
@@ -209,12 +236,12 @@ useEffect(() => {
           profile?.name || getStudentSession()?.name || "CampusCoin User",
         );
 
-        if (profile?.profilePhotoAvailable) {
-          loadedPhoto = await loadProfilePhoto();
+        // Load the photo directly instead of relying on the profile metadata flag.
+        // A missing photo is handled as null by loadProfilePhoto().
+        loadedPhoto = await loadProfilePhoto();
 
-          if (mounted) {
-            setProfilePhoto(loadedPhoto);
-          }
+        if (mounted) {
+          setProfilePhoto(loadedPhoto);
         }
       } catch (err) {
         // Keep the dashboard usable if the profile request fails.
@@ -344,7 +371,7 @@ useEffect(() => {
           onClick={signOut}
           title="Sign out"
         >
-          <span className="avatar">{userInitials}</span>
+          {renderAvatar("avatar")}
           <span>
             <strong>{userFullName}</strong>
             <small>Sign out</small>
@@ -422,7 +449,7 @@ useEffect(() => {
               onClick={() => navigate("/settings")}
               aria-label="Open settings"
             >
-              {userInitials}
+              {renderAvatar("top-avatar-image")}
             </button>
           </div>
         </header>
@@ -567,60 +594,74 @@ function NotificationPanel({
           You're all caught up.
         </div>
       ) : (
-        notifications.map(
-          (notification) => (
-            <button
-              type="button"
-              className={`notif-item ${
-                notification.status ===
-                "READ"
-                  ? "read"
-                  : ""
-              }`}
-              key={
-                notification.notificationId
-              }
-              onClick={() => {
-                if (
-                  notification.status !==
+        <div className="notif-list">
+          {notifications.map(
+            (notification) => (
+              <button
+                type="button"
+                className={`notif-item ${
+                  notification.status ===
                   "READ"
-                ) {
-                  onRead(
-                    notification.notificationId
-                  );
+                    ? "read"
+                    : ""
+                }`}
+                key={
+                  notification.notificationId
                 }
-              }}
-            >
-              {toneIcon(
-                toneForNotification(
-                  notification
-                ),
-                iconForNotification(
-                  notification
-                )
-              )}
+                onClick={() => {
+                  if (
+                    notification.status !==
+                    "READ"
+                  ) {
+                    onRead(
+                      notification.notificationId
+                    );
+                  }
 
-              <div>
-                <strong>
-                  {notification.title}
-                </strong>
+                  const placement = String(
+                    notification?.placement || ""
+                  ).toUpperCase();
 
-                <p>
-                  {notification.message}
-                </p>
+                  if (placement === "TIPS") {
+                    navigate("/saving-tips");
+                  } else if (
+                    placement === "ANNOUNCEMENT"
+                  ) {
+                    navigate("/ai-insights");
+                  }
+                }}
+              >
+                {toneIcon(
+                  toneForNotification(
+                    notification
+                  ),
+                  iconForNotification(
+                    notification
+                  )
+                )}
 
-                <small>
-                  {formatNotificationDate(
-                    notification.createdAt
-                  )}
-                </small>
-              </div>
+                <div>
+                  <strong>
+                    {notification.title}
+                  </strong>
 
-              {notification.status ===
-                "UNREAD" && <i />}
-            </button>
-          )
-        )
+                  <p>
+                    {notification.message}
+                  </p>
+
+                  <small>
+                    {formatNotificationDate(
+                      notification.createdAt
+                    )}
+                  </small>
+                </div>
+
+                {notification.status ===
+                  "UNREAD" && <i />}
+              </button>
+            )
+          )}
+        </div>
       )}
 
       <button
@@ -695,6 +736,59 @@ function DashboardPage() {
   const [saved, setSaved] = useState(initialSaved);
 
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const [aiNotifications, setAiNotifications] = useState([]);
+  const [aiNotificationsLoading, setAiNotificationsLoading] = useState(true);
+  const [selectedAiContent, setSelectedAiContent] = useState(null);
+
+  const loadAiNotifications = async () => {
+    try {
+      setAiNotificationsLoading(true);
+      const data = await getNotifications();
+      const visible = Array.isArray(data) ? data : [];
+      setAiNotifications(
+        visible.filter((notification) => {
+          const placement = String(notification?.placement || "").toUpperCase();
+          return placement === "ANNOUNCEMENT" || placement === "TIPS";
+        })
+      );
+    } catch (error) {
+      console.error("Failed to load AI notifications:", error);
+      setAiNotifications([]);
+    } finally {
+      setAiNotificationsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAiNotifications();
+  }, [refreshKey]);
+
+  useEffect(() => {
+    const handleAiUpdated = () => {
+      loadAiNotifications();
+    };
+
+    window.addEventListener("campuscoin:ai-updated", handleAiUpdated);
+    return () =>
+      window.removeEventListener("campuscoin:ai-updated", handleAiUpdated);
+  }, []);
+
+  const saveAiContent = async (content) => {
+    try {
+      await createBookmark({
+        type: content.kind === "Insight" ? "INSIGHT" : "TIP",
+        title: content.title,
+        content: content.content,
+      });
+      setSelectedAiContent((current) =>
+        current ? { ...current, saved: true } : current
+      );
+    } catch (error) {
+      console.error("Failed to save AI content:", error);
+      setError(error.message || "Unable to save this item");
+    }
+  };
 
   useEffect(() => {
     const handleThemeChange = (event) => {
@@ -1044,19 +1138,46 @@ const categorySpending = useMemo(() => {
 
           <div className="right-stack">
             <InsightCard
-              loading={loading}
-              transactionCount={
-                currentMonthTransactions.length
+              loading={loading || aiNotificationsLoading}
+              insight={
+                aiNotifications.find(
+                  (notification) =>
+                    String(notification?.placement || "").toUpperCase() ===
+                    "ANNOUNCEMENT"
+                ) || null
               }
               monthName={monthName}
-              onRead={() =>
-                navigate(
-                  "/ai-insights"
-                )
-              }
+              onRead={(insight) => {
+                if (insight) {
+                  setSelectedAiContent({
+                    kind: "Insight",
+                    title: insight.title,
+                    content: insight.message,
+                    createdAt: insight.createdAt,
+                  });
+                } else {
+                  navigate("/ai-insights");
+                }
+              }}
             />
 
-            <SavingTips onViewAll={() => navigate("/saving-tips")} />
+            <SavingTips
+              tips={aiNotifications.filter(
+                (notification) =>
+                  String(notification?.placement || "").toUpperCase() ===
+                  "TIPS"
+              )}
+              loading={aiNotificationsLoading}
+              onViewAll={() => navigate("/saving-tips")}
+              onOpen={(tip) =>
+                setSelectedAiContent({
+                  kind: "Saving tip",
+                  title: tip.title,
+                  content: tip.message,
+                  createdAt: tip.createdAt,
+                })
+              }
+            />
           </div>
 
           <CategoryBudgets
@@ -1079,6 +1200,22 @@ const categorySpending = useMemo(() => {
           />
         </div>
       </section>
+
+      {selectedAiContent && (
+        <AiContentModal
+          content={selectedAiContent}
+          onClose={() => setSelectedAiContent(null)}
+          onSave={() => saveAiContent(selectedAiContent)}
+          onOpenPage={() => {
+            const target =
+              selectedAiContent.kind === "Insight"
+                ? "/ai-insights"
+                : "/saving-tips";
+            setSelectedAiContent(null);
+            navigate(target);
+          }}
+        />
+      )}
 
       {modal && (
         <TransactionModal
@@ -1514,100 +1651,198 @@ function SpendingCard({
 
 function InsightCard({
   loading,
-  transactionCount,
+  insight,
   monthName,
   onRead,
 }) {
+  const hasInsight = Boolean(insight);
+
   return (
     <div className="insight-card">
-      <div className="insight-title">
-        {toneIcon("mint", "sparkle")}
+      <button
+        type="button"
+        className="insight-readable"
+        onClick={() => onRead(insight)}
+        aria-label={
+          hasInsight
+            ? `Read ${insight.title}`
+            : "Open AI insights"
+        }
+      >
+        <div className="insight-title">
+          {toneIcon("mint", "sparkle")}
+          <strong>
+            {hasInsight
+              ? insight.title
+              : `${monthName} insight`}
+          </strong>
+          <Icon name="bookmark" size={16} />
+        </div>
 
-        <strong>
-          {monthName} insight
-        </strong>
-
-        <Icon name="bookmark" size={16} />
-      </div>
-
-      {loading ? (
-        <>
-          <div className="skeleton" />
-          <div className="skeleton mid" />
-          <div className="skeleton short" />
-
-          <p className="analysing">◔ Analysing transactions...</p>
-        </>
-      ) : (
-        <>
-          <p>
-            Your dashboard is using{" "}
-            {transactionCount}{" "}
-            {monthName} transaction
-            {transactionCount === 1
-              ? ""
-              : "s"}{" "}
-            to calculate your
-            current spending picture.
-          </p>
-
-          <button type="button" onClick={onRead}>
-            Read full insight <Icon name="arrow" size={15} />
-          </button>
-
-          <small>AI suggestion · advisory only</small>
-        </>
-      )}
+        {loading ? (
+          <>
+            <div className="skeleton" />
+            <div className="skeleton mid" />
+            <div className="skeleton short" />
+            <p className="analysing">◔ Loading your latest insight...</p>
+          </>
+        ) : hasInsight ? (
+          <>
+            <p className="ai-card-preview">
+              {insight.message}
+            </p>
+            <span className="ai-read-link">
+              Read full insight <Icon name="arrow" size={14} />
+            </span>
+            <small>AI suggestion · advisory only</small>
+          </>
+        ) : (
+          <>
+            <p className="ai-card-preview">
+              Generate your personalized monthly report to see an AI insight
+              based on your actual income, spending and budgets.
+            </p>
+            <span className="ai-read-link">
+              Open AI Insights <Icon name="arrow" size={14} />
+            </span>
+          </>
+        )}
+      </button>
     </div>
   );
 }
 
-function SavingTips({ onViewAll }) {
+function SavingTips({ tips = [], loading = false, onViewAll, onOpen }) {
   return (
     <div className="dash-card tips-card">
       <div className="card-title">
         <div>
           <strong>Top saving tips</strong>
-
-          <small>Ranked by potential monthly savings</small>
+          <small>
+            {tips.length
+              ? "Generated from your latest financial activity"
+              : "Personalized tips from your latest financial activity"}
+          </small>
         </div>
-
-        <button onClick={onViewAll}>View all</button>
+        <button type="button" onClick={onViewAll}>
+          View all
+        </button>
       </div>
 
-      {[
-        [
-          "food",
-          "amber",
-          "Review your food spending",
-          "Based on your transactions",
-        ],
-        [
-          "bus",
-          "blue",
-          "Review your transport spending",
-          "Based on your transactions",
-        ],
-        [
-          "tv",
-          "pink",
-          "Review your subscriptions",
-          "Based on your transactions",
-        ],
-      ].map((item, index) => (
-        <div className="tip-row" key={index}>
-          {toneIcon(item[1], item[0])}
-
-          <div>
-            <strong>{item[2]}</strong>
-
-            <small>{item[3]}</small>
-          </div>
-
-          <button>♧</button>
-          <button>×</button>
+      {loading ? (
+        <div className="ai-tips-loading">
+          <div className="skeleton" />
+          <div className="skeleton mid" />
         </div>
-      ))}
+      ) : tips.length ? (
+        <div className="dashboard-tip-list">
+          {tips.map((tip) => (
+            <button
+              type="button"
+              className="tip-row tip-row-button"
+              key={tip.notificationId}
+              onClick={() => onOpen(tip)}
+            >
+              {toneIcon("mint", "bulb")}
+              <span className="tip-row-copy">
+                <strong>{tip.title}</strong>
+                <small>{tip.message}</small>
+              </span>
+              <Icon name="chevron" size={15} />
+            </button>
+          ))}
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="ai-empty-tip"
+          onClick={onViewAll}
+        >
+          <span className="d-icon mint">
+            <Icon name="bulb" size={17} />
+          </span>
+          <span>
+            <strong>No AI tips yet</strong>
+            <small>Generate your personalized tips to see them here.</small>
+          </span>
+          <Icon name="chevron" size={15} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function AiContentModal({ content, onClose, onOpenPage, onSave }) {
+  const formattedDate = content.createdAt
+    ? new Date(content.createdAt).toLocaleDateString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "";
+
+  return (
+    <div
+      className="ai-content-overlay"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="ai-content-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ai-content-title"
+      >
+        <button
+          type="button"
+          className="ai-content-close"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          <Icon name="close" size={17} />
+        </button>
+
+        <div className="ai-content-icon">
+          <Icon
+            name={content.kind === "Insight" ? "sparkle" : "bulb"}
+            size={20}
+          />
+        </div>
+
+        <span className="ai-content-kind">{content.kind}</span>
+        <h2 id="ai-content-title">{content.title}</h2>
+
+        {formattedDate && (
+          <small className="ai-content-date">
+            Generated {formattedDate}
+          </small>
+        )}
+
+        <div className="ai-content-body">
+          {content.content}
+        </div>
+
+        <div className="ai-content-actions">
+  <button
+    type="button"
+    className="outline-btn"
+    onClick={onSave}
+    disabled={content.saved}
+  >
+    {content.saved ? "Saved" : "Save for later"}
+  </button>
+
+  <button
+    type="button"
+    className="primary-btn"
+    onClick={onOpenPage}
+  >
+    Open full page
+  </button>
+</div>
+      </section>
     </div>
   );
 }

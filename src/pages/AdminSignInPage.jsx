@@ -6,7 +6,7 @@ import Logo from '../components/Logo'
 
 import { navigate } from '../routes/AppRoutes'
 //import { loadDemoUsers, setAdminSession } from '../utils'
-import { setAdminSession } from '../utils'
+import { setAdminSession, clearStudentSession } from '../utils'
 import { adminSignin } from '../api/authApi'
 
 import '../styles/admin-auth.css'
@@ -38,6 +38,8 @@ function AdminSignInPage() {
   setLoading(true)
 
   try {
+    clearStudentSession()
+
     const response = await adminSignin(
       email.trim(),
       password

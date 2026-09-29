@@ -43,6 +43,7 @@ const defaultIncomeCategories = [
 ]
 
 function AdminShell({ page, children }) {
+  const [search, setSearch] = useState('')
   const [userCount, setUserCount] = useState(null)
   const [notification, setNotification] = useState(false)
   const [notifications, setNotifications] = useState([
