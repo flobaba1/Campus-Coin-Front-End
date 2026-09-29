@@ -11,6 +11,7 @@ import {
   getAdminDailyActiveStudents,
   getAdminDailyTransactions,
   getAdminNotifications,
+  getRecentAdminAuditLogs,
   getAdminUsers,
   createAdminNotification,
   deleteAdminNotification,
@@ -43,6 +44,7 @@ const defaultIncomeCategories = [
 
 function AdminShell({ page, children }) {
   const [search, setSearch] = useState('')
+  const [userCount, setUserCount] = useState(null)
   const [notification, setNotification] = useState(false)
   const [notifications, setNotifications] = useState([
     { id: 1, title: '3 new moderation events', time: 'Just now', read: false },
@@ -54,6 +56,23 @@ function AdminShell({ page, children }) {
   const unreadNotifications = notifications.filter(item => !item.read).length
   useEffect(() => {
     if (!isAdminAuthenticated()) navigate('/admin/sign-in')
+  }, [])
+
+  useEffect(() => {
+    let isCurrent = true
+
+    async function loadUserCount() {
+      try {
+        const response = await getAdminUsers()
+        const users = Array.isArray(response) ? response : response?.users
+        if (isCurrent && Array.isArray(users)) setUserCount(users.length)
+      } catch (error) {
+        console.error('Unable to load user count for admin navigation:', error)
+      }
+    }
+
+    loadUserCount()
+    return () => { isCurrent = false }
   }, [])
 
   useEffect(() => {
@@ -82,7 +101,7 @@ function AdminShell({ page, children }) {
       <button className="admin-brand" onClick={() => navigate('/admin/overview')}><Logo/><span className="brand-dot"/></button>
       <div className="admin-side-label">ADMIN CONSOLE</div>
       <nav className="admin-nav">
-        {nav.map(([label, icon, path]) => <button key={label} className={page === label ? 'active' : ''} onClick={() => navigate(path)}><Icon name={icon} size={17}/><span>{label}</span>{label === 'Users' && <b>9.8k</b>}</button>)}
+        {nav.map(([label, icon, path]) => <button key={label} className={page === label ? 'active' : ''} onClick={() => navigate(path)}><Icon name={icon} size={17}/><span>{label}</span>{label === 'Users' && <b>{userCount === null ? '—' : userCount.toLocaleString()}</b>}</button>)}
       </nav>
       <div className="admin-side-label">SYSTEM</div>
       <button className="admin-nav-link" onClick={() => navigate('/')}><Icon name="logout" size={17}/><span>Exit console</span></button>
@@ -181,6 +200,11 @@ function OverviewPage() {
   const [activeAccountCount, setActiveAccountCount] = useState(null)
   const [accountCount, setAccountCount] = useState(null)
   const [activeStudentsError, setActiveStudentsError] = useState(false)
+  const [liveNotificationCount, setLiveNotificationCount] = useState(null)
+  const [liveNotificationsError, setLiveNotificationsError] = useState(false)
+  const [recentAuditLogs, setRecentAuditLogs] = useState([])
+  const [auditLogsLoading, setAuditLogsLoading] = useState(true)
+  const [auditLogsError, setAuditLogsError] = useState('')
 
   useEffect(() => {
     async function fetchCategoryAnalytics() {
@@ -229,6 +253,44 @@ function OverviewPage() {
     }
 
     fetchActiveStudents()
+  }, [])
+
+  useEffect(() => {
+    async function fetchLiveNotifications() {
+      try {
+        const response = await getAdminNotifications()
+        const notifications = Array.isArray(response) ? response : []
+        const now = Date.now()
+        const liveCount = notifications.filter(notification => {
+          const expiration = new Date(notification.validUntil).getTime()
+          return Number.isFinite(expiration) && expiration > now
+        }).length
+
+        setLiveNotificationCount(liveCount)
+      } catch (error) {
+        console.error('Unable to load live notifications for overview:', error)
+        setLiveNotificationsError(true)
+      }
+    }
+
+    fetchLiveNotifications()
+  }, [])
+
+  useEffect(() => {
+    async function fetchRecentAuditLogs() {
+      try {
+        const response = await getRecentAdminAuditLogs()
+        setRecentAuditLogs(Array.isArray(response) ? response : [])
+        setAuditLogsError('')
+      } catch (error) {
+        console.error('Unable to load recent admin audit logs:', error)
+        setAuditLogsError(error.message || 'Unable to load recent activity.')
+      } finally {
+        setAuditLogsLoading(false)
+      }
+    }
+
+    fetchRecentAuditLogs()
   }, [])
 
   useEffect(() => {
@@ -290,16 +352,45 @@ function OverviewPage() {
   const dailyTransactionTotal = dailyTransactions.reduce((total, entry) => total + Number(entry.count), 0)
   const transactionDateTicks = [...new Set([0, Math.round((dailyTransactions.length - 1) / 2), dailyTransactions.length - 1])]
     .filter(index => dailyTransactions[index])
+  const formatAuditLogAge = createdAt => {
+    const timestamp = new Date(createdAt).getTime()
+    if (!Number.isFinite(timestamp)) return 'Time unavailable'
 
-  return <AdminShell page="Overview"><AdminFrame eyebrow="ADMIN · OVERVIEW" title="Usage overview" description="System-wide activity across all student accounts. Figures exclude disabled users." actions={<><MonthSelector /><button className="admin-primary"><Icon name="download" size={14}/> Export CSV</button></>}>
-    <div className="admin-stat-grid"><Stat label="Active students" value={activeStudentCount === null ? '—' : activeStudentCount.toLocaleString()} note={activeStudentsError ? 'Unable to load count' : activeStudentCount === null ? 'Loading from accounts…' : 'Active student accounts'} /><Stat label="Active accounts" value={activeAccountCount === null ? '—' : activeAccountCount.toLocaleString()} note={activeStudentsError ? 'Unable to load count' : accountCount === null ? 'Loading from accounts…' : `${accountCount ? Math.round((activeAccountCount / accountCount) * 100) : 0}% of all accounts`} tone="green"/><Stat label="Transactions" value="507,615" note="+12.8% vs Aug"/><Stat label="AI suggestions accepted" value="91%" note="of reviewed suggestions" tone="green"/></div>
+    const elapsedMinutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000))
+    if (elapsedMinutes < 1) return 'Just now'
+    if (elapsedMinutes < 60) return `${elapsedMinutes}m ago`
+    const elapsedHours = Math.floor(elapsedMinutes / 60)
+    if (elapsedHours < 24) return `${elapsedHours}h ago`
+    return `${Math.floor(elapsedHours / 24)}d ago`
+  }
+
+  return <AdminShell page="Overview"><AdminFrame eyebrow="ADMIN · OVERVIEW" title="Usage overview" description="System-wide activity across all student accounts. Figures exclude disabled users." actions={<MonthSelector/>}>
+    <div className="admin-stat-grid">
+      <Stat label="Active students" value={activeStudentCount === null ? '—' : activeStudentCount.toLocaleString()} note={activeStudentsError ? 'Unable to load count' : activeStudentCount === null ? 'Loading from accounts…' : 'Active student accounts'} />
+      <Stat label="Active accounts" value={activeAccountCount === null ? '—' : activeAccountCount.toLocaleString()} note={activeStudentsError ? 'Unable to load count' : accountCount === null ? 'Loading from accounts…' : `${accountCount ? Math.round((activeAccountCount / accountCount) * 100) : 0}% of all accounts`} tone="green"/>
+      <Stat label="Transactions" value={dailyTransactionsLoading || dailyTransactionsError ? '—' : dailyTransactionTotal.toLocaleString()} note={dailyTransactionsError ? 'Unable to load count' : dailyTransactionsLoading ? 'Loading transactions…' : 'Last 14 days'} />
+      <Stat label="Live notifications" value={liveNotificationCount === null ? '—' : liveNotificationCount.toLocaleString()} note={liveNotificationsError ? 'Unable to load count' : liveNotificationCount === null ? 'Loading notifications…' : 'Not expired'} tone="green"/>
+    </div>
     <div className="admin-overview-grid">
       <div className="admin-panel usage-panel"><div className="panel-head"><div><strong>Active students</strong><small>Daily active students · Last 30 days</small></div></div>{dailyActivityLoading ? <div className="admin-empty-state">Loading activity…</div> : dailyActivityError ? <div className="admin-empty-state" role="alert">{dailyActivityError}</div> : activityPoints.length ? <div className="area-chart"><div className="chart-y">{[4, 3, 2, 1, 0].map(step=><span key={step}>{(activityAxisStep * step).toLocaleString()}</span>)}</div><svg viewBox="0 0 620 210" preserveAspectRatio="none" role="img" aria-label="Daily active students over the last 30 days"><defs><linearGradient id="adminArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#107f55" stopOpacity=".25"/><stop offset="1" stopColor="#107f55" stopOpacity=".03"/></linearGradient></defs><path d={activityAreaPath} fill="url(#adminArea)"/><path d={activityLinePath} fill="none" stroke="#107f55" strokeWidth="2"/></svg><div className="chart-x">{activityDateTicks.map(index=><span key={dailyActivity[index].date}>{new Date(`${dailyActivity[index].date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>)}</div></div> : <div className="admin-empty-state">No daily activity data available.</div>}</div>
       <div className="admin-panel category-panel"><div className="panel-head"><div><strong>Most-used categories</strong><small>Share of transactions · Last 30 days</small></div><button type="button" onClick={() => navigate('/admin/categories')}>View all</button></div>{categoryAnalyticsLoading ? <div className="admin-empty-state">Loading category analytics…</div> : categoryAnalyticsError ? <div className="admin-empty-state" role="alert">{categoryAnalyticsError}</div> : categoryAnalytics.length ? categoryAnalytics.slice(0, 6).map(category=>{const percentage=Math.min(100,Math.max(0,Number(category.percentage))); const count=Number(category.transactionCount); const categoryName=category.categoryName; const tone=getCategoryTone(categoryName); return <div className="category-bar" key={categoryName} title={`${count.toLocaleString()} transactions`}><span>{categoryName}</span><div><i className={tone} style={{width:`${percentage}%`}}/></div><b>{percentage.toLocaleString(undefined,{maximumFractionDigits:1})}%</b></div>}) : <div className="admin-empty-state">No category transaction data available.</div>}</div>
       <div className="admin-panel transaction-chart"><div className="panel-head"><div><strong>Transactions per day</strong><small>Last 14 days</small></div><span>{dailyTransactionsLoading ? 'Loading…' : dailyTransactionsError ? 'Unavailable' : `${dailyTransactionTotal.toLocaleString()} total`}</span></div>{dailyTransactionsLoading ? <div className="admin-empty-state">Loading transactions…</div> : dailyTransactionsError ? <div className="admin-empty-state" role="alert">{dailyTransactionsError}</div> : dailyTransactions.length ? <><div className="bar-chart">{dailyTransactions.map(entry=>{const count=Number(entry.count); const height=dailyTransactionMaximum ? count / dailyTransactionMaximum * 100 : 0; return <i key={entry.date} title={`${new Date(`${entry.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}: ${count.toLocaleString()} transactions`} aria-label={`${entry.date}: ${count} transactions`} style={{height:`${height}%`}}/>})}</div><div className="chart-x">{transactionDateTicks.map(index=><span key={dailyTransactions[index].date}>{new Date(`${dailyTransactions[index].date}T00:00:00`).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>)}</div></> : <div className="admin-empty-state">No transaction data available.</div>}</div>
-      <div className="admin-panel activity-panel"><div className="panel-head"><div><strong>Recent activity</strong><small>Latest admin events</small></div><button>View audit log</button></div>{['Admin edited Food category','AI policy updated for September','New announcement published','User account suspended'].map((x,i)=><div className="activity-row" key={x}><span className={`activity-dot d${i}`}/><div><strong>{x}</strong><small>{['2 minutes ago','18 minutes ago','1 hour ago','3 hours ago'][i]}</small></div></div>)}</div>
+      <div className="admin-panel activity-panel"><div className="panel-head"><div><strong>Recent activity</strong><small>Latest admin events</small></div><span>Latest 4</span></div>{auditLogsLoading ? <div className="admin-empty-state">Loading recent activity…</div> : auditLogsError ? <div className="admin-empty-state" role="alert">{auditLogsError}</div> : recentAuditLogs.length ? recentAuditLogs.map((entry,index)=><div className="activity-row" key={entry.auditLogId}><span className={`activity-dot d${index % 4}`}/><div><strong>{entry.summary || entry.action || 'Admin activity'}</strong><small>{entry.actorName ? `Admin ID ${entry.actorName} · ` : ''}{formatAuditLogAge(entry.createdAt)}</small></div></div>) : <div className="admin-empty-state">No recent admin activity.</div>}</div>
     </div>
   </AdminFrame></AdminShell>
+}
+
+function getAcademicYearNumber(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  const levelMatch = normalized.match(/\b(?:level\s*)?(100|200|300|400)\s*(?:level|l)?\b/)
+  if (levelMatch) return Number(levelMatch[1]) / 100
+
+  const yearMatch = normalized.match(/\byear\s*([1-4])\b|\b([1-4])(?:st|nd|rd|th)?\s*year\b/)
+  if (yearMatch) return Number(yearMatch[1] || yearMatch[2])
+
+  const wordYearMatch = normalized.match(/\b(first|one|second|two|third|three|fourth|four)\b/)
+  const wordYears = { first: 1, one: 1, second: 2, two: 2, third: 3, three: 3, fourth: 4, four: 4 }
+  return wordYearMatch ? wordYears[wordYearMatch[1]] : null
 }
 
 function UsersPage() {
@@ -355,7 +446,8 @@ function UsersPage() {
   const filtered = users.filter(u => {
     const matchesQuery = `${u[0]} ${u[1]}`.toLowerCase().includes(query.toLowerCase())
     const matchesStatus = statusFilter === 'All statuses' || u[4] === statusFilter
-    const matchesYear = yearFilter === 'Year 1–4' || u[3] === yearFilter
+    const selectedYear = Number(yearFilter.match(/\d+/)?.[0])
+    const matchesYear = yearFilter === 'Year 1–4' || getAcademicYearNumber(u[3]) === selectedYear
     return matchesQuery && matchesStatus && matchesYear
   })
 
@@ -622,11 +714,11 @@ function AnnouncementsPage() {
   const [type, setType] = useState('GENERAL')
   const [status, setStatus] = useState('UNREAD')
   const [recipientId, setRecipientId] = useState('')
-  const [placement, setPlacement] = useState('Saving tips')
+  const [placement, setPlacement] = useState('Tips')
   const categoryOptions = ['Food', 'Transport', 'Academics', 'Campus news']
   const categoryIcon = { Food: 'food', Transport: 'bus', Academics: 'grad', 'Campus news': 'bulb' }
   const [templateFilter, setTemplateFilter] = useState('All notifications')
-  const templateFilterOptions = ['All notifications', 'Saving tips', 'Campus announcements']
+  const templateFilterOptions = ['All notifications', 'Tips', 'Announcement']
 
   useEffect(() => {
     async function loadNotifications() {
@@ -648,8 +740,14 @@ function AnnouncementsPage() {
 
   const visibleItems = items.filter(item => {
     if (templateFilter === 'All notifications') return true
-    if (templateFilter === 'Saving tips') return String(item.placement || '').toLowerCase().includes('saving')
-    if (templateFilter === 'Campus announcements') return String(item.category || '').toLowerCase().includes('campus')
+    if (templateFilter === 'Tips') {
+      const itemPlacement = String(item.placement || '').toLowerCase()
+      return itemPlacement.includes('tip') || itemPlacement.includes('saving')
+    }
+    if (templateFilter === 'Announcement') {
+      const itemPlacement = String(item.placement || '').toLowerCase()
+      return itemPlacement.includes('announcement') || itemPlacement === 'notification' || itemPlacement === 'dashboard insight'
+    }
     return item.validUntil && new Date(item.validUntil) < new Date()
   })
 
@@ -662,7 +760,7 @@ function AnnouncementsPage() {
     setType('GENERAL')
     setStatus('UNREAD')
     setRecipientId('')
-    setPlacement('Saving tips')
+    setPlacement('Tips')
     setError('')
     setEditing(true)
   }
@@ -676,7 +774,8 @@ function AnnouncementsPage() {
     setType(notification.type || 'GENERAL')
     setStatus(notification.status || 'UNREAD')
     setRecipientId(notification.recipientId || '')
-    setPlacement(notification.placement || 'Saving tips')
+    const savedPlacement = String(notification.placement || '').toLowerCase()
+    setPlacement(savedPlacement.includes('tip') || savedPlacement.includes('saving') ? 'Tips' : 'Announcement')
     setError('')
     setEditing(true)
   }
@@ -724,7 +823,7 @@ function AnnouncementsPage() {
       setType('GENERAL')
       setStatus('UNREAD')
       setRecipientId('')
-      setPlacement('Saving tips')
+      setPlacement('Tips')
     } catch (saveError) {
       setError(saveError.message || 'Unable to save notification.')
     } finally {
@@ -752,7 +851,25 @@ function AnnouncementsPage() {
     {notice && <div className="admin-action-notice" role="status"><Icon name="check" size={15}/><span>{notice}</span><button onClick={()=>setNotice('')} aria-label="Dismiss notification"><Icon name="close" size={13}/></button></div>}
     {error && <div className="admin-action-notice" role="alert"><Icon name="info" size={15}/><span>{error}</span><button onClick={()=>setError('')} aria-label="Dismiss error"><Icon name="close" size={13}/></button></div>}
     <div className="announcement-layout"><div className="admin-panel announcement-list"><div className="panel-head"><div><strong>Notifications</strong><small>{loading ? 'Loading notifications…' : `${visibleItems.length} of ${items.length} notifications`}</small></div><FilterDropdown label="All notifications" value={templateFilter} options={templateFilterOptions} icon="filter" onChange={setTemplateFilter}/></div>{loading ? <div className="admin-empty-state">Loading notifications…</div> : visibleItems.length ? visibleItems.map(item=>{const itemCategory=item.category || ''; const notificationType=String(item.type || 'GENERAL').toLowerCase(); const notificationTypeLabel=notificationType === 'user' ? 'User' : notificationType === 'admin' ? 'Admin' : 'General'; const placement=String(item.placement || 'Notification'); const placementClass=placement.toLowerCase().replace(/[^a-z0-9]+/g,'-'); const expirationDate=item.validUntil ? new Date(item.validUntil) : null; const expired=expirationDate && expirationDate < new Date(); const expirationText=expirationDate ? `${expired ? 'Expired' : 'Expires'} ${expirationDate.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })}` : 'No expiration'; return <div className="announcement-row" key={item.notificationId}><div className="announcement-icon"><Icon name={categoryIcon[itemCategory] || 'bulb'} size={15}/></div><div className="announcement-copy"><div className="notification-meta"><span className={`notification-type ${notificationType}`}>{notificationTypeLabel}</span><span className={`notification-placement ${placementClass}`}>{placement}</span><span className={`notification-expiry ${expired ? 'expired' : 'valid'}`}>{expirationText}</span></div><strong>{item.title}</strong><small>{item.message}</small></div><span className={`notification-status ${String(item.status || 'NA').toLowerCase()}`}>{item.status || 'NA'}</span><button title="Edit notification" aria-label={`Edit ${item.title}`} onClick={()=>editNotification(item)}><Icon name="edit" size={14}/></button><button title="Delete notification" aria-label={`Delete ${item.title}`} onClick={()=>setDeleting(item)}><Icon name="trash" size={14}/></button></div>}) : <div className="admin-empty-state">No notifications match this filter.</div>}</div>
-      <div className="admin-panel announcement-editor"><div className="panel-head"><div><strong>{editing ? editingId ? 'Edit notification' : 'New notification' : 'Notification editor'}</strong><small>Student-facing content</small></div><span>Live preview</span></div><label>Title<input value={title} onChange={e=>setTitle(e.target.value)} maxLength={255} placeholder="e.g. September spending tip"/></label><label>Message<textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="Write the message students will see..."/></label><div className="editor-grid"><label>Type<select value={type} onChange={e=>setType(e.target.value)}><option value="GENERAL">General</option><option value="USER">User</option><option value="ADMIN">Admin</option></select></label><label>Status<select value={status} onChange={e=>setStatus(e.target.value)}><option value="UNREAD">Unread</option><option value="READ">Read</option><option value="NA">Not applicable</option></select></label></div><div className="editor-grid"><label>Category<select value={category} onChange={e=>setCategory(e.target.value)}><option value="">No category</option>{categoryOptions.map(option=><option key={option}>{option}</option>)}</select></label><label>Placement<select value={placement} onChange={e=>setPlacement(e.target.value)}><option>Saving tips</option><option>Dashboard insight</option><option>Notification</option></select></label></div><label>Valid until<input type="datetime-local" value={validUntil} onChange={e=>setValidUntil(e.target.value)}/></label><label>Recipient ID <small>(optional; leave blank for all recipients)</small><input value={recipientId} onChange={e=>setRecipientId(e.target.value)} maxLength={36} placeholder="Recipient UUID"/></label><div className="editor-preview"><span><Icon name={categoryIcon[category] || 'bulb'} size={12}/> {(category || type).toUpperCase()}</span><strong>{title || 'Your announcement title'}</strong><p>{message || 'Your message will appear here.'}</p></div><button className="admin-primary" onClick={saveTemplate} disabled={submitting}>{submitting ? 'Saving…' : editingId ? 'Save changes' : 'Create notification'}</button>{editing && <button className="admin-btn" type="button" onClick={()=>{setEditing(false);setEditingId(null);setError('')}} disabled={submitting}>Cancel editing</button>}</div></div>
+      <div className="admin-panel announcement-editor">
+        <div className="panel-head"><div><strong>{editing ? editingId ? 'Edit notification' : 'New notification' : 'Notification editor'}</strong><small>Student-facing content</small></div><span>Live preview</span></div>
+        <label>Title<input value={title} onChange={e=>setTitle(e.target.value)} maxLength={255} placeholder="e.g. September spending tip"/></label>
+        <label>Message<textarea value={message} onChange={e=>setMessage(e.target.value)} placeholder="Write the message students will see..."/></label>
+        <div className="editor-grid">
+          <label>Type<select value={type} onChange={e=>setType(e.target.value)}><option value="GENERAL">General</option><option value="USER">User</option><option value="ADMIN">Admin</option></select></label>
+          <label>Status<select value={status} onChange={e=>setStatus(e.target.value)}><option value="UNREAD">Unread</option><option value="READ">Read</option><option value="NA">Not applicable</option></select></label>
+        </div>
+        <div className="editor-grid">
+          <label>Category<select value={category} onChange={e=>setCategory(e.target.value)}><option value="">No category</option>{categoryOptions.map(option=><option key={option}>{option}</option>)}</select></label>
+          <label>Placement<select value={placement} onChange={e=>setPlacement(e.target.value)}><option value="Announcement">Announcement</option><option value="Tips">Tips</option></select></label>
+        </div>
+        <label>Valid until<input type="datetime-local" value={validUntil} onChange={e=>setValidUntil(e.target.value)}/></label>
+        <label>Recipient ID <small>(optional; leave blank for all recipients)</small><input value={recipientId} onChange={e=>setRecipientId(e.target.value)} maxLength={36} placeholder="Recipient UUID"/></label>
+        <div className="editor-preview"><span><Icon name={categoryIcon[category] || 'bulb'} size={12}/> {(category || type).toUpperCase()}</span><strong>{title || 'Your announcement title'}</strong><p>{message || 'Your message will appear here.'}</p></div>
+        <button className="admin-primary" onClick={saveTemplate} disabled={submitting}>{submitting ? 'Saving…' : editingId ? 'Save changes' : 'Create notification'}</button>
+        {editing && <button className="admin-btn" type="button" onClick={()=>{setEditing(false);setEditingId(null);setError('')}} disabled={submitting}>Cancel editing</button>}
+      </div>
+    </div>
       {previewing && <div className="admin-modal-backdrop"><div className="disable-modal announcement-preview-modal"><div className="panel-head"><div><strong>Student preview</strong><small>How this message appears to students</small></div><button type="button" onClick={()=>setPreviewing(false)} aria-label="Close preview"><Icon name="close" size={15}/></button></div><div className="editor-preview"><span><Icon name={categoryIcon[category] || 'bulb'} size={12}/> {(category || type).toUpperCase()}</span><strong>{title || 'Your announcement title'}</strong><p>{message || 'Your message will appear here.'}</p></div><div className="disable-actions"><button onClick={()=>setPreviewing(false)}>Close preview</button></div></div></div>}
       {deleting && <div className="admin-modal-backdrop"><div className="disable-modal"><div className="modal-warning"><Icon name="trash" size={20}/></div><h2>Delete notification?</h2><p>This permanently deletes “{deleting.title}”. This action cannot be undone.</p><div className="disable-actions"><button type="button" onClick={()=>setDeleting(null)} disabled={submitting}>Cancel</button><button className="danger-btn" type="button" onClick={removeNotification} disabled={submitting}><Icon name="trash" size={14}/>{submitting ? ' Deleting…' : ' Delete notification'}</button></div></div></div>}
   </AdminFrame></AdminShell>
