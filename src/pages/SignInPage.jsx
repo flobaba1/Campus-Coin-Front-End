@@ -7,7 +7,7 @@ import Button from '../components/Button'
 import { navigate } from '../routes/AppRoutes'
 
 import { signin } from '../api/authApi'
-import { setStudentSession } from '../utils'
+import { setStudentSession, clearAdminSession } from '../utils'
 
 function SignInPage() {
   const [email, setEmail] = useState('')
@@ -35,6 +35,11 @@ function SignInPage() {
     setLoading(true)
 
     try {
+      // A student session must never accidentally reuse an old admin token.
+      // This also fixes authenticated student APIs such as notifications/profile
+      // when an admin session was previously left in localStorage.
+      clearAdminSession()
+
       console.log('CampusCoin signin request:', {
         email: email.trim(),
         password: '********',

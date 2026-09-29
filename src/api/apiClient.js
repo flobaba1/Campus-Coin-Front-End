@@ -9,7 +9,10 @@ if (!API_BASE_URL) {
 }
 
 export async function apiRequest(endpoint, options = {}) {
-  const session = getAdminSession() || getStudentSession()
+  const isAdminEndpoint = endpoint.startsWith('/api/admin/')
+  const session = isAdminEndpoint
+    ? getAdminSession()
+    : getStudentSession()
 
   const token = session?.token
 
