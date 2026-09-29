@@ -4,6 +4,10 @@ export const AUTH_KEYS = {
 }
 
 function normalizeSessionResponse(response = {}) {
+  const user = response.user || response.data || {}
+
+  // Accept the token whether the backend returns it at the top level
+  // or inside a nested user/data object.
   const token =
     response.token ||
     response.accessToken ||
@@ -11,13 +15,17 @@ function normalizeSessionResponse(response = {}) {
     response.access_token ||
     response.Authorization ||
     response.authToken ||
+    user.token ||
+    user.accessToken ||
+    user.jwt ||
+    user.access_token ||
+    user.Authorization ||
+    user.authToken ||
     null
 
-  const user = response.user || response.data || {}
-
   return {
-    token,
     ...user,
+    token,
   }
 }
 

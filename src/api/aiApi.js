@@ -13,3 +13,9 @@ export function getCategorySuggestion(description, type) {
     }
   );
 }
+
+export function generateMonthlyReport(month) {
+  return apiRequest(`/api/ai/generate-report?months=${encodeURIComponent(month)}`, {
+    method: "GET",
+  });
+}

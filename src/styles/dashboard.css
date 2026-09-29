@@ -4495,3 +4495,1779 @@
   font-size: 10px;
   font-weight: 600;
 }
+
+
+/* =========================================================
+   FINAL AI + NOTIFICATION POLISH
+   ========================================================= */
+
+.dashboard-app .notification-panel {
+  z-index: 1000;
+  max-height: min(430px, calc(100vh - 82px));
+  display: flex;
+  flex-direction: column;
+}
+
+.dashboard-app .notif-head {
+  flex: 0 0 auto;
+  background: var(--db-surface);
+  position: relative;
+  z-index: 2;
+}
+
+.dashboard-app .notif-list {
+  min-height: 0;
+  max-height: 345px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dashboard-app .notif-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.dashboard-app .notif-list::-webkit-scrollbar-thumb {
+  background: #cbd5df;
+  border-radius: 10px;
+}
+
+.dashboard-app .notif-item {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  cursor: pointer;
+}
+
+.dashboard-app .notif-item:hover {
+  background: #f7faf9;
+}
+
+.dashboard-app.dark .notif-item:hover {
+  background: #0c2d2a;
+}
+
+.dashboard-app .right-stack {
+  min-width: 0;
+}
+
+.dashboard-app .insight-card {
+  overflow: hidden;
+}
+
+.dashboard-app .insight-readable {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: block;
+}
+
+.dashboard-app .insight-readable:focus-visible,
+.dashboard-app .tip-row-button:focus-visible,
+.dashboard-app .ai-empty-tip:focus-visible {
+  outline: 3px solid rgba(0, 139, 98, 0.18);
+  outline-offset: 3px;
+  border-radius: 10px;
+}
+
+.dashboard-app .ai-card-preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+  overflow: hidden;
+  max-height: 7.8em;
+}
+
+.dashboard-app .ai-read-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #008b62;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.dashboard-app .dashboard-tip-list {
+  min-width: 0;
+}
+
+.dashboard-app .tip-row-button {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-app .tip-row-button:hover {
+  background: #f7faf9;
+  border-radius: 9px;
+}
+
+.dashboard-app .tip-row-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.dashboard-app .tip-row-copy strong,
+.dashboard-app .tip-row-copy small {
+  overflow: hidden;
+}
+
+.dashboard-app .tip-row-copy small {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-height: 1.35;
+}
+
+.dashboard-app .ai-empty-tip {
+  width: 100%;
+  min-height: 86px;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  text-align: left;
+  color: var(--db-text);
+  cursor: pointer;
+}
+
+.dashboard-app .ai-empty-tip > span:nth-child(2) {
+  min-width: 0;
+  flex: 1;
+}
+
+.dashboard-app .ai-empty-tip strong,
+.dashboard-app .ai-empty-tip small {
+  display: block;
+}
+
+.dashboard-app .ai-empty-tip small {
+  color: var(--db-muted);
+  margin-top: 4px;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+.dashboard-app .ai-tips-loading {
+  padding-top: 12px;
+}
+
+.dashboard-app .ai-tips-loading .skeleton {
+  margin-top: 8px;
+}
+
+.ai-content-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(4, 18, 38, 0.48);
+  backdrop-filter: blur(3px);
+}
+
+.ai-content-modal {
+  width: min(620px, calc(100vw - 32px));
+  max-height: min(720px, calc(100vh - 40px));
+  overflow-y: auto;
+  position: relative;
+  background: var(--db-surface, #fff);
+  color: var(--db-text, #172033);
+  border: 1px solid var(--db-border, #e5e9ef);
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 30px 80px rgba(5, 20, 45, 0.22);
+}
+
+.ai-content-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f5f4;
+  color: #607086;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.ai-content-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background: #e2f7ef;
+  color: #008b62;
+  display: grid;
+  place-items: center;
+  margin-bottom: 12px;
+}
+
+.ai-content-kind {
+  display: block;
+  color: #008b62;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.ai-content-modal h2 {
+  margin: 7px 45px 5px 0;
+  font: 800 23px/1.2 Manrope, Inter, sans-serif;
+}
+
+.ai-content-date {
+  color: #8190a3;
+  font-size: 10px;
+}
+
+.ai-content-body {
+  margin-top: 22px;
+  color: #42536a;
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+
+.ai-content-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.ai-content-actions .ghost-btn,
+.ai-content-actions .primary-btn {
+  min-height: 38px;
+}
+
+@media (max-width: 600px) {
+  .dashboard-app .notification-panel {
+    position: fixed;
+    top: 62px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+    max-height: calc(100vh - 82px);
+  }
+
+  .dashboard-app .notif-list {
+    max-height: calc(100vh - 145px);
+  }
+
+  .ai-content-overlay {
+    padding: 10px;
+  }
+
+  .ai-content-modal {
+    width: 100%;
+    max-height: calc(100vh - 20px);
+    padding: 22px 18px;
+    border-radius: 15px;
+  }
+
+  .ai-content-modal h2 {
+    font-size: 20px;
+  }
+
+  .ai-content-body {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+}
+
+/* =========================================================
+   FINAL UI CORRECTIONS — dashboard AI cards + notifications
+   ========================================================= */
+.dashboard-app .insight-card .insight-readable {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  display: block;
+  text-align: left;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: inherit;
+  cursor: pointer;
+}
+
+.dashboard-app .insight-card .insight-readable:hover {
+  background: transparent;
+}
+
+.dashboard-app .insight-card .insight-title {
+  width: 100%;
+}
+
+.dashboard-app .insight-card .insight-title strong {
+  color: inherit;
+  font-size: 17px;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.dashboard-app .insight-card .ai-card-preview {
+  color: inherit;
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 16px 0 10px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dashboard-app .insight-card .ai-read-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #008b62;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.dashboard-app .insight-card .insight-readable > small {
+  display: block;
+  float: none;
+  margin: 9px 0 0;
+  color: #718c86;
+  font-size: 9px;
+}
+
+.dashboard-app .tips-card .card-title strong {
+  font-size: 18px;
+}
+
+.dashboard-app .tips-card .card-title small {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.dashboard-app .tips-card .tip-row-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dashboard-app .tips-card .tip-row-button:hover {
+  background: #f7fbf9;
+}
+
+.dashboard-app .tips-card .tip-row-copy strong {
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.dashboard-app .tips-card .tip-row-copy small {
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 4px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.dashboard-app .notification-panel {
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.dashboard-app .notification-panel .notif-list {
+  flex: 1 1 auto;
+  height: 0;
+  max-height: none;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 760px) {
+  .dashboard-app .insight-card .insight-title strong {
+    font-size: 16px;
+  }
+
+  .dashboard-app .insight-card .ai-card-preview {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+}
+
+
+/* =========================================================
+   DASHBOARD NOTIFICATIONS — FINAL VISIBILITY FIX
+   ========================================================= */
+.dashboard-app .dash-topbar {
+  z-index: 1000;
+  overflow: visible;
+}
+
+.dashboard-app .top-actions,
+.dashboard-app .notify-wrap {
+  position: relative;
+  z-index: 1001;
+}
+
+.dashboard-app .notification-panel {
+  z-index: 10000;
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.dashboard-app .notification-panel .notif-list {
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
+
+.dashboard-app .top-avatar {
+  overflow: hidden;
+  padding: 0;
+  cursor: pointer;
+}
+
+.dashboard-app .top-avatar-image {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 50%;
+  background: #def7ed;
+  color: #008b62;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.dashboard-app .top-avatar-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 50%;
+}
+
+/* =========================================================
+   AI INSIGHT / FINANCIAL OVERVIEW CARD
+   ========================================================= */
+
+.insight-card {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.insight-readable {
+  width: 100%;
+  min-height: 265px;
+  box-sizing: border-box;
+  padding: 28px 30px;
+  border: 1px solid #cce9dd;
+  border-radius: 18px;
+  background: #eaf8f3;
+  text-align: left;
+  color: #17243a;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.insight-title {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.insight-title strong {
+  min-width: 0;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 750;
+  letter-spacing: -0.5px;
+
+  /* Prevent very long AI titles from breaking the card */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.insight-readable .d-icon {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  border-radius: 16px;
+}
+
+.insight-readable .d-icon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.ai-card-preview {
+  margin: 0;
+  font-size: 19px;
+  line-height: 1.65;
+  color: #18364c;
+
+  /* Keep generated AI text inside the card */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+
+.ai-read-link {
+  margin-top: auto;
+  padding-top: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #008b62;
+}
+
+.insight-readable small {
+  margin-top: 8px;
+  color: #607086;
+}
+
+
+/* =========================================================
+   SAVING TIPS CARD
+   ========================================================= */
+
+.tips-card {
+  width: 100%;
+  box-sizing: border-box;
+  border-radius: 18px;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.tips-card .card-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.tips-card .card-title > div {
+  min-width: 0;
+}
+
+.tips-card .card-title strong {
+  display: block;
+  font-size: 25px;
+  line-height: 1.2;
+  font-weight: 750;
+  color: #17243a;
+}
+
+.tips-card .card-title small {
+  display: block;
+  margin-top: 10px;
+  max-width: 420px;
+  font-size: 16px;
+  line-height: 1.45;
+  color: #69758a;
+}
+
+.tips-card .card-title > button {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: #008b62;
+  font-size: 15px;
+  line-height: 1.2;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+
+/* =========================================================
+   INDIVIDUAL TIP ROW
+   ========================================================= */
+
+.dashboard-tip-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+
+.tip-row {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.tip-row-button {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 20px;
+
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+}
+
+.tip-row-button .d-icon {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  border-radius: 15px;
+}
+
+.tip-row-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tip-row-copy strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+
+  font-size: 21px;
+  line-height: 1.25;
+  font-weight: 750;
+  color: #17243a;
+}
+
+.tip-row-copy small {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+
+  margin-top: 10px;
+  font-size: 17px;
+  line-height: 1.45;
+  color: #008b62;
+}
+
+.tip-row-button > svg {
+  flex-shrink: 0;
+  justify-self: end;
+  color: #17243a;
+}
+
+
+/* =========================================================
+   EMPTY TIP STATE
+   ========================================================= */
+
+.ai-empty-tip {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 20px;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+}
+
+.ai-empty-tip > span:nth-child(2) {
+  min-width: 0;
+}
+
+.ai-empty-tip strong,
+.ai-empty-tip small {
+  display: block;
+}
+
+.ai-empty-tip small {
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+
+/* =========================================================
+   MOBILE / SMALL SCREEN
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .insight-readable {
+    min-height: 315px;
+    padding: 24px 22px;
+  }
+
+  .insight-title {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 14px;
+  }
+
+  .insight-readable .d-icon {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+    border-radius: 14px;
+  }
+
+  .insight-title strong {
+    font-size: 25px;
+  }
+
+  .ai-card-preview {
+    font-size: 17px;
+    line-height: 1.55;
+    -webkit-line-clamp: 3;
+  }
+
+  .tips-card {
+    padding: 24px 22px;
+  }
+
+  .tips-card .card-title strong {
+    font-size: 23px;
+  }
+
+  .tips-card .card-title small {
+    font-size: 15px;
+  }
+
+  .tip-row-button {
+    grid-template-columns: 48px minmax(0, 1fr) 18px;
+    gap: 14px;
+  }
+
+  .tip-row-button .d-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+  }
+
+  .tip-row-copy strong {
+    font-size: 18px;
+  }
+
+  .tip-row-copy small {
+    font-size: 15px;
+    -webkit-line-clamp: 3;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL SCREENS
+   ========================================================= */
+
+@media (max-width: 480px) {
+  .insight-readable {
+    min-height: 290px;
+    padding: 20px 18px;
+  }
+
+  .insight-title {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 12px;
+  }
+
+  .insight-readable .d-icon {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  .insight-title strong {
+    font-size: 22px;
+  }
+
+  .ai-card-preview {
+    font-size: 16px;
+  }
+
+  .tips-card {
+    padding: 20px 18px;
+  }
+
+  .dashboard-tip-list {
+    gap: 16px;
+  }
+
+  .tip-row-button {
+    grid-template-columns: 44px minmax(0, 1fr) 16px;
+    gap: 12px;
+  }
+
+  .tip-row-button .d-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+  }
+
+  .tip-row-copy strong {
+    font-size: 17px;
+  }
+
+  .tip-row-copy small {
+    font-size: 14px;
+  }
+}
+
+/* =========================================================
+   DASHBOARD AI OVERVIEW + SAVING TIPS FINAL OVERRIDES
+   ========================================================= */
+
+/* ---------- Financial Overview ---------- */
+
+.dashboard-app .insight-card {
+  height: 212px;
+  min-height: 212px;
+  max-height: 212px;
+  box-sizing: border-box;
+  overflow: hidden;
+  padding: 25px;
+}
+
+.dashboard-app .insight-readable {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.dashboard-app .insight-title {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dashboard-app .insight-title strong {
+  min-width: 0;
+  flex: 1;
+  font-size: 17px;
+  line-height: 1.25;
+  font-family: Manrope, Inter, sans-serif;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.dashboard-app .insight-readable .ai-card-preview {
+  flex: 0 0 auto;
+
+  margin: 0;
+
+  font-size: 13px;
+  line-height: 1.55;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  color: #163247;
+}
+
+/* Make the "Read full insight" link stay at the bottom */
+.dashboard-app .insight-readable .ai-read-link {
+  margin-top: auto;
+  padding-top: 7px;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  color: #008b62;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.dashboard-app .insight-readable > small {
+  margin-top: 5px;
+  font-size: 9px;
+  color: #718c86;
+  flex-shrink: 0;
+}
+
+
+/* ---------- Saving Tips ---------- */
+
+.dashboard-app .tips-card {
+  height: 313px;
+  min-height: 313px;
+  max-height: 313px;
+
+  box-sizing: border-box;
+  overflow: hidden;
+
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header stays fixed */
+.dashboard-app .tips-card > .card-title {
+  flex: 0 0 auto;
+}
+
+/* ONLY this section scrolls */
+.dashboard-app .tips-card .dashboard-tip-list {
+  flex: 1 1 auto;
+
+  min-height: 0;
+  max-height: none;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  padding-right: 8px;
+  margin-top: 5px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Individual tips */
+.dashboard-app .tips-card .tip-row-button {
+  width: 100%;
+  min-width: 0;
+
+  flex: 0 0 auto;
+
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr) 20px;
+  align-items: center;
+
+  gap: 20px;
+
+  padding: 14px 0;
+
+  border: 0;
+  border-bottom: 1px solid var(--db-border);
+
+  background: transparent;
+  color: inherit;
+
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-app .tips-card .tip-row-button:last-child {
+  border-bottom: 0;
+}
+
+/* Don't let long tip text push the card wider */
+.dashboard-app .tips-card .tip-row-copy {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.dashboard-app .tips-card .tip-row-copy strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  overflow: hidden;
+
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.dashboard-app .tips-card .tip-row-copy small {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+
+  overflow: hidden;
+
+  margin-top: 5px;
+
+  color: #008b62;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+/* Scrollbar */
+.dashboard-app .tips-card .dashboard-tip-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dashboard-app .tips-card .dashboard-tip-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-app .tips-card .dashboard-tip-list::-webkit-scrollbar-thumb {
+  background: #b8d9cc;
+  border-radius: 10px;
+}
+
+.dashboard-app .tips-card .dashboard-tip-list::-webkit-scrollbar-thumb:hover {
+  background: #008b62;
+}
+
+/* Firefox */
+.dashboard-app .tips-card .dashboard-tip-list {
+  scrollbar-width: thin;
+  scrollbar-color: #b8d9cc transparent;
+}
+
+/* =========================================================
+   NOTIFICATION PANEL — FINAL FIX
+   ========================================================= */
+
+.dashboard-app .notification-panel {
+  position: absolute;
+  top: 49px;
+  right: 0;
+
+  width: 360px;
+  max-height: 520px;
+
+  display: flex;
+  flex-direction: column;
+
+  background: var(--db-surface);
+  border: 1px solid var(--db-border);
+  border-radius: 14px;
+
+  box-shadow: 0 20px 40px #081b3530;
+
+  overflow: hidden;
+  z-index: 1000;
+
+  color: var(--db-text);
+}
+
+
+/* ---------- Header ---------- */
+
+.dashboard-app .notification-panel .notif-head {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 16px 18px;
+
+  border-bottom: 1px solid var(--db-border);
+
+  background: var(--db-surface);
+}
+
+.dashboard-app .notification-panel .notif-head strong {
+  font-size: 16px;
+  font-weight: 750;
+}
+
+.dashboard-app .notification-panel .notif-head b {
+  background: #ffe4e8;
+  color: #ec4760;
+
+  padding: 4px 9px;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dashboard-app .notification-panel .notif-head button {
+  margin-left: auto;
+
+  border: 0;
+  background: transparent;
+
+  color: #008b62;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+
+/* ---------- Notification list ---------- */
+
+.dashboard-app .notification-panel .notif-list {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  min-height: 0;
+
+  max-height: 390px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+
+/* ---------- Individual notification ---------- */
+
+.dashboard-app .notification-panel .notif-list .notif-item {
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  padding: 15px 18px;
+
+  border: 0;
+  border-bottom: 1px solid var(--db-border);
+
+  background: var(--db-surface);
+  color: var(--db-text);
+
+  text-align: left;
+
+  position: relative;
+
+  cursor: pointer;
+
+  transition:
+    background 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.dashboard-app .notification-panel .notif-list .notif-item:hover {
+  background: var(--db-bg);
+}
+
+
+/* Read notifications */
+
+.dashboard-app
+.notification-panel
+.notif-list
+.notif-item.read {
+  opacity: 0.65;
+}
+
+
+/* Notification content */
+
+.dashboard-app .notification-panel .notif-item > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-app .notification-panel .notif-item strong {
+  display: block;
+
+  margin: 0;
+
+  font-size: 13px;
+  line-height: 1.35;
+
+  font-weight: 750;
+
+  color: var(--db-text);
+}
+
+.dashboard-app .notification-panel .notif-item p {
+  display: block;
+
+  margin: 5px 0 4px;
+
+  font-size: 12px;
+  line-height: 1.45;
+
+  color: var(--db-muted);
+}
+
+.dashboard-app .notification-panel .notif-item small {
+  display: block;
+
+  font-size: 10px;
+  line-height: 1.3;
+
+  color: #9aa7ba;
+}
+
+
+/* Unread indicator */
+
+.dashboard-app .notification-panel .notif-item > i {
+  flex: 0 0 7px;
+
+  width: 7px;
+  height: 7px;
+
+  margin-top: 7px;
+  margin-left: auto;
+
+  background: #009e70;
+
+  border-radius: 50%;
+}
+
+
+/* ---------- Empty / loading ---------- */
+
+.dashboard-app .notification-panel .notif-empty {
+  padding: 30px 18px;
+
+  text-align: center;
+
+  font-size: 13px;
+
+  color: var(--db-muted);
+}
+
+
+/* ---------- Settings button ---------- */
+
+.dashboard-app .notification-panel .notif-settings {
+  flex: 0 0 auto;
+
+  width: 100%;
+  height: 48px;
+
+  border: 0;
+  border-top: 1px solid var(--db-border);
+
+  background: var(--db-surface);
+
+  color: #008b62;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.dashboard-app .notification-panel .notif-settings:hover {
+  background: var(--db-bg);
+}
+
+
+/* ---------- Scrollbar ---------- */
+
+.dashboard-app .notification-panel .notif-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dashboard-app .notification-panel .notif-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-app .notification-panel .notif-list::-webkit-scrollbar-thumb {
+  background: #b8d9cc;
+  border-radius: 10px;
+}
+
+.dashboard-app .notification-panel .notif-list::-webkit-scrollbar-thumb:hover {
+  background: #008b62;
+}
+
+
+/* Firefox */
+
+.dashboard-app .notification-panel .notif-list {
+  scrollbar-width: thin;
+  scrollbar-color: #b8d9cc transparent;
+}
+
+
+/* ---------- Smaller screens ---------- */
+
+@media (max-width: 760px) {
+  .dashboard-app .notification-panel {
+    right: -20px;
+    width: 330px;
+    max-width: calc(100vw - 24px);
+  }
+}
+
+/* =========================================================
+   NOTIFICATION PANEL - FINAL
+   ========================================================= */
+
+.dashboard-app .notification-panel {
+  position: absolute;
+  top: 49px;
+  right: 0;
+
+  width: 360px;
+  max-height: 520px;
+
+  display: flex;
+  flex-direction: column;
+
+  box-sizing: border-box;
+
+  background: var(--db-surface);
+  color: var(--db-text);
+
+  border: 1px solid var(--db-border);
+  border-radius: 14px;
+
+  box-shadow: 0 20px 40px rgba(8, 27, 53, 0.18);
+
+  overflow: hidden;
+
+  z-index: 9999;
+}
+
+
+/* =========================
+   HEADER
+   ========================= */
+
+.dashboard-app .notification-panel .notif-head {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 18px 20px;
+
+  gap: 8px;
+
+  border-bottom: 1px solid var(--db-border);
+
+  background: var(--db-surface);
+}
+
+.dashboard-app .notification-panel .notif-head strong {
+  font-size: 16px;
+  font-weight: 750;
+  color: var(--db-text);
+}
+
+.dashboard-app .notification-panel .notif-head b {
+  background: #ffe4e8;
+  color: #ec4760;
+
+  padding: 4px 9px;
+
+  border-radius: 999px;
+
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.dashboard-app .notification-panel .notif-head button {
+  margin-left: auto;
+
+  padding: 0;
+
+  border: 0;
+
+  background: transparent;
+
+  color: #008b62;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+
+/* =========================
+   NOTIFICATION LIST
+   ========================= */
+
+.dashboard-app .notification-panel .notif-list {
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+
+  min-height: 0;
+
+  max-height: 390px;
+
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  background: var(--db-surface);
+}
+
+
+/* =========================
+   INDIVIDUAL NOTIFICATION
+   ========================= */
+
+.dashboard-app .notification-panel .notif-item {
+  width: 100%;
+  min-height: 80px;
+
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 12px;
+
+  padding: 16px 20px;
+
+  margin: 0;
+
+  border: 0;
+  border-bottom: 1px solid var(--db-border);
+
+  background: var(--db-surface);
+
+  color: var(--db-text);
+
+  text-align: left;
+
+  cursor: pointer;
+
+  font-family: inherit;
+
+  appearance: none;
+
+  transition: background 0.15s ease;
+}
+
+.dashboard-app .notification-panel .notif-item:hover {
+  background: var(--db-bg);
+}
+
+.dashboard-app .notification-panel .notif-item:last-child {
+  border-bottom: 0;
+}
+
+
+/* =========================
+   NOTIFICATION ICON
+   ========================= */
+
+.dashboard-app .notification-panel .notif-item .d-icon {
+  flex: 0 0 40px;
+
+  width: 40px;
+  height: 40px;
+
+  border-radius: 12px;
+
+  display: grid;
+  place-items: center;
+}
+
+
+/* =========================
+   NOTIFICATION TEXT
+   ========================= */
+
+.dashboard-app .notification-panel .notif-item > div {
+  flex: 1;
+
+  min-width: 0;
+
+  overflow: hidden;
+}
+
+.dashboard-app .notification-panel .notif-item strong {
+  display: block;
+
+  margin: 0;
+
+  color: var(--db-text);
+
+  font-size: 13px;
+  line-height: 1.35;
+
+  font-weight: 750;
+}
+
+.dashboard-app .notification-panel .notif-item p {
+  display: block;
+
+  margin: 5px 0 4px;
+
+  color: var(--db-muted);
+
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.dashboard-app .notification-panel .notif-item small {
+  display: block;
+
+  color: #9aa7ba;
+
+  font-size: 10px;
+  line-height: 1.3;
+}
+
+
+/* =========================
+   UNREAD DOT
+   ========================= */
+
+.dashboard-app .notification-panel .notif-item > i {
+  flex: 0 0 7px;
+
+  width: 7px;
+  height: 7px;
+
+  margin-left: auto;
+  margin-top: 7px;
+
+  background: #009e70;
+
+  border-radius: 50%;
+}
+
+
+/* =========================
+   READ NOTIFICATIONS
+   ========================= */
+
+.dashboard-app .notification-panel .notif-item.read {
+  opacity: 0.65;
+}
+
+
+/* =========================
+   EMPTY / LOADING
+   ========================= */
+
+.dashboard-app .notification-panel .notif-empty {
+  width: 100%;
+  box-sizing: border-box;
+
+  padding: 28px 20px;
+
+  text-align: center;
+
+  color: var(--db-muted);
+
+  font-size: 13px;
+}
+
+
+/* =========================
+   SETTINGS
+   ========================= */
+
+.dashboard-app .notification-panel .notif-settings {
+  flex: 0 0 auto;
+
+  width: 100%;
+  height: 50px;
+
+  box-sizing: border-box;
+
+  border: 0;
+  border-top: 1px solid var(--db-border);
+
+  background: var(--db-surface);
+
+  color: #008b62;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  cursor: pointer;
+}
+
+.dashboard-app .notification-panel .notif-settings:hover {
+  background: var(--db-bg);
+}
+
+
+/* =========================
+   SCROLLBAR
+   ========================= */
+
+.dashboard-app .notification-panel .notif-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dashboard-app .notification-panel .notif-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dashboard-app .notification-panel .notif-list::-webkit-scrollbar-thumb {
+  background: #b8d9cc;
+  border-radius: 10px;
+}
+
+.dashboard-app .notification-panel .notif-list::-webkit-scrollbar-thumb:hover {
+  background: #008b62;
+}
+
+
+/* Firefox */
+.dashboard-app .notification-panel .notif-list {
+  scrollbar-width: thin;
+  scrollbar-color: #b8d9cc transparent;
+}
+
+/* =========================================================
+   NOTIFICATION LIST — ACTUAL FIX
+   ========================================================= */
+
+.dashboard-app .notification-panel .notif-list {
+  display: flex !important;
+  flex-direction: column !important;
+
+  width: 100% !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+
+  max-height: 390px !important;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* =========================================================
+   CAMPUS COIN — NOTIFICATION DISPLAY FIX
+   ========================================================= */
+
+.dashboard-app .dash-topbar {
+  overflow: visible !important;
+  z-index: 1000 !important;
+}
+
+.dashboard-app .top-actions {
+  position: relative;
+  z-index: 1001 !important;
+}
+
+.dashboard-app .notify-wrap {
+  position: relative;
+  z-index: 1002 !important;
+}
+
+.dashboard-app .notification-panel {
+  display: flex !important;
+  flex-direction: column !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+
+  z-index: 10000 !important;
+
+  width: 360px !important;
+  max-height: 520px !important;
+
+  overflow: hidden !important;
+}
+
+/* THIS WAS THE ACTUAL BUG */
+.dashboard-app .notification-panel .notif-list {
+  display: flex !important;
+  flex-direction: column !important;
+
+  width: 100% !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+
+  max-height: 390px !important;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Make every notification occupy visible space */
+.dashboard-app .notification-panel .notif-list .notif-item {
+  display: flex !important;
+
+  width: 100% !important;
+  min-height: 75px !important;
+
+  flex: 0 0 auto !important;
+
+  box-sizing: border-box !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Notification content */
+.dashboard-app .notification-panel .notif-list .notif-item > div {
+  display: block !important;
+  flex: 1 1 auto !important;
+
+  min-width: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.dashboard-app .notification-panel .notif-list .notif-item strong,
+.dashboard-app .notification-panel .notif-list .notif-item p,
+.dashboard-app .notification-panel .notif-list .notif-item small {
+  visibility: visible !important;
+}
+
+/* Settings stays at bottom */
+.dashboard-app .notification-panel .notif-settings {
+  flex: 0 0 auto !important;
+}

@@ -3,6 +3,7 @@ import AuthBrandPanel from '../components/AuthBrandPanel'
 import Logo from '../components/Logo'
 import Icon from '../components/Icon'
 import { navigate } from '../routes/AppRoutes'
+import '../styles/legal.css'
 import '../styles/auth.css'
 
 function AuthLayout({
