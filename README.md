@@ -4,16 +4,6 @@ CampusCoin is a React/Vite frontend implementation of the CampusCoin product des
 
 ## Dashboard & Logging — Figma selection
 
-Implemented from the Aptech Website Figma file selection:
-
-- File: `Aptech Website`
-- Selection: `2 · Student app: dashboard & logging`
-- Figma node: `3495:2560`
-- Desktop reference: `1440 × 1585`
-- Student sidebar: `256px`
-- Main content frame: `1184px`
-- Main content inset: `40px`
-
 ### Implemented screens / states
 
 | Design | Route / interaction |
@@ -69,20 +59,16 @@ npm run build
 - Removed the fixed grid-row behavior that could make Budget vs Actual stretch vertically or cause card placement collisions.
 - Mobile dashboard uses a single-column flow with explicit card heights and no overlapping grid placement.
 
-## Demo authentication
-
-This frontend uses `public/data/demo-users.json` as a dummy local JSON data source.
 
 ### Student
-- Email: `oluwatobi@gmail.com`
-- Password: `techwiz`
+- Email: `oadizo628@gmail.com`
+- Password: `flobaba1234-`
 - Successful sign-in → `/dashboard`
 - Student sign-out → `/`
 
 ### Admin
-- Email: `isreal@gmail.com`
-- Password: `techtitan`
-- Demo authenticator code: `123456`
+- Email: `admin@campuscoin.com`
+- Password: `admin@123`
 - Successful sign-in → `/admin/overview`
 - Admin sign-out → `/`
 
