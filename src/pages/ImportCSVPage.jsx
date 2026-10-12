@@ -3,7 +3,7 @@ import { navigate } from "../routes/AppRoutes";
 import Icon from "../components/Icon";
 import { DashboardShell } from "./DashboardPage";
 
-import { getCategories } from "../api/categoryApi";
+import { getCategories, createCategory } from "../api/categoryApi";
 import { createTransaction } from "../api/transactionApi";
 
 const REQUIRED_COLUMNS = [
@@ -169,97 +169,78 @@ function ImportCSVPage() {
   }
 
   function validateRow(row, rowNumber) {
-    const errors = [];
+  const errors = [];
 
-    const description =
-      normalizeValue(row.description);
+  const description = normalizeValue(row.description);
+  const amountText = normalizeValue(row.amount);
+  const type = normalizeValue(row.type).toUpperCase();
+  const categoryName = normalizeValue(row.category);
+  const date = normalizeValue(row.date);
 
-    const amountText =
-      normalizeValue(row.amount);
-
-    const type =
-      normalizeValue(row.type).toUpperCase();
-
-    const categoryName =
-      normalizeValue(row.category);
-
-    const date =
-      normalizeValue(row.date);
-
-    if (!description) {
-      errors.push("Description is required");
-    }
-
-    const amount = Number(
-      amountText.replace(/[$,]/g, "")
-    );
-
-    if (
-      !amountText ||
-      Number.isNaN(amount) ||
-      amount <= 0
-    ) {
-      errors.push("Amount must be greater than 0");
-    }
-
-    if (
-      type !== "INCOME" &&
-      type !== "EXPENSE"
-    ) {
-      errors.push(
-        "Type must be INCOME or EXPENSE"
-      );
-    }
-
-    const category = findCategory(
-      categoryName
-    );
-
-    if (!categoryName) {
-      errors.push("Category is required");
-    } else if (!category) {
-      errors.push(
-        `Category "${categoryName}" was not found`
-      );
-    } else if (
-      category.type !== type
-    ) {
-      errors.push(
-        `Category "${category.name}" is an ${category.type.toLowerCase()} category`
-      );
-    }
-
-    if (!date) {
-      errors.push("Date is required");
-    } else if (
-      !/^\d{4}-\d{2}-\d{2}$/.test(date)
-    ) {
-      errors.push(
-        "Date must use YYYY-MM-DD"
-      );
-    } else {
-      const parsed = new Date(
-        `${date}T00:00:00`
-      );
-
-      if (Number.isNaN(parsed.getTime())) {
-        errors.push("Invalid date");
-      }
-    }
-
-    return {
-      ...row,
-      rowNumber,
-      description,
-      amount,
-      type,
-      categoryName,
-      date,
-      category,
-      errors,
-      valid: errors.length === 0,
-    };
+  if (!description) {
+    errors.push("Description is required");
   }
+
+  const amount = Number(amountText.replace(/[$,]/g, ""));
+
+  if (!amountText || Number.isNaN(amount) || amount <= 0) {
+    errors.push("Amount must be greater than 0");
+  }
+
+  if (type !== "INCOME" && type !== "EXPENSE") {
+    errors.push("Type must be INCOME or EXPENSE");
+  }
+
+  const category = findCategory(categoryName);
+
+  if (!categoryName) {
+    errors.push("Category is required");
+  } else if (category && category.type !== type) {
+    errors.push(
+      `Category "${category.name}" is a ${category.type.toLowerCase()} category`
+    );
+  }
+
+ if (!date) {
+  errors.push("Date is required");
+} else {
+  const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+
+  if (!dateMatch) {
+    errors.push("Date must use YYYY-MM-DD");
+  } else {
+    const [, yearText, monthText, dayText] = dateMatch;
+
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const day = Number(dayText);
+
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+
+    const isValidDate =
+      parsed.getUTCFullYear() === year &&
+      parsed.getUTCMonth() === month - 1 &&
+      parsed.getUTCDate() === day;
+
+    if (!isValidDate) {
+      errors.push("Invalid date");
+    }
+  }
+}
+
+  return {
+    ...row,
+    rowNumber,
+    description,
+    amount,
+    type,
+    categoryName,
+    date,
+    category,
+    errors,
+    valid: errors.length === 0,
+  };
+}
 
   async function processFile(selectedFile) {
     setError("");
@@ -440,31 +421,70 @@ function ImportCSVPage() {
     [validRows]
   );
 
-  async function handleImport() {
-    setError("");
-    setSuccess("");
+async function handleImport() {
+  setError("");
+  setSuccess("");
 
-    if (!validRows.length) {
-      setError(
-        "There are no valid transactions to import."
-      );
-      return;
-    }
+  if (!validRows.length) {
+    setError("There are no valid transactions to import.");
+    return;
+  }
 
-    setImporting(true);
+  setImporting(true);
 
-    let imported = 0;
-    const failed = [];
+  let imported = 0;
+  const failed = [];
+  const categoryCache = [...categories];
 
+  try {
     for (const row of validRows) {
       try {
+        let category = categoryCache.find(
+          (item) =>
+            item.name?.trim().toLowerCase() ===
+              row.categoryName.trim().toLowerCase() &&
+            item.type === row.type
+        );
+
+        if (!category) {
+          category = await createCategory({
+            name: row.categoryName.trim(),
+            type: row.type,
+          });
+
+          // Handle APIs that return the created category in a wrapper.
+          category = category?.data ?? category?.category ?? category;
+
+          if (!category?.categoryId) {
+            // Refresh the list in case the API created the category
+            // but returned a different response structure.
+            const refreshed = await getCategories();
+            const list = Array.isArray(refreshed)
+              ? refreshed
+              : refreshed?.data ?? [];
+
+            category = list.find(
+              (item) =>
+                item.name?.trim().toLowerCase() ===
+                  row.categoryName.trim().toLowerCase() &&
+                item.type === row.type
+            );
+          }
+
+          if (!category?.categoryId) {
+            throw new Error(
+              `Could not resolve category "${row.categoryName}" after creation.`
+            );
+          }
+
+          categoryCache.push(category);
+        }
+
         await createTransaction({
-          categoryId:
-            row.category.categoryId,
+          categoryId: category.categoryId,
           amount: row.amount,
           type: row.type,
-          description:
-            row.description,
+          description: row.description,
           date: row.date,
         });
 
@@ -477,21 +497,17 @@ function ImportCSVPage() {
 
         failed.push({
           ...row,
-          importError:
-            err.message ||
-            "Failed to import row",
+          importError: err.message || "Failed to import row",
         });
       }
     }
 
-    setImporting(false);
+    setCategories(categoryCache);
 
     if (failed.length === 0) {
       setSuccess(
         `Import complete. ${imported} transaction${
-          imported === 1
-            ? ""
-            : "s"
+          imported === 1 ? "" : "s"
         } imported successfully.`
       );
 
@@ -506,24 +522,22 @@ function ImportCSVPage() {
     }
 
     setSuccess(
-      `${imported} transaction${
-        imported === 1
-          ? ""
-          : "s"
-      } imported successfully.`
+      `${imported} transaction${imported === 1 ? "" : "s"} imported successfully.`
     );
 
     setRows(
       failed.map((row) => ({
         ...row,
-        errors: [
-          ...(row.errors || []),
-          row.importError,
-        ],
+        errors: [...(row.errors || []), row.importError],
         valid: false,
       }))
     );
+  } catch (err) {
+    setError(err.message || "The import could not be completed.");
+  } finally {
+    setImporting(false);
   }
+}
 
   return (
     <DashboardShell
@@ -933,8 +947,7 @@ function ImportCSVPage() {
                 </li>
 
                 <li>
-                  Category must already
-                  exist in CampusCoin.
+                  Categories that do not exist will be created automatically during import.
                 </li>
 
                 <li>

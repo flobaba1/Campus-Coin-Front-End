@@ -18,8 +18,8 @@ import {
   deleteBudget,
 } from "../api/budgetApi";
 
-import { getCategories } from "../api/categoryApi";
-import { getTransactions } from "../api/transactionApi";
+import { getCategories, createCategory } from "../api/categoryApi";
+import { getTransactions, createTransaction } from "../api/transactionApi";
 import { getNotes, createNote, updateNote, deleteNote } from "../api/noteApi";
 import {
   getProfile,
@@ -4343,43 +4343,229 @@ function BookmarkForm({ onClose, onSave }) {
   );
 }
 
-function ImportPage() {
-  const [dark, setDark] = useState(false),
-    [notify, setNotify] = useState(false),
-    [file, setFile] = useState(null),
-    [error, setError] = useState(""),
-    [toast, showToast] = useToast();
-  const inputRef = useRef(null);
-  const choose = (e) => {
-    const f = e.target.files?.[0];
-    setError("");
-    if (!f) return;
-    if (!f.name.toLowerCase().endsWith(".csv")) {
-      setError("Please choose a CSV file.");
-      return;
+const CSV_IMPORT_KEY = "campuscoin_csv_import_rows";
+
+function parseCSVText(text) {
+  const records = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+
+    if (char === '"') {
+      if (quoted && text[i + 1] === '"') {
+        cell += '"';
+        i += 1;
+      } else {
+        quoted = !quoted;
+      }
+    } else if (char === "," && !quoted) {
+      row.push(cell.trim());
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && text[i + 1] === "\n") i += 1;
+
+      row.push(cell.trim());
+
+      if (row.some((value) => value !== "")) {
+        records.push(row);
+      }
+
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
     }
-    if (f.size > 5 * 1024 * 1024) {
-      setError("CSV files must be 5 MB or smaller.");
-      return;
+  }
+
+  if (quoted) {
+    throw new Error("The CSV contains an unclosed quotation mark.");
+  }
+
+  row.push(cell.trim());
+
+  if (row.some((value) => value !== "")) {
+    records.push(row);
+  }
+
+  if (records.length < 2) {
+    throw new Error("The CSV must contain column headers and at least one transaction.");
+  }
+
+  const headers = records[0].map((header) =>
+    header.replace(/^\uFEFF/, "").trim().toLowerCase(),
+  );
+
+  const columnIndex = (...names) =>
+    headers.findIndex((header) => names.includes(header));
+
+  const dateIndex = columnIndex("date", "transaction date");
+  const descriptionIndex = columnIndex("description", "details", "narration");
+  const amountIndex = columnIndex("amount", "value");
+  const categoryIndex = columnIndex("category", "category name");
+  const typeIndex = columnIndex("type", "transaction type");
+
+  if (
+    dateIndex === -1 ||
+    descriptionIndex === -1 ||
+    amountIndex === -1 ||
+    categoryIndex === -1
+  ) {
+    throw new Error(
+      "Required CSV columns are Date, Description, Amount and Category. Type is optional.",
+    );
+  }
+
+  const normalizeDate = (value) => {
+    const input = value.trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+      const date = new Date(`${input}T00:00:00Z`);
+
+      if (
+        !Number.isNaN(date.getTime()) &&
+        date.toISOString().slice(0, 10) === input
+      ) {
+        return input;
+      }
+
+      return "";
     }
-    setFile(f);
+
+    const parsed = new Date(input);
+
+    if (Number.isNaN(parsed.getTime())) return "";
+
+    return [
+      parsed.getFullYear(),
+      String(parsed.getMonth() + 1).padStart(2, "0"),
+      String(parsed.getDate()).padStart(2, "0"),
+    ].join("-");
   };
+
+  return records.slice(1).map((values, index) => {
+    const rawAmount = (values[amountIndex] || "")
+      .replace(/[₦$£€,\s]/g, "")
+      .trim();
+
+    const parsedAmount = Number(rawAmount);
+    const category = (values[categoryIndex] || "").trim();
+    const description = (values[descriptionIndex] || "").trim();
+    const date = normalizeDate(values[dateIndex] || "");
+
+    const rawType =
+      typeIndex === -1 ? "" : (values[typeIndex] || "").trim().toUpperCase();
+
+    let type = "EXPENSE";
+
+    if (rawType) {
+      if (["INCOME", "INCOME TRANSACTION"].includes(rawType)) {
+        type = "INCOME";
+      } else if (["EXPENSE", "EXPENSE TRANSACTION"].includes(rawType)) {
+        type = "EXPENSE";
+      } else {
+        type = "INVALID";
+      }
+    }
+
+    const errors = [];
+
+    if (!date) errors.push("Invalid date");
+    if (!Number.isFinite(parsedAmount) || parsedAmount === 0) {
+      errors.push("Amount must be a non-zero number");
+    }
+    if (!category) errors.push("Category is required");
+    if (type === "INVALID") errors.push("Type must be INCOME or EXPENSE");
+
+    return {
+      id: index,
+      date,
+      description,
+      amount: Math.abs(parsedAmount),
+      category,
+      type,
+      selected: errors.length === 0,
+      errors,
+    };
+  });
+}
+
+function ImportPage() {
+  const [dark, setDark] = useState(false);
+  const [notify, setNotify] = useState(false);
+  const [file, setFile] = useState(null);
+  const [error, setError] = useState("");
+  const [processing, setProcessing] = useState(false);
+  const [toast, showToast] = useToast();
+  const inputRef = useRef(null);
+
+  const choose = (e) => {
+    const selectedFile = e.target.files?.[0];
+    setError("");
+
+    if (!selectedFile) return;
+
+    if (!selectedFile.name.toLowerCase().endsWith(".csv")) {
+      setError("Please choose a CSV file.");
+      setFile(null);
+      return;
+    }
+
+    if (selectedFile.size > 5 * 1024 * 1024) {
+      setError("CSV files must be 5 MB or smaller.");
+      setFile(null);
+      return;
+    }
+
+    setFile(selectedFile);
+  };
+
+  const continueToReview = async () => {
+    if (!file || processing) return;
+
+    setProcessing(true);
+    setError("");
+
+    try {
+      const text = await file.text();
+      const parsedRows = parseCSVText(text);
+
+      if (!parsedRows.length) {
+        throw new Error("No transactions were found in the CSV.");
+      }
+
+      sessionStorage.setItem(CSV_IMPORT_KEY, JSON.stringify(parsedRows));
+      navigate("/review-categories");
+    } catch (err) {
+      setError(err?.message || "Unable to read the CSV file.");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const downloadSample = () => {
     const blob = new Blob(
       [
-        `Date,Description,Amount,Category
-2026-09-23,Printing,4.50,Academics
-2026-09-22,Ride to library,6.20,Transport
+        `Date,Description,Amount,Category,Type
+2026-10-02,Printing,4.50,Academics,EXPENSE
+2026-10-03,Monthly allowance,50000,Allowance,INCOME
 `,
       ],
       { type: "text/csv" },
     );
+
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+
+    a.href = url;
     a.download = "campuscoin-sample.csv";
     a.click();
-    URL.revokeObjectURL(a.href);
+
+    URL.revokeObjectURL(url);
   };
+
   return (
     <ToolsShell
       page="Import CSV"
@@ -4406,6 +4592,7 @@ function ImportPage() {
             3 <b>Done</b>
           </span>
         </div>
+
         <div className="import-layout">
           <div>
             <label className={`upload-zone ${file ? "has-file" : ""}`}>
@@ -4415,88 +4602,238 @@ function ImportPage() {
                 accept=".csv,text/csv"
                 onChange={choose}
               />
+
               <span className="upload-icon">
                 <Icon name="upload" size={20} />
               </span>
+
               <strong>{file ? file.name : "Drop your CSV here"}</strong>
+
               <small>
                 {file
                   ? `${(file.size / 1024).toFixed(1)} KB · ready to review`
                   : "or choose a file from your computer"}
               </small>
+
               <b>{file ? "Choose another file" : "Browse files"}</b>
             </label>
+
             {error && <p className="form-error">{error}</p>}
+
             {file && (
               <div className="file-row">
                 <span>{toneIcon("mint", "receipt")}</span>
+
                 <div>
                   <strong>{file.name}</strong>
-                  <small>CSV file · {(file.size / 1024).toFixed(1)} KB</small>
+                  <small>
+                    CSV file · {(file.size / 1024).toFixed(1)} KB
+                  </small>
                 </div>
+
                 <button
                   type="button"
                   onClick={() => {
                     setFile(null);
-                    if (inputRef.current) inputRef.current.value = "";
+                    setError("");
+
+                    if (inputRef.current) {
+                      inputRef.current.value = "";
+                    }
                   }}
                 >
                   <Icon name="close" size={14} />
                 </button>
               </div>
             )}
+
             <button
               className="tool-primary import-button"
               type="button"
-              disabled={!file}
-              onClick={() =>
-                file &&
-                navigate(
-                  "/review-categories?file=" + encodeURIComponent(file.name),
-                )
-              }
+              disabled={!file || processing}
+              onClick={continueToReview}
             >
-              {file ? "Continue to review" : "Choose a CSV file"}
+              {processing
+                ? "Reading CSV..."
+                : file
+                  ? "Continue to review"
+                  : "Choose a CSV file"}
             </button>
           </div>
+
           <aside className="import-help">
             <h3>CSV format</h3>
-            <p>Use one transaction per row with the following columns.</p>
+            <p>Use one transaction per row with these columns.</p>
+
             <strong>Date · Description · Amount · Category</strong>
+
+            <p>
+              You can also include a Type column containing INCOME or EXPENSE.
+              Without it, transactions default to EXPENSE.
+            </p>
+
             <button type="button" onClick={downloadSample}>
               Download sample CSV
             </button>
           </aside>
         </div>
+
         <div className="import-note">
           <Icon name="info" size={15} />
           <span>
-            Your original transactions will not be changed. CampusCoin will
-            preview and validate the import before saving it.
+            Your transactions will be previewed before saving. Categories
+            missing from your account will be created during import.
           </span>
         </div>
       </PageFrame>
+
       <ActionToast message={toast} />
     </ToolsShell>
   );
 }
+
 function ReviewPage() {
-  const [dark, setDark] = useState(false),
-    [notify, setNotify] = useState(false),
-    [selected, setSelected] = useState(() =>
-      Object.fromEntries(reviewRows.map((_, i) => [i, true])),
-    ),
-    [tab, setTab] = useState("AI suggestions 8"),
-    [done, setDone] = useState(false),
-    [toast, showToast] = useToast();
-  const rows = reviewRows.filter(
-    (_, i) =>
-      tab === "All 10" ||
-      tab === "AI suggestions 8" ||
-      (tab === "Needs review 2" && (i === 3 || i === 8)) ||
-      (tab === "Excluded 0" && !selected[i]),
-  );
-  const selectedCount = Object.values(selected).filter(Boolean).length;
+  const [dark, setDark] = useState(false);
+  const [notify, setNotify] = useState(false);
+  const [rows, setRows] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem(CSV_IMPORT_KEY) || "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [importing, setImporting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState("");
+  const [toast, showToast] = useToast();
+
+  const selectedRows = rows.filter((row) => row.selected && !row.errors.length);
+  const invalidCount = rows.filter((row) => row.errors.length).length;
+
+  const updateRow = (id, updates) => {
+    setRows((current) => {
+      const updated = current.map((row) =>
+        row.id === id ? { ...row, ...updates } : row,
+      );
+
+      sessionStorage.setItem(CSV_IMPORT_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const importTransactions = async () => {
+    if (!selectedRows.length || importing) return;
+
+    setImporting(true);
+    setError("");
+
+    let importedCount = 0;
+
+    try {
+      let categories = await getCategories();
+
+      if (!Array.isArray(categories)) {
+        throw new Error("Unable to load your categories.");
+      }
+
+      const categoryIds = new Map(
+        categories.map((category) => [
+          `${category.name.trim().toLowerCase()}::${category.type}`,
+          category.categoryId,
+        ]),
+      );
+
+      for (const row of selectedRows) {
+        const categoryName = row.category.trim();
+        const categoryKey =
+          `${categoryName.toLowerCase()}::${row.type}`;
+
+        let categoryId = categoryIds.get(categoryKey);
+
+        if (!categoryId) {
+          const sameName = categories.find(
+            (category) =>
+              category.name.trim().toLowerCase() ===
+              categoryName.toLowerCase(),
+          );
+
+          if (sameName && sameName.type !== row.type) {
+            throw new Error(
+              `Category "${categoryName}" already exists as ${sameName.type}. Its type does not match the transaction on ${row.date}.`,
+            );
+          }
+
+          const createdCategory = await createCategory({
+            name: categoryName,
+            type: row.type,
+          });
+
+          if (!createdCategory?.categoryId) {
+            throw new Error(
+              `CampusCoin did not return an ID for category "${categoryName}".`,
+            );
+          }
+
+          categoryId = createdCategory.categoryId;
+          categories = [...categories, createdCategory];
+          categoryIds.set(categoryKey, categoryId);
+        }
+
+        await createTransaction({
+          categoryId,
+          amount: row.amount,
+          type: row.type,
+          description: row.description || null,
+          date: row.date,
+        });
+
+        importedCount += 1;
+      }
+
+      // Refresh the transaction list for other parts of the app.
+      await getTransactions();
+
+      setDone(true);
+      sessionStorage.removeItem(CSV_IMPORT_KEY);
+      showToast(`${importedCount} transactions imported successfully`);
+    } catch (err) {
+      setError(
+        importedCount > 0
+          ? `${importedCount} transactions were imported before the error: ${err?.message || "Unknown error"}. Please review your transactions before retrying.`
+          : err?.message || "Unable to import transactions.",
+      );
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  if (!rows.length && !done) {
+    return (
+      <ToolsShell
+        page="Import CSV"
+        dark={dark}
+        setDark={setDark}
+        notificationOpen={notify}
+        setNotificationOpen={setNotify}
+      >
+        <PageFrame
+          eyebrow="IMPORT REVIEW"
+          title="No CSV to review"
+          description="Choose a CSV file before opening the review page."
+          actions={
+            <button
+              className="tool-primary"
+              type="button"
+              onClick={() => navigate("/import-csv")}
+            >
+              Upload CSV
+            </button>
+          }
+        />
+      </ToolsShell>
+    );
+  }
+
   return (
     <ToolsShell
       page="Import CSV"
@@ -4507,110 +4844,143 @@ function ReviewPage() {
     >
       <PageFrame
         eyebrow="IMPORT REVIEW"
-        title="Review AI categories"
-        description="Review the suggested categories before adding these transactions to your history."
+        title={done ? "Import complete" : "Review transactions"}
+        description={
+          done
+            ? "Your selected transactions have been saved."
+            : "Review your CSV rows before adding them to CampusCoin."
+        }
         actions={
           <>
             <button
               className="tool-btn"
               type="button"
+              disabled={importing}
               onClick={() => navigate("/import-csv")}
             >
               <Icon name="arrowleft" size={14} /> Back
             </button>
-            <button
-              className="tool-primary"
-              type="button"
-              disabled={!selectedCount}
-              onClick={() => {
-                setDone(true);
-                showToast(`${selectedCount} transactions ready to import`);
-              }}
-            >
-              {done ? "Imported" : "Import " + selectedCount + " transactions"}
-            </button>
+
+            {!done && (
+              <button
+                className="tool-primary"
+                type="button"
+                disabled={!selectedRows.length || importing}
+                onClick={importTransactions}
+              >
+                {importing
+                  ? "Importing..."
+                  : `Import ${selectedRows.length} transactions`}
+              </button>
+            )}
           </>
         }
       >
-        <div className="review-steps">
-          <span className="done">✓ Upload file</span>
-          <span className="done">✓ Review transactions</span>
-          <span className="active">3 Done</span>
-        </div>
-        <div className="review-tabs">
-          {["All 10", "AI suggestions 8", "Needs review 2", "Excluded 0"].map(
-            (x) => (
-              <button
-                type="button"
-                key={x}
-                className={tab === x ? "active" : ""}
-                onClick={() => setTab(x)}
-              >
-                {x}
-              </button>
-            ),
-          )}
-        </div>
-        <div className="review-table">
-          <div className="review-head">
-            <span>Transaction</span>
-            <span>Amount</span>
-            <span>Suggested category</span>
-            <span>Confidence</span>
+        {done ? (
+          <div className="import-note">
+            <Icon name="check" size={15} />
+            <span>
+              Import completed. Your transactions are now saved in CampusCoin.
+            </span>
           </div>
-          {rows.map((r) => {
-            const i = reviewRows.indexOf(r);
-            const low = i === 3 || i === 8;
-            return (
-              <div
-                className={`review-row ${low ? "needs-review" : ""}`}
-                key={r[0] + r[1]}
-              >
-                <input
-                  type="checkbox"
-                  checked={selected[i] !== false}
-                  onChange={(e) =>
-                    setSelected((v) => ({ ...v, [i]: e.target.checked }))
-                  }
-                />
-                <span>
-                  <small>{r[0]}</small>
-                  <strong>{r[1]}</strong>
-                </span>
-                <b>{r[2]}</b>
-                <button
-                  className="category-suggest"
-                  type="button"
-                  onClick={() => showToast("Category picker opened")}
-                >
-                  {r[3]}⌄
-                </button>
-                <span className="confidence">
-                  <i style={{ "--confidence": r[4] }} />
-                  {r[4]}
-                </span>
+        ) : (
+          <>
+            <div className="review-steps">
+              <span className="done">✓ Upload file</span>
+              <span className="done">✓ Review transactions</span>
+              <span className="active">3 Import</span>
+            </div>
+
+            {error && <p className="form-error">{error}</p>}
+
+            {invalidCount > 0 && (
+              <p className="form-error">
+                {invalidCount} row(s) have validation errors and cannot be
+                selected until corrected in your CSV.
+              </p>
+            )}
+
+            <div className="review-table">
+              <div className="review-head">
+                <span>Transaction</span>
+                <span>Amount</span>
+                <span>Category</span>
+                <span>Type</span>
               </div>
-            );
-          })}
-        </div>
-        <div className="review-footer">
-          <span>
-            {selectedCount} of 10 transactions selected. AI categorized 8
-            confidently; two entries need review.
-          </span>
-          <button
-            className="text-link"
-            type="button"
-            onClick={() => setTab("Needs review 2")}
-          >
-            Review flagged
-          </button>
-        </div>
+
+              {rows.map((row) => (
+                <div
+                  className={`review-row ${row.errors.length ? "needs-review" : ""}`}
+                  key={row.id}
+                >
+                  <input
+                    type="checkbox"
+                    checked={row.selected && !row.errors.length}
+                    disabled={Boolean(row.errors.length) || importing}
+                    onChange={(e) =>
+                      updateRow(row.id, { selected: e.target.checked })
+                    }
+                  />
+
+                  <span>
+                    <small>{row.date || "Invalid date"}</small>
+                    <strong>
+                      {row.description || "(No description)"}
+                    </strong>
+
+                    {row.errors.length > 0 && (
+                      <small className="form-error">
+                        {row.errors.join(", ")}
+                      </small>
+                    )}
+                  </span>
+
+                  <b>{formatMoney(row.amount || 0)}</b>
+
+                  <span>{row.category || "Missing category"}</span>
+
+                  <span>{row.type}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="review-footer">
+              <span>
+                {selectedRows.length} of {rows.length} transactions selected.
+                Missing categories will be created automatically.
+              </span>
+
+              <button
+                className="text-link"
+                type="button"
+                onClick={() =>
+                  setRows((current) => {
+                    const updated = current.map((row) => ({
+                      ...row,
+                      selected: !row.errors.length,
+                    }));
+
+                    sessionStorage.setItem(
+                      CSV_IMPORT_KEY,
+                      JSON.stringify(updated),
+                    );
+
+                    return updated;
+                  })
+                }
+              >
+                Select all valid rows
+              </button>
+            </div>
+          </>
+        )}
       </PageFrame>
+
       <ActionToast message={toast} />
     </ToolsShell>
   );
 }
+
 function SettingsPage() {
   const [dark, setDark] = useState(false);
   const [notify, setNotify] = useState(false);
