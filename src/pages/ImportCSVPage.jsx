@@ -5,6 +5,8 @@ import { DashboardShell } from "./DashboardPage";
 
 import { getCategories, createCategory } from "../api/categoryApi";
 import { createTransaction } from "../api/transactionApi";
+import { getCategorySuggestion } from "../api/aiApi";
+import { formatMoney } from "../utils/currency";
 
 const REQUIRED_COLUMNS = [
   "description",
@@ -167,6 +169,73 @@ function ImportCSVPage() {
         normalized
     );
   }
+
+  async function resolveImportCategory(row, categoryCache) {
+  const normalizedName = row.categoryName.trim().toLowerCase();
+
+  // First: exact match with the correct transaction type.
+  const exactMatch = categoryCache.find(
+    (category) =>
+      category.name?.trim().toLowerCase() === normalizedName &&
+      category.type === row.type
+  );
+
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  // Ask Groq to suggest a category based on the CSV label
+  // and the transaction description.
+  const suggestion = await getCategorySuggestion(
+    `CSV category: "${row.categoryName}". Transaction description: "${row.description}". Find the most appropriate existing category for this transaction.`,
+    row.type
+  );
+
+  const suggestedName = (
+    suggestion?.selectedCategory ||
+    suggestion?.suggestedCategory ||
+    ""
+  ).trim().toLowerCase();
+
+  // Only reuse a category that actually exists and has
+  // the correct INCOME/EXPENSE type.
+  const aiMatch = categoryCache.find(
+    (category) =>
+      category.name?.trim().toLowerCase() === suggestedName &&
+      category.type === row.type
+  );
+
+  if (aiMatch) {
+    return aiMatch;
+  }
+
+  // No suitable existing category: create the CSV category
+  // during import, using the original name.
+  const created = await createCategory({
+    name: row.categoryName.trim(),
+    type: row.type,
+  });
+
+  const category = created?.data ?? created?.category ?? created;
+
+  if (!category?.categoryId) {
+    throw new Error(
+      `Could not create or resolve category "${row.categoryName}".`
+    );
+  }
+
+  categoryCache.push(category);
+  return category;
+}
+
+  function categoryExists(categoryName, type) {
+  return categories.some(
+    (category) =>
+      category.name?.trim().toLowerCase() ===
+        categoryName?.trim().toLowerCase() &&
+      category.type === type
+  );
+}
 
   function validateRow(row, rowNumber) {
   const errors = [];
@@ -421,6 +490,63 @@ function ImportCSVPage() {
     [validRows]
   );
 
+ async function resolveImportCategory(row, categoryCache) {
+  const normalizedName = row.categoryName.trim().toLowerCase();
+
+  // 1. Reuse an exact category match first.
+  const exactMatch = categoryCache.find(
+    (category) =>
+      category.name?.trim().toLowerCase() === normalizedName &&
+      category.type === row.type
+  );
+
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  // 2. Ask Groq to match the CSV category to an existing category.
+  const suggestion = await getCategorySuggestion(
+    `CSV category: "${row.categoryName}".
+Transaction description: "${row.description}".
+Prefer an existing category if it means the same thing as the CSV category.
+Only suggest a new category if no existing category is appropriate.`,
+    row.type
+  );
+
+  const selectedName = suggestion?.selectedCategory?.trim().toLowerCase();
+
+  const existingMatch = categoryCache.find(
+    (category) =>
+      category.name?.trim().toLowerCase() === selectedName &&
+      category.type === row.type
+  );
+
+  if (existingMatch) {
+    return existingMatch;
+  }
+
+  // 3. No existing category was resolved, so create a new one.
+  const newCategoryName =
+    suggestion?.suggestedCategory?.trim() || row.categoryName.trim();
+
+  const created = await createCategory({
+    name: newCategoryName,
+    type: row.type,
+  });
+
+  const category = created?.data ?? created?.category ?? created;
+
+  if (!category?.categoryId) {
+    throw new Error(
+      `Could not resolve category "${row.categoryName}".`
+    );
+  }
+
+  categoryCache.push(category);
+
+  return category;
+} 
+
 async function handleImport() {
   setError("");
   setSuccess("");
@@ -439,46 +565,12 @@ async function handleImport() {
   try {
     for (const row of validRows) {
       try {
-        let category = categoryCache.find(
-          (item) =>
-            item.name?.trim().toLowerCase() ===
-              row.categoryName.trim().toLowerCase() &&
-            item.type === row.type
+        // Resolve an existing category with Groq when needed,
+        // or create a new category if no suitable match exists.
+        const category = await resolveImportCategory(
+          row,
+          categoryCache
         );
-
-        if (!category) {
-          category = await createCategory({
-            name: row.categoryName.trim(),
-            type: row.type,
-          });
-
-          // Handle APIs that return the created category in a wrapper.
-          category = category?.data ?? category?.category ?? category;
-
-          if (!category?.categoryId) {
-            // Refresh the list in case the API created the category
-            // but returned a different response structure.
-            const refreshed = await getCategories();
-            const list = Array.isArray(refreshed)
-              ? refreshed
-              : refreshed?.data ?? [];
-
-            category = list.find(
-              (item) =>
-                item.name?.trim().toLowerCase() ===
-                  row.categoryName.trim().toLowerCase() &&
-                item.type === row.type
-            );
-          }
-
-          if (!category?.categoryId) {
-            throw new Error(
-              `Could not resolve category "${row.categoryName}" after creation.`
-            );
-          }
-
-          categoryCache.push(category);
-        }
 
         await createTransaction({
           categoryId: category.categoryId,
@@ -522,22 +614,30 @@ async function handleImport() {
     }
 
     setSuccess(
-      `${imported} transaction${imported === 1 ? "" : "s"} imported successfully.`
+      `${imported} transaction${
+        imported === 1 ? "" : "s"
+      } imported successfully.`
     );
 
     setRows(
       failed.map((row) => ({
         ...row,
-        errors: [...(row.errors || []), row.importError],
+        errors: [
+          ...(row.errors || []),
+          row.importError,
+        ],
         valid: false,
       }))
     );
   } catch (err) {
-    setError(err.message || "The import could not be completed.");
+    setError(
+      err.message || "The import could not be completed."
+    );
   } finally {
     setImporting(false);
   }
 }
+
 
   return (
     <DashboardShell
@@ -744,10 +844,7 @@ async function handleImport() {
                   <div>
                     <span>Total amount</span>
                     <b>
-                      $
-                      {totalAmount.toFixed(
-                        2
-                      )}
+                     {formatMoney(totalAmount)}
                     </b>
                   </div>
                 </div>
@@ -799,21 +896,24 @@ async function handleImport() {
                           </td>
 
                           <td>
-                            $
-                            {Number(
-                              row.amount || 0
-                            ).toFixed(2)}
+                            {formatMoney(row.amount)}
                           </td>
 
                           <td>
                             {row.type}
                           </td>
 
-                          <td>
-                            {
-                              row.categoryName
-                            }
-                          </td>
+                         <td>
+  <div className="csv-category-cell">
+    <span>{row.categoryName}</span>
+
+    {!categoryExists(row.categoryName, row.type) && (
+      <small className="csv-category-new">
+        New category · Created on import
+      </small>
+    )}
+  </div>
+</td>
 
                           <td>
                             {row.date}

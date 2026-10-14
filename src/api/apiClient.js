@@ -1,4 +1,11 @@
-import { getAdminSession, getStudentSession } from '../utils'
+
+import {
+  getAdminSession,
+  getStudentSession,
+  clearAdminSession,
+  clearStudentSession,
+} from '../utils'
+import { navigate } from '../routes/AppRoutes'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -8,8 +15,18 @@ if (!API_BASE_URL) {
   )
 }
 
+// Prevent several simultaneous failed requests from triggering
+// repeated logout redirects.
+let handlingExpiredSession = false
+
+if (!API_BASE_URL) {
+  throw new Error('VITE_API_BASE_URL is not configured.')
+}
+
 export async function apiRequest(endpoint, options = {}) {
   const isAdminEndpoint = endpoint.startsWith('/api/admin/')
+  const isAuthEndpoint = endpoint.startsWith('/api/auth/')
+
   const session = isAdminEndpoint
     ? getAdminSession()
     : getStudentSession()
@@ -20,19 +37,14 @@ export async function apiRequest(endpoint, options = {}) {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-
       ...(token
-        ? {
-            Authorization: `Bearer ${token}`,
-          }
+        ? { Authorization: `Bearer ${token}` }
         : {}),
-
       ...(options.headers || {}),
     },
   })
 
   const contentType = response.headers.get('content-type')
-
   let data
 
   if (contentType?.includes('application/json')) {
@@ -42,6 +54,25 @@ export async function apiRequest(endpoint, options = {}) {
   }
 
   if (!response.ok) {
+    // A protected request has failed authentication.
+    if (
+      token &&
+      !isAuthEndpoint &&
+      [401, 403].includes(response.status)
+    ) {
+      if (!handlingExpiredSession) {
+        handlingExpiredSession = true
+
+        if (isAdminEndpoint) {
+          clearAdminSession()
+          navigate('/admin/sign-in')
+        } else {
+          clearStudentSession()
+          navigate('/sign-in')
+        }
+      }
+    }
+
     let errorMessage = 'Request failed'
 
     if (typeof data === 'object' && data !== null) {
@@ -55,6 +86,14 @@ export async function apiRequest(endpoint, options = {}) {
     }
 
     throw new Error(errorMessage)
+  }
+
+  // Allow a fresh login after an expired session.
+  if (
+    endpoint === '/api/auth/login' ||
+    endpoint === '/api/auth/admin-login'
+  ) {
+    handlingExpiredSession = false
   }
 
   return data

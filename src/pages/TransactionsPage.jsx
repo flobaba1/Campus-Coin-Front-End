@@ -115,6 +115,22 @@ function toneIcon(tone, icon) {
   );
 }
 
+function getCurrentMonthRange() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+
+  const formatDate = (date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(
+      date.getDate()
+    ).padStart(2, "0")}`;
+
+  return {
+    startDate: formatDate(new Date(year, month, 1)),
+    endDate: formatDate(new Date(year, month + 1, 0)),
+  };
+}
+
 function TransactionsPage() {
   const params = new URLSearchParams(window.location.search);
 
@@ -131,8 +147,12 @@ function TransactionsPage() {
   const [activeTab, setActiveTab] = useState("ALL");
   const [selectedCategory, setSelectedCategory] = useState("ALL");
 
-  const [startDate, setStartDate] = useState("2026-09-01");
-  const [endDate, setEndDate] = useState("2026-09-30");
+const [startDate, setStartDate] = useState(
+  () => getCurrentMonthRange().startDate
+);
+const [endDate, setEndDate] = useState(
+  () => getCurrentMonthRange().endDate
+);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
@@ -246,35 +266,45 @@ function TransactionsPage() {
   /*
    * September metrics
    */
-  const septemberTransactions = useMemo(() => {
-    return transactions.filter(
-      (transaction) =>
-        transaction.date >= "2026-09-01" &&
-        transaction.date <= "2026-09-30"
+  const now = new Date();
+const currentYear = now.getFullYear();
+const currentMonth = now.getMonth();
+
+const currentMonthLabel = now.toLocaleDateString("en-US", {
+  month: "short",
+});
+
+const currentMonthTransactions = useMemo(() => {
+  return transactions.filter((transaction) => {
+    if (!transaction.date) return false;
+
+    const date = new Date(`${transaction.date}T00:00:00`);
+
+    return (
+      date.getFullYear() === currentYear &&
+      date.getMonth() === currentMonth
     );
-  }, [transactions]);
+  });
+}, [transactions, currentYear, currentMonth]);
 
-  const septemberIncome = useMemo(() => {
-    return septemberTransactions
-      .filter((transaction) => transaction.type === "INCOME")
-      .reduce(
-        (total, transaction) =>
-          total + Number(transaction.amount || 0),
-        0
-      );
-  }, [septemberTransactions]);
+const currentMonthIncome = currentMonthTransactions
+  .filter((transaction) => transaction.type === "INCOME")
+  .reduce(
+    (total, transaction) =>
+      total + Number(transaction.amount || 0),
+    0
+  );
 
-  const septemberExpenses = useMemo(() => {
-    return septemberTransactions
-      .filter((transaction) => transaction.type === "EXPENSE")
-      .reduce(
-        (total, transaction) =>
-          total + Number(transaction.amount || 0),
-        0
-      );
-  }, [septemberTransactions]);
+const currentMonthExpenses = currentMonthTransactions
+  .filter((transaction) => transaction.type === "EXPENSE")
+  .reduce(
+    (total, transaction) =>
+      total + Number(transaction.amount || 0),
+    0
+  );
 
-  const netBalance = septemberIncome - septemberExpenses;
+const netBalance = currentMonthIncome - currentMonthExpenses;
+
 
   /*
    * Pagination
@@ -285,6 +315,22 @@ function TransactionsPage() {
   );
 
   const safeCurrentPage = Math.min(currentPage, totalPages);
+  const pagesPerGroup = 5;
+
+const pageGroupStart =
+  Math.floor((safeCurrentPage - 1) / pagesPerGroup) *
+    pagesPerGroup +
+  1;
+
+const visiblePages = Array.from(
+  {
+    length: Math.min(
+      pagesPerGroup,
+      totalPages - pageGroupStart + 1
+    ),
+  },
+  (_, index) => pageGroupStart + index
+);
 
   const paginatedTransactions = filtered.slice(
     (safeCurrentPage - 1) * itemsPerPage,
@@ -418,15 +464,15 @@ function TransactionsPage() {
           <Metric
             icon="arrowup"
             tone="mint"
-            label="Income · Sep"
-            value={formatMoney(septemberIncome)}
+            label={`Income · ${currentMonthLabel}`}
+            value={formatMoney(currentMonthIncome)}
           />
 
           <Metric
             icon="arrowdown"
             tone="blue"
-            label="Expenses · Sep"
-            value={formatMoney(septemberExpenses)}
+            label={`Expenses · ${currentMonthLabel}`}
+            value={formatMoney(currentMonthExpenses)}
           />
 
           <Metric
@@ -723,26 +769,15 @@ function TransactionsPage() {
                       ‹
                     </button>
 
-                    {Array.from(
-                      { length: totalPages },
-                      (_, index) => index + 1
-                    )
-                      .slice(0, 5)
-                      .map((page) => (
-                        <button
-                          key={page}
-                          className={
-                            safeCurrentPage === page
-                              ? "active"
-                              : ""
-                          }
-                          onClick={() =>
-                            setCurrentPage(page)
-                          }
-                        >
-                          {page}
-                        </button>
-                      ))}
+                    {visiblePages.map((page) => (
+  <button
+    key={page}
+    className={safeCurrentPage === page ? "active" : ""}
+    onClick={() => setCurrentPage(page)}
+  >
+    {page}
+  </button>
+))}
 
                     <button
                       disabled={
