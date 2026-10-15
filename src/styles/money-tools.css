@@ -6524,3 +6524,33 @@ button:last-child:hover {
     padding: 14px 16px;
   }
 }
+
+.money-tools-app .notes-search:focus,
+.money-tools-app .notes-search:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.money-tools-app .bookmark-search:focus,
+.money-tools-app .bookmark-search:focus-visible,
+.money-tools-app .bookmark-search:focus-within {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: inherit;
+}
+
+.money-tools-app input[placeholder="Search bookmarks and notes..."],
+.money-tools-app input[placeholder="Search bookmarks and notes..."]:focus,
+.money-tools-app input[placeholder="Search bookmarks and notes..."]:focus-visible,
+.money-tools-app input[placeholder="Search bookmarks and notes..."]:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
+}
+
+.money-tools-app input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+
