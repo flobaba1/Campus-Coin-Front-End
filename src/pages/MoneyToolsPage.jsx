@@ -3503,29 +3503,35 @@ function BookmarksPage() {
 
   const normalizedSearch = search.trim().toLowerCase();
 
-  const filteredBookmarks = useMemo(() => {
-    let result = [...items];
+const filteredBookmarks = useMemo(() => {
+  let result = [...items];
 
-    if (tab === "Tips") {
-      result = result.filter((item) => item.type === "TIP");
-    }
+  if (normalizedSearch) {
+    result = result.filter(
+      (bookmark) =>
+        bookmark.title
+          ?.toLowerCase()
+          .includes(normalizedSearch) ||
+        bookmark.content
+          ?.toLowerCase()
+          .includes(normalizedSearch)
+    );
+  }
 
-    if (tab === "Insights") {
-      result = result.filter((item) => item.type === "INSIGHT");
-    }
+  if (tab === "Tips") {
+    result = result.filter(
+      (bookmark) => bookmark.type === "TIP"
+    );
+  }
 
-    if (sort === "Newest") {
-      result.sort(
-        (a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0),
-      );
-    }
+  if (tab === "Insights") {
+    result = result.filter(
+      (bookmark) => bookmark.type === "INSIGHT"
+    );
+  }
 
-    if (sort === "A–Z") {
-      result.sort((a, b) => a.title.localeCompare(b.title));
-    }
-
-    return result;
-  }, [items, tab, sort]);
+  return result;
+}, [items, normalizedSearch, tab]);
 
   const filteredNotes = useMemo(() => {
     let result = [...notes];
@@ -3709,14 +3715,22 @@ function BookmarksPage() {
             <button
               className="tool-primary"
               type="button"
-              onClick={() => {
-                if (isNotesTab) {
-                  setEditingNote(null);
-                  setModal(true);
-                } else {
-                  setModal(true);
-                }
-              }}
+              // onClick={() => {
+              //   if (isNotesTab) {
+              //     setEditingNote(null);
+              //     setModal(true);
+              //   } else {
+              //     setModal(true);
+              //   }
+              // }}
+
+onClick={() => {
+  if (isNotesTab) {
+    setEditingNote(null);
+  }
+  setModal(true);
+}}
+
             >
               <Icon name={isNotesTab ? "edit" : "bookmark"} size={14} />
               {isNotesTab ? "New note" : "New bookmark"}
@@ -3841,10 +3855,13 @@ function BookmarksPage() {
                         <button
                           type="button"
                           className="tool-primary"
-                          onClick={() => {
-                            setEditingNote(null);
-                            setModal(true);
-                          }}
+                          
+onClick={() => {
+  setTab("Notes");
+  setEditingNote(null);
+  setModal(true);
+}}
+
                         >
                           Create note
                         </button>
