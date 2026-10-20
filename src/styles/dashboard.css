@@ -6305,3 +6305,44 @@
 .dashboard-app .tool-overlay {
   z-index: 2000 !important;
 }
+
+/* Dashboard: prevent saving tips from overlapping the next card */
+/* Align the right-hand dashboard cards with Spending pace */
+.dashboard-app .right-stack {
+  height: 100%;
+  min-height: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.dashboard-app .right-stack .insight-card {
+  flex: 0 0 auto;
+}
+
+.dashboard-app .right-stack .tips-card {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.dashboard-app .dashboard-tip-list {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.dashboard-app .tips-card {
+  height: auto;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.dashboard-app .tips-card .tip-row-button {
+  box-sizing: border-box;
+  min-width: 0;
+}

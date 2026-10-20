@@ -35,6 +35,43 @@ import {
   deleteBookmark,
 } from "../api/bookmarkApi";
 
+import {
+  getCachedCategories,
+  setCachedCategories,
+  getCachedBudgets,
+  setCachedBudgets,
+    getCachedAllBudgets,
+  setCachedAllBudgets,
+  getCachedReportTransactions,
+  setCachedReportTransactions,
+  getCachedMoneyToolsNotifications,
+  setCachedMoneyToolsNotifications,
+  getCachedBookmarks,
+  setCachedBookmarks,
+} from "../state/moneyDataCache";
+
+
+function updateBudgetCaches(year, month, updatedMonthlyBudgets) {
+  // Always update the cache for the selected month.
+  setCachedBudgets(year, month, updatedMonthlyBudgets);
+
+  // Update the complete budget cache only if it has already been loaded.
+  const allBudgets = getCachedAllBudgets();
+
+  if (allBudgets !== null) {
+    const otherMonths = allBudgets.filter(
+      (budget) =>
+        Number(budget.year) !== Number(year) ||
+        Number(budget.month) !== Number(month)
+    );
+
+    setCachedAllBudgets([
+      ...otherMonths,
+      ...updatedMonthlyBudgets,
+    ]);
+  }
+}
+
 const categories = [
   {
     name: "Food",
@@ -856,37 +893,77 @@ function BudgetsPage() {
 
   const [toast, showToast] = useToast();
 
-  const loadBudgets = async (
-    selectedYear = year,
-    selectedMonth = month,
-    showLoading = true,
-  ) => {
-    try {
-      if (showLoading) {
-        setLoading(true);
-      }
+ 
+const loadBudgets = async (
+  selectedYear = year,
+  selectedMonth = month,
+  showLoading = true,
+  forceRefresh = false,
+) => {
+  const cachedBudgets = getCachedBudgets(
+    selectedYear,
+    selectedMonth,
+  );
+  const cachedCategories = getCachedCategories();
 
-      const [budgetData, categoryData] = await Promise.all([
-        getBudgetsForMonth(selectedYear, selectedMonth),
-        getCategories(),
-      ]);
+  // Display cached data immediately when available.
+  if (!forceRefresh && cachedBudgets !== null) {
+    setBudgets(cachedBudgets);
 
-      setBudgets(Array.isArray(budgetData) ? budgetData : []);
-
-      const expenseCategories = Array.isArray(categoryData)
-        ? categoryData.filter((category) => category.type === "EXPENSE")
-        : [];
-
-      setCategories(expenseCategories);
-    } catch (error) {
-      console.error("Failed to load budgets:", error);
-      showToast(error.message || "Failed to load budgets");
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
+    if (cachedCategories !== null) {
+      setCategories(
+        cachedCategories.filter(
+          (category) => category.type === "EXPENSE",
+        ),
+      );
     }
-  };
+
+    if (showLoading) setLoading(false);
+    return;
+  }
+
+  try {
+    if (showLoading) setLoading(true);
+
+    const [budgetData, categoryData] = await Promise.all([
+      getBudgetsForMonth(selectedYear, selectedMonth),
+      cachedCategories === null
+        ? getCategories()
+        : Promise.resolve(cachedCategories),
+    ]);
+
+    const safeBudgets = Array.isArray(budgetData)
+      ? budgetData
+      : [];
+
+    const safeCategories = Array.isArray(categoryData)
+      ? categoryData
+      : [];
+
+setBudgets(safeBudgets);
+
+updateBudgetCaches(
+  selectedYear,
+  selectedMonth,
+  safeBudgets
+);
+
+setCategories(
+  safeCategories.filter(
+    (category) => category.type === "EXPENSE"
+  )
+);
+
+setCachedCategories(safeCategories);
+
+  } catch (error) {
+    console.error("Failed to load budgets:", error);
+    showToast(error.message || "Failed to load budgets");
+  } finally {
+    if (showLoading) setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     loadBudgets(year, month);
@@ -923,7 +1000,7 @@ function BudgetsPage() {
     try {
       setSyncing(true);
 
-      await loadBudgets(year, month, false);
+      await loadBudgets(year, month, false, true);
 
       showToast("Budgets synced successfully");
     } catch (error) {
@@ -944,7 +1021,21 @@ function BudgetsPage() {
     try {
       const created = await createBudget(payload);
 
-      setBudgets((current) => [...current, created]);
+      //setBudgets((current) => [...current, created]);
+//       setBudgets((current) => {
+//   const updated = [...current, created];
+//   setCachedBudgets(year, month, updated);
+//   return updated;
+// });
+
+
+setBudgets((current) => {
+  const updated = [...current, created];
+  updateBudgetCaches(year, month, updated);
+
+  return updated;
+});
+
 
       setBudgetModal(false);
 
@@ -959,18 +1050,34 @@ function BudgetsPage() {
 
   const handleUpdateBudget = async (budgetId, payload) => {
     try {
-      const updated = await updateBudget(budgetId, payload);
+      //const updated = await updateBudget(budgetId, payload);
+      const updatedBudget = await updateBudget(budgetId, payload);
 
-      setBudgets((current) =>
-        current.map((budget) =>
-          budget.budgetId === budgetId ? updated : budget,
-        ),
-      );
+//    setBudgets((current) => {
+//   const updated = current.map((budget) =>
+//     budget.budgetId === budgetId ? updatedBudget : budget
+//   );
+
+//   setCachedBudgets(year, month, updated);
+//   return updated;
+// });
+
+
+setBudgets((current) => {
+  const updated = current.map((budget) =>
+    budget.budgetId === budgetId ? updatedBudget : budget,
+  );
+
+  updateBudgetCaches(year, month, updated);
+
+  return updated;
+});
+
 
       setEditing(null);
 
       showToast(
-        `${updated.categoryName} budget updated to ${money(updated.amount)}`,
+        `${updatedBudget.categoryName} budget updated to ${money(updatedBudget.amount)}`,
       );
     } catch (error) {
       console.error("Failed to update budget:", error);
@@ -992,9 +1099,26 @@ function BudgetsPage() {
     try {
       await deleteBudget(budgetId);
 
-      setBudgets((current) =>
-        current.filter((item) => item.budgetId !== budgetId),
-      );
+//       setBudgets((current) => {
+//   const updated = current.filter(
+//     (item) => item.budgetId !== budgetId
+//   );
+
+//   setCachedBudgets(year, month, updated);
+//   return updated;
+// });
+
+
+setBudgets((current) => {
+  const updated = current.filter(
+    (item) => item.budgetId !== budgetId,
+  );
+
+  updateBudgetCaches(year, month, updated);
+
+  return updated;
+});
+
 
       setEditing(null);
 
@@ -1243,6 +1367,7 @@ function BudgetsPage() {
     </ToolsShell>
   );
 }
+
 
 function Metric({ label, value, green, danger }) {
   return (
@@ -1641,28 +1766,71 @@ function ReportsPage() {
     loadReportData();
   }, []);
 
-  async function loadReportData() {
-    try {
-      setLoading(true);
+ 
+async function loadReportData(forceRefresh = false) {
+  const cachedTransactions = getCachedReportTransactions();
+  const cachedCategories = getCachedCategories();
+  const cachedBudgets = getCachedAllBudgets();
 
-      const [transactionData, categoryData, budgetData] = await Promise.all([
-        getTransactions(),
-        getCategories(),
-        getBudgets(),
+  // If all three datasets are cached, use them without another request.
+  if (
+    !forceRefresh &&
+    cachedTransactions !== null &&
+    cachedCategories !== null &&
+    cachedBudgets !== null
+  ) {
+    setTransactions(cachedTransactions);
+    setCategories(cachedCategories);
+    setBudgets(cachedBudgets);
+    setLoading(false);
+    return;
+  }
+
+  try {
+    setLoading(true);
+
+    const [transactionData, categoryData, budgetData] =
+      await Promise.all([
+        cachedTransactions === null || forceRefresh
+          ? getTransactions()
+          : Promise.resolve(cachedTransactions),
+
+        cachedCategories === null || forceRefresh
+          ? getCategories()
+          : Promise.resolve(cachedCategories),
+
+        cachedBudgets === null || forceRefresh
+          ? getBudgets()
+          : Promise.resolve(cachedBudgets),
       ]);
 
-      setTransactions(Array.isArray(transactionData) ? transactionData : []);
+    const safeTransactions = Array.isArray(transactionData)
+      ? transactionData
+      : [];
 
-      setCategories(Array.isArray(categoryData) ? categoryData : []);
+    const safeCategories = Array.isArray(categoryData)
+      ? categoryData
+      : [];
 
-      setBudgets(Array.isArray(budgetData) ? budgetData : []);
-    } catch (error) {
-      console.error("Failed to load report data:", error);
-      showToast(error.message || "Failed to load report data");
-    } finally {
-      setLoading(false);
-    }
+    const safeBudgets = Array.isArray(budgetData)
+      ? budgetData
+      : [];
+
+    setTransactions(safeTransactions);
+    setCategories(safeCategories);
+    setBudgets(safeBudgets);
+
+    setCachedReportTransactions(safeTransactions);
+    setCachedCategories(safeCategories);
+    setCachedAllBudgets(safeBudgets);
+  } catch (error) {
+    console.error("Failed to load report data:", error);
+    showToast(error.message || "Failed to load report data");
+  } finally {
+    setLoading(false);
   }
+}
+
 
   const expenseCategories = useMemo(
     () =>
@@ -2963,50 +3131,80 @@ function AIInsightsPage() {
   const [saved, setSaved] = useState(false);
   const [toast, showToast] = useToast();
 
-  const loadReport = async () => {
-    try {
-      setLoading(true);
-      const notifications = await getNotifications();
-      const list = Array.isArray(notifications) ? notifications : [];
 
-      setInsight(
-        list.find(isReportInsight) || null
-      );
-      setTips(
-        list.filter(isReportTip).slice(0, 2)
-      );
+const loadReport = async (forceRefresh = false) => {
+  try {
+    const cachedNotifications = getCachedMoneyToolsNotifications();
+    const cachedBookmarks = getCachedBookmarks();
 
-      try {
-        const bookmarks = await getBookmarks();
-        setSaved(
-          Array.isArray(bookmarks) &&
-            Boolean(
-              list.find(isReportInsight) &&
-                bookmarks.some(
-                  (bookmark) =>
-                    bookmark.type === "INSIGHT" &&
-                    bookmark.title ===
-                      list.find(isReportInsight)?.title
-                )
+    if (
+      !forceRefresh &&
+      cachedNotifications !== null &&
+      cachedBookmarks !== null
+    ) {
+      const list = cachedNotifications;
+      const latestInsight = list.find(isReportInsight) || null;
+
+      setInsight(latestInsight);
+      setTips(list.filter(isReportTip).slice(0, 2));
+      setSaved(
+        Boolean(
+          latestInsight &&
+            cachedBookmarks.some(
+              (bookmark) =>
+                bookmark.type === "INSIGHT" &&
+                bookmark.title === latestInsight.title
             )
-        );
-      } catch {
-        setSaved(false);
-      }
-    } catch (error) {
-      console.error("Failed to load AI report:", error);
-      showToast(error.message || "Unable to load AI insight");
-    } finally {
+        )
+      );
       setLoading(false);
+      return;
     }
-  };
+
+    setLoading(true);
+
+    const [notificationData, bookmarkData] = await Promise.all([
+      !forceRefresh && cachedNotifications !== null
+        ? Promise.resolve(cachedNotifications)
+        : getNotifications(),
+      !forceRefresh && cachedBookmarks !== null
+        ? Promise.resolve(cachedBookmarks)
+        : getBookmarks(),
+    ]);
+
+    const list = Array.isArray(notificationData) ? notificationData : [];
+    const bookmarks = Array.isArray(bookmarkData) ? bookmarkData : [];
+    const latestInsight = list.find(isReportInsight) || null;
+
+    setCachedMoneyToolsNotifications(list);
+    setCachedBookmarks(bookmarks);
+
+    setInsight(latestInsight);
+    setTips(list.filter(isReportTip).slice(0, 2));
+    setSaved(
+      Boolean(
+        latestInsight &&
+          bookmarks.some(
+            (bookmark) =>
+              bookmark.type === "INSIGHT" &&
+              bookmark.title === latestInsight.title
+          )
+      )
+    );
+  } catch (error) {
+    console.error("Failed to load AI report:", error);
+    showToast(error.message || "Unable to load AI insight");
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     loadReport();
   }, []);
 
   useEffect(() => {
-    const handleAiUpdated = () => loadReport();
+    const handleAiUpdated = () => loadReport(true);
     window.addEventListener("campuscoin:ai-updated", handleAiUpdated);
     return () =>
       window.removeEventListener(
@@ -3045,6 +3243,12 @@ function AIInsightsPage() {
       });
       setSaved(true);
       showToast("Insight saved to Bookmarks");
+
+      const currentBookmarks = getCachedBookmarks();
+
+if (currentBookmarks !== null) {
+  setCachedBookmarks([created, ...currentBookmarks]);
+}
     } catch (error) {
       showToast(error.message || "Unable to save insight");
     }
@@ -3224,19 +3428,34 @@ function SavingTipsPage() {
   const [selectedTip, setSelectedTip] = useState(null);
   const [toast, showToast] = useToast();
 
-  const loadTips = async () => {
-    try {
-      setLoading(true);
-      const notifications = await getNotifications();
-      const list = Array.isArray(notifications) ? notifications : [];
-      setTips(list.filter(isReportTip).slice(0, 10));
-    } catch (error) {
-      console.error("Failed to load saving tips:", error);
-      showToast(error.message || "Unable to load saving tips");
-    } finally {
+
+const loadTips = async (forceRefresh = false) => {
+  try {
+    const cachedNotifications = getCachedMoneyToolsNotifications();
+
+    if (!forceRefresh && cachedNotifications !== null) {
+      setTips(
+        cachedNotifications.filter(isReportTip).slice(0, 10)
+      );
       setLoading(false);
+      return;
     }
-  };
+
+    setLoading(true);
+
+    const notificationData = await getNotifications();
+    const list = Array.isArray(notificationData) ? notificationData : [];
+
+    setCachedMoneyToolsNotifications(list);
+    setTips(list.filter(isReportTip).slice(0, 10));
+  } catch (error) {
+    console.error("Failed to load saving tips:", error);
+    showToast(error.message || "Unable to load saving tips");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     loadTips();
@@ -3283,6 +3502,11 @@ function SavingTipsPage() {
         content: tip.message,
       });
       showToast("Saving tip saved to Bookmarks");
+      const currentBookmarks = getCachedBookmarks();
+
+if (currentBookmarks !== null) {
+  setCachedBookmarks([created, ...currentBookmarks]);
+}
     } catch (error) {
       showToast(error.message || "Unable to save saving tip");
     }
@@ -3462,22 +3686,34 @@ function BookmarksPage() {
     };
   };
 
-  const loadBookmarks = async () => {
-    try {
-      setBookmarksLoading(true);
-      setBookmarksError("");
 
-      const data = await getBookmarks();
+const loadBookmarks = async (forceRefresh = false) => {
+  try {
+    setBookmarksError("");
 
-      setItems(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error("Failed to load bookmarks:", error);
+    const cachedBookmarks = getCachedBookmarks();
 
-      setBookmarksError(error.message || "Unable to load your bookmarks.");
-    } finally {
+    if (!forceRefresh && cachedBookmarks !== null) {
+      setItems(cachedBookmarks);
       setBookmarksLoading(false);
+      return;
     }
-  };
+
+    setBookmarksLoading(true);
+
+    const data = await getBookmarks();
+    const safeBookmarks = Array.isArray(data) ? data : [];
+
+    setCachedBookmarks(safeBookmarks);
+    setItems(safeBookmarks);
+  } catch (error) {
+    console.error("Failed to load bookmarks:", error);
+    setBookmarksError(error.message || "Unable to load your bookmarks.");
+  } finally {
+    setBookmarksLoading(false);
+  }
+};
+
 
   const loadNotes = async () => {
     try {
@@ -3586,9 +3822,14 @@ const filteredBookmarks = useMemo(() => {
     try {
       await deleteBookmark(bookmarkId);
 
-      setItems((current) =>
-        current.filter((item) => item.bookmarkId !== bookmarkId),
-      );
+      setItems((current) => {
+  const updated = current.filter(
+    (item) => item.bookmarkId !== bookmarkId
+  );
+
+  setCachedBookmarks(updated);
+  return updated;
+});
 
       showToast("Bookmark removed");
     } catch (error) {
@@ -3601,12 +3842,16 @@ const filteredBookmarks = useMemo(() => {
   const handleCreateBookmark = async (type, title, content) => {
     try {
       const created = await createBookmark({
-        type,
-        title,
-        content,
+         type: "INSIGHT", // Use "TIP" inside saveTip.
+  title: insight.title, // Use tip.title inside saveTip.
+  content: insight.message, // Use tip.message inside saveTip.
       });
 
-      setItems((current) => [created, ...current]);
+     setItems((current) => {
+  const updated = [created, ...current];
+  setCachedBookmarks(updated);
+  return updated;
+});
 
       setModal(false);
 

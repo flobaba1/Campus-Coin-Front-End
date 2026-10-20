@@ -13,6 +13,12 @@ import {
 
 import { getCategories } from "../api/categoryApi";
 
+import {
+  useTransactionStore,
+  loadTransactionData,
+  setSharedTransactions,
+} from "../state/transactionStore";
+
 function money(amount, type) {
   const value = Number(amount || 0);
   const isIncome = type === "INCOME";
@@ -138,8 +144,14 @@ function TransactionsPage() {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [search, setSearch] = useState("");
 
-  const [transactions, setTransactions] = useState([]);
-  const [categories, setCategories] = useState([]);
+  // const [transactions, setTransactions] = useState([]);
+  // const [categories, setCategories] = useState([]);
+
+  const {
+  transactions,
+  categories,
+  error: storeError,
+} = useTransactionStore();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -167,41 +179,33 @@ const [endDate, setEndDate] = useState(
     setCurrentPage(1);
   }, [search, activeTab, selectedCategory, startDate, endDate]);
 
-  async function loadData() {
-    try {
-      setLoading(true);
-      setError("");
 
-      const [transactionData, categoryData] = await Promise.all([
-        getTransactions(),
-        getCategories(),
-      ]);
+async function loadData() {
+  try {
+    setError("");
 
-      setTransactions(
-        Array.isArray(transactionData) ? transactionData : []
-      );
+    const data = await loadTransactionData();
 
-      setCategories(
-        Array.isArray(categoryData) ? categoryData : []
-      );
+    const transactionList = Array.isArray(data?.transactions)
+      ? data.transactions
+      : [];
 
-      /*
-       * If the page was opened with ?drawer=1,
-       * open the first available transaction after loading.
-       */
-      if (params.get("drawer") === "1" && transactionData?.length) {
-        setDrawer(transactionData[0]);
-      }
-    } catch (err) {
-      console.error("Failed to load transaction data:", err);
+    const params = new URLSearchParams(window.location.search);
 
-      setError(
-        err.message || "Failed to load transactions. Please try again."
-      );
-    } finally {
-      setLoading(false);
+    if (params.get("drawer") === "1" && transactionList.length > 0) {
+      setDrawer(transactionList[0]);
     }
+  } catch (err) {
+    console.error("Failed to load transaction data:", err);
+
+    setError(
+      err.message || "Failed to load transactions. Please try again."
+    );
+  } finally {
+    setLoading(false);
   }
+}
+
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -359,12 +363,14 @@ const visiblePages = Array.from(
     try {
       await deleteTransaction(transactionId);
 
-      setTransactions((current) =>
-        current.filter(
-          (transaction) =>
-            transaction.transactionId !== transactionId
-        )
-      );
+    setSharedTransactions(
+  transactions.filter(
+    (transaction) =>
+      transaction.transactionId !== transactionId
+  )
+);
+
+setDrawer(null);
 
       setDrawer(null);
     } catch (err) {
@@ -383,13 +389,16 @@ const visiblePages = Array.from(
         payload
       );
 
-      setTransactions((current) =>
-        current.map((transaction) =>
-          transaction.transactionId === transactionId
-            ? updated
-            : transaction
-        )
-      );
+     setSharedTransactions(
+  transactions.map((transaction) =>
+    transaction.transactionId === transactionId
+      ? updated
+      : transaction
+  )
+);
+
+setDrawer(updated);
+setError("");
 
       setDrawer(updated);
       setError("");
@@ -866,10 +875,10 @@ const visiblePages = Array.from(
           payload
         );
 
-        setTransactions((current) => [
-          created,
-          ...current,
-        ]);
+     setSharedTransactions([created, ...transactions]);
+
+setDrawer(null);
+setError("");
 
         setDrawer(null);
         setError("");
