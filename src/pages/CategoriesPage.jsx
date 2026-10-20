@@ -11,6 +11,40 @@ import {
   deleteCategory,
 } from "../api/categoryApi";
 
+
+let categoriesCache = null;
+let categoriesRequest = null;
+
+async function fetchCategoriesCached(forceRefresh = false) {
+  if (!forceRefresh && categoriesCache !== null) {
+    return categoriesCache;
+  }
+
+  if (!forceRefresh && categoriesRequest) {
+    return categoriesRequest;
+  }
+
+  const request = getCategories()
+    .then((data) => {
+      const result = Array.isArray(data) ? data : [];
+      categoriesCache = result;
+      return result;
+    })
+    .finally(() => {
+      if (categoriesRequest === request) {
+        categoriesRequest = null;
+      }
+    });
+
+  categoriesRequest = request;
+  return request;
+}
+
+function updateCategoriesCache(data) {
+  categoriesCache = data;
+}
+
+
 const pickerIcons = [
   "refresh",
   "grad",
@@ -160,6 +194,7 @@ function CategoriesPage() {
   // Category data
   const [categories, setCategories] = useState([]);
 
+
   // Loading / API state
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -212,25 +247,32 @@ function CategoriesPage() {
   /*
    * GET /api/categories
    */
-  async function loadCategories() {
-    setLoading(true);
+ 
+async function loadCategories(forceRefresh = false) {
+  try {
+    if (categoriesCache !== null) {
+      setCategories(categoriesCache);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     setError("");
 
-    try {
-      const data = await getCategories();
+    const data = await fetchCategoriesCached(forceRefresh);
+    setCategories(data);
+  } catch (err) {
+    console.error("Failed to load categories:", err);
 
-      setCategories(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Failed to load categories:", err);
-
-      setError(
-        err?.message ||
-          "Unable to load your categories. Please try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+    setError(
+      err?.message ||
+        "Unable to load your categories. Please try again."
+    );
+  } finally {
+    setLoading(false);
   }
+}
+
 
   /*
    * Separate categories by transaction type.
@@ -402,10 +444,11 @@ function CategoriesPage() {
             : "EXPENSE",
       });
 
-      setCategories((current) => [
-        ...current,
-        response,
-      ]);
+       setCategories((current) => {
+  const updated = [...current, response];
+  updateCategoriesCache(updated);
+  return updated;
+});
 
       setCreated(true);
       setSuccessMessage(

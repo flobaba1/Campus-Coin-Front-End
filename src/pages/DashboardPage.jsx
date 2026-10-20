@@ -7,8 +7,15 @@ import ThemeToggle from "../components/ThemeToggle";
 import { formatMoney, getCurrencyInfo } from "../utils/currency";
 
 import { getProfile, loadProfilePhoto } from "../api/profileApi";
-import { getTransactions, createTransaction } from "../api/transactionApi";
-import { getCategories } from "../api/categoryApi";
+// import { getTransactions, createTransaction } from "../api/transactionApi";
+// import { getCategories } from "../api/categoryApi";
+import { createTransaction } from "../api/transactionApi";
+//import { createCategory } from "../api/categoryApi";
+import {
+  useTransactionStore,
+  loadTransactionData,
+  setSharedTransactions,
+} from "../state/transactionStore";
 import { getBudgetsForMonth } from "../api/budgetApi";
 import { getCategorySuggestion } from "../api/aiApi";
 import { createCategory } from "../api/categoryApi";
@@ -18,6 +25,76 @@ import { createBookmark } from "../api/bookmarkApi";
 import "../styles/dashboard.css";
 
 
+let aiNotificationsCache = null;
+let aiNotificationsRequest = null;
+
+async function fetchAiNotifications(forceRefresh = false) {
+  if (!forceRefresh && aiNotificationsCache !== null) {
+    return aiNotificationsCache;
+  }
+
+  if (!forceRefresh && aiNotificationsRequest) {
+    return aiNotificationsRequest;
+  }
+
+  aiNotificationsRequest = getNotifications()
+    .then((data) => {
+      const items = Array.isArray(data) ? data : [];
+
+      const visible = items.filter((notification) => {
+        const placement = String(
+          notification?.placement || ""
+        ).toUpperCase();
+
+        return (
+          placement === "ANNOUNCEMENT" ||
+          placement === "TIPS"
+        );
+      });
+
+      aiNotificationsCache = visible;
+      return visible;
+    })
+    .finally(() => {
+      aiNotificationsRequest = null;
+    });
+
+  return aiNotificationsRequest;
+}
+
+
+let budgetsCache = {
+  key: null,
+  data: null,
+  request: null,
+};
+
+async function loadBudgets(year, month) {
+  const key = `${year}-${month}`;
+
+  // Reuse cached data for the same month.
+  if (budgetsCache.key === key && budgetsCache.data !== null) {
+    return budgetsCache.data;
+  }
+
+  // Reuse an in-progress request.
+  if (budgetsCache.key === key && budgetsCache.request) {
+    return budgetsCache.request;
+  }
+
+  budgetsCache.key = key;
+  budgetsCache.request = getBudgetsForMonth(year, month)
+    .then((data) => {
+      const result = Array.isArray(data) ? data : [];
+      budgetsCache.data = result;
+      return result;
+    })
+    .finally(() => {
+      budgetsCache.request = null;
+    });
+
+  return budgetsCache.request;
+}
 
 function money(n) {
   const value = Number(n || 0);
@@ -717,9 +794,15 @@ function DashboardPage() {
 
   const [search, setSearch] = useState("");
 
-  const [transactions, setTransactions] = useState([]);
+  // const [transactions, setTransactions] = useState([]);
 
-  const [categories, setCategories] = useState([]);
+  // const [categories, setCategories] = useState([]);
+
+  const {
+  transactions,
+  categories,
+  error: storeError,
+} = useTransactionStore();
 
   const [budgets, setBudgets] =
     useState([]);
@@ -741,38 +824,58 @@ function DashboardPage() {
   const [aiNotificationsLoading, setAiNotificationsLoading] = useState(true);
   const [selectedAiContent, setSelectedAiContent] = useState(null);
 
-  const loadAiNotifications = async () => {
-    try {
-      setAiNotificationsLoading(true);
-      const data = await getNotifications();
-      const visible = Array.isArray(data) ? data : [];
-      setAiNotifications(
-        visible.filter((notification) => {
-          const placement = String(notification?.placement || "").toUpperCase();
-          return placement === "ANNOUNCEMENT" || placement === "TIPS";
-        })
-      );
-    } catch (error) {
-      console.error("Failed to load AI notifications:", error);
-      setAiNotifications([]);
-    } finally {
+ 
+const loadAiNotifications = async (forceRefresh = false) => {
+  try {
+    // Show cached content immediately when available.
+    if (aiNotificationsCache !== null) {
+      setAiNotifications(aiNotificationsCache);
       setAiNotificationsLoading(false);
+    } else {
+      setAiNotificationsLoading(true);
     }
-  };
+
+    const visible = await fetchAiNotifications(forceRefresh);
+    setAiNotifications(visible);
+  } catch (error) {
+    console.error("Failed to load AI notifications:", error);
+  } finally {
+    setAiNotificationsLoading(false);
+  }
+};
 
   useEffect(() => {
     loadAiNotifications();
-  }, [refreshKey]);
-
-  useEffect(() => {
-    const handleAiUpdated = () => {
-      loadAiNotifications();
-    };
-
-    window.addEventListener("campuscoin:ai-updated", handleAiUpdated);
-    return () =>
-      window.removeEventListener("campuscoin:ai-updated", handleAiUpdated);
   }, []);
+
+  // useEffect(() => {
+  //   const handleAiUpdated = () => {
+  //     loadAiNotifications();
+  //   };
+
+  //   window.addEventListener("campuscoin:ai-updated", handleAiUpdated);
+  //   return () =>
+  //     window.removeEventListener("campuscoin:ai-updated", handleAiUpdated);
+  // }, []);
+
+
+useEffect(() => {
+  const handleAiUpdated = () => {
+    loadAiNotifications(true);
+  };
+
+  window.addEventListener(
+    "campuscoin:ai-updated",
+    handleAiUpdated
+  );
+
+  return () => {
+    window.removeEventListener(
+      "campuscoin:ai-updated",
+      handleAiUpdated
+    );
+  };
+}, []);
 
   const saveAiContent = async (content) => {
     try {
@@ -817,51 +920,49 @@ function DashboardPage() {
 
   useEffect(() => {
     loadDashboardData();
-  }, [refreshKey]);
+  }, []);
 
-  async function loadDashboardData() {
-    try {
-      setLoading(true);
-      setError("");
 
-      const now = new Date();
-      const currentYear = now.getFullYear();
-      const currentMonth = now.getMonth() + 1;
+async function loadDashboardData() {
+  try {
+    //setLoading(true);
+    const hasDashboardData = transactions.length > 0 || budgets.length > 0;
 
-      const [
-        transactionData,
-        categoryData,
-        budgetData,
-      ] = await Promise.all([
-        getTransactions(),
-        getCategories(),
-        getBudgetsForMonth(
-          currentYear,
-          currentMonth
-        ),
-      ]);
+if (!hasDashboardData) {
+  setLoading(true);
+}
+    setError("");
 
-      setTransactions(Array.isArray(transactionData) ? transactionData : []);
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1;
 
-      setCategories(
-        Array.isArray(categoryData)
-          ? categoryData
-          : []
-      );
+    // await Promise.all([
+    //   loadTransactionData(),
+    //   getBudgetsForMonth(currentYear, currentMonth).then(
+    //     (budgetData) => {
+    //       setBudgets(
+    //         Array.isArray(budgetData) ? budgetData : []
+    //       );
+    //     }
+    //   ),
+    // ]);
 
-      setBudgets(
-        Array.isArray(budgetData)
-          ? budgetData
-          : []
-      );
-    } catch (err) {
-      console.error("Failed to load dashboard data:", err);
+    const budgetData = await loadBudgets(currentYear, currentMonth);
+setBudgets(budgetData);
 
-      setError(err.message || "Failed to load dashboard data.");
-    } finally {
-      setLoading(false);
-    }
+await loadTransactionData();
+  } catch (err) {
+    console.error("Failed to load dashboard data:", err);
+
+    setError(
+      err.message || "Failed to load dashboard data."
+    );
+  } finally {
+    setLoading(false);
   }
+}
+
 
   const currentDate = new Date();
   const currentYear = currentDate.getFullYear();
@@ -997,7 +1098,12 @@ const categorySpending = useMemo(() => {
 
       const createdTransaction = await createTransaction(payload);
 
-      setTransactions((current) => [createdTransaction, ...current]);
+      //setTransactions((current) => [createdTransaction, ...current]);
+
+      setSharedTransactions((current) => [
+  createdTransaction,
+  ...current,
+]);
 
       setSaved(true);
       setToast(true);
@@ -1736,7 +1842,7 @@ function SavingTips({ tips = [], loading = false, onViewAll, onOpen }) {
         </div>
       ) : tips.length ? (
         <div className="dashboard-tip-list">
-          {tips.map((tip) => (
+            {tips.slice(0, 1).map((tip) => (
             <button
               type="button"
               className="tip-row tip-row-button"
